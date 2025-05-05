@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transmon Qubit Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 600px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-top: 1em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.8em;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #388e3c;
+    }
+    .result {
+      margin-top: 1.5em;
+      font-weight: bold;
+    }
+    table {
+      margin-top: 2em;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 0.5em;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Transmon Qubit Calculator</h2>
+    <label for="Ec">Charging energy E<sub>C</sub> [GHz]:</label>
+    <input type="number" id="Ec" step="any">
+
+    <label for="Ej">Josephson energy E<sub>J</sub> [GHz]:</label>
+    <input type="number" id="Ej" step="any">
+
+    <label for="f_r">Readout resonator freq f<sub>r</sub> [GHz] (optional):</label>
+    <input type="number" id="f_r" step="any">
+
+    <label for="g">Coupling g [MHz] (optional):</label>
+    <input type="number" id="g" step="any">
+
+    <label for="kappa">Kappa [MHz] (optional):</label>
+    <input type="number" id="kappa" step="any">
+
+    <button onclick="calculateTransmon()">Calculate</button>
+
+    <div class="result" id="output"></div>
+
+    <h3>Formulas Used</h3>
+    <table>
+      <tr><th>Quantity</th><th>Formula</th></tr>
+      <tr><td>Critical current I<sub>c</sub></td><td>E<sub>J</sub> = &hbar; I<sub>c</sub> / (2e)</td></tr>
+      <tr><td>Capacitance C</td><td>E<sub>C</sub> = e² / (2C)</td></tr>
+      <tr><td>Josephson inductance</td><td>L<sub>J</sub> = &phi;<sub>0</sub> / I<sub>c</sub></td></tr>
+      <tr><td>Qubit frequency</td><td>f<sub>01</sub> ≈ √(8E<sub>J</sub>E<sub>C</sub>) - E<sub>C</sub></td></tr>
+      <tr><td>Anharmonicity α</td><td>α ≈ -E<sub>C</sub></td></tr>
+      <tr><td>Charge dispersion</td><td>Δ ≈ E<sub>C</sub> exp(-√(8E<sub>J</sub>/E<sub>C</sub>))</td></tr>
+      <tr><td>Lamb shift</td><td>δ<sub>L</sub> ≈ g² / (f<sub>01</sub> - f<sub>r</sub>)</td></tr>
+      <tr><td>Dispersive shift χ</td><td>χ ≈ g² α / ((f<sub>01</sub> - f<sub>r</sub>) (α + f<sub>01</sub> - f<sub>r</sub>))</td></tr>
+    </table>
+  </div>
+
+  <script>
+    function calculateTransmon() {
+      const h = 6.62607015e-34;
+      const hbar = h / (2 * Math.PI);
+      const e = 1.602176634e-19;
+      const phi0 = h / (2 * e);
+      const GHz_to_J = h * 1e9;
+
+      const Ec = parseFloat(document.getElementById('Ec').value);
+      const Ej = parseFloat(document.getElementById('Ej').value);
+      const fr = parseFloat(document.getElementById('f_r').value);
+      const gMHz = parseFloat(document.getElementById('g').value);
+      const kappaMHz = parseFloat(document.getElementById('kappa').value);
+
+      if (isNaN(Ec) || isNaN(Ej) || Ec <= 0 || Ej <= 0) {
+        document.getElementById('output').innerText = "Please enter valid positive E_C and E_J.";
+        return;
+      }
+
+      const Ej_J = Ej * GHz_to_J;
+      const Ec_J = Ec * GHz_to_J;
+      const Ic = (2 * e * Ej_J) / hbar;
+      const C = e * e / (2 * Ec_J);
+      const Lj = phi0 / Ic;
+      const f01 = Math.sqrt(8 * Ej * Ec) - Ec;
+      const alpha = -Ec;
+      const delta = Ec * Math.exp(-Math.sqrt(8 * Ej / Ec));
+
+      let extra = "";
+      if (!isNaN(fr) && !isNaN(gMHz)) {
+        const gGHz = gMHz / 1000;
+        const deltaFreq = f01 - fr;
+        const lamb = (gGHz ** 2) / deltaFreq;
+        let chi = 0;
+        if (alpha + deltaFreq !== 0) {
+          chi = gGHz ** 2 * alpha / (deltaFreq * (alpha + deltaFreq));
+        }
+        extra = `Lamb shift: ${lamb.toExponential(6)} GHz<br>Dispersive shift χ: ${chi.toExponential(6)} GHz`;
+      }
+
+      document.getElementById('output').innerHTML = `
+        Critical current Iₙ: ${Ic.toExponential(6)} A<br>
+        Capacitance C: ${C.toExponential(6)} F<br>
+        Josephson inductance L<sub>J</sub>: ${Lj.toExponential(6)} H<br>
+        Qubit frequency f₀₁: ${f01.toExponential(6)} GHz<br>
+        Anharmonicity α: ${alpha.toExponential(6)} GHz<br>
+        Charge dispersion Δ: ${delta.toExponential(6)} GHz<br>
+        ${extra}
+      `;
+    }
+  </script>
+</body>
+</html>
