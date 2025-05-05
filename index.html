@@ -3,256 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transmission Line, Blackbody Spectrum, and Energy Unit Calculators</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <title>Physics Calculators</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 2em;
-      background: #f9f9f9;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    h1, h2 {
-      text-align: center;
+    h1 {
+      margin-bottom: 1em;
     }
-    .converter {
+    .card {
       background: white;
       padding: 1.5em;
-      margin: 2em auto;
-      max-width: 500px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      border-radius: 10px;
-    }
-    label, select, input, button {
-      display: block;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       width: 100%;
-      margin-top: 1em;
-    }
-    button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 0.7em;
-      cursor: pointer;
-      font-size: 1em;
-      border-radius: 5px;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    .result {
-      margin-top: 1em;
-      font-weight: bold;
+      max-width: 500px;
       text-align: center;
     }
-    #plot {
-      margin-top: 2em;
+    .card a {
+      text-decoration: none;
+      font-size: 1.2em;
+      color: #0077cc;
+    }
+    .card a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
+  <h1>Physics Calculators</h1>
 
-<h1>Calculators</h1>
+  <div class="card">
+    <a href="transmission.html">🔄 Transmission Line Delay ⇄ Wavelength</a>
+  </div>
 
-<div class="converter">
-  <h2>Delay ⇄ Wavelength Calculator</h2>
+  <div class="card">
+    <a href="blackbody.html">🌈 Blackbody Radiation Spectrum</a>
+  </div>
 
-  <label for="eff-const">Effective Dielectric Constant (εₑff):</label>
-  <input type="number" id="eff-const" placeholder="e.g., 6.5" step="any">
-
-  <label for="input-type">I have:</label>
-  <select id="input-type">
-    <option value="time">Time Delay (s)</option>
-    <option value="wavelength">Wavelength (m)</option>
-  </select>
-
-  <label for="si-prefix">SI Prefix:</label>
-  <select id="si-prefix">
-    <option value="1">(none)</option>
-    <option value="1e-15">f (femto)</option>
-    <option value="1e-12">p (pico)</option>
-    <option value="1e-9">n (nano)</option>
-    <option value="1e-6">μ (micro)</option>
-    <option value="1e-3">m (milli)</option>
-    <option value="1e3">k (kilo)</option>
-    <option value="1e6">M (mega)</option>
-    <option value="1e9">G (giga)</option>
-  </select>
-
-  <label for="input-value">Enter value:</label>
-  <input type="number" id="input-value" placeholder="Enter value" step="any">
-
-  <button onclick="convertTransmissionLine()">Convert</button>
-
-  <div class="result" id="result"></div>
-</div>
-
-<div class="converter">
-  <h2>Blackbody Radiation Spectrum</h2>
-
-  <label for="temperature">Temperature (K):</label>
-  <input type="number" id="temperature" placeholder="e.g., 3000" step="any">
-
-  <button onclick="plotBlackbodySpectrum()">Plot Spectrum</button>
-
-  <div id="plot"></div>
-  <div class="result" id="blackbody-info"></div>
-</div>
-
-<div class="converter">
-  <h2>Energy Unit Translator</h2>
-
-  <label for="energy-value">Enter value:</label>
-  <input type="number" id="energy-value" placeholder="Enter energy" step="any">
-
-  <label for="energy-unit">Input unit:</label>
-  <select id="energy-unit">
-    <option value="joule">Joule (J)</option>
-    <option value="ev">Electronvolt (eV)</option>
-    <option value="hz">Frequency (Hz)</option>
-    <option value="k">Temperature (K)</option>
-    <option value="wavelength">Photon Wavelength (m)</option>
-    <option value="mass">Mass (kg)</option>
-  </select>
-
-  <label for="energy-prefix">SI Prefix:</label>
-  <select id="energy-prefix">
-    <option value="1">(none)</option>
-    <option value="1e-15">f (femto)</option>
-    <option value="1e-12">p (pico)</option>
-    <option value="1e-9">n (nano)</option>
-    <option value="1e-6">μ (micro)</option>
-    <option value="1e-3">m (milli)</option>
-    <option value="1e3">k (kilo)</option>
-    <option value="1e6">M (mega)</option>
-    <option value="1e9">G (giga)</option>
-  </select>
-
-  <button onclick="translateEnergy()">Translate</button>
-
-  <div class="result" id="energy-result"></div>
-</div>
-
-<script>
-function convertTransmissionLine() {
-  const c = 299792458;
-  const effConst = parseFloat(document.getElementById('eff-const').value);
-  const inputType = document.getElementById('input-type').value;
-  const prefix = parseFloat(document.getElementById('si-prefix').value);
-  const inputValue = parseFloat(document.getElementById('input-value').value);
-  const resultDiv = document.getElementById('result');
-
-  if (isNaN(effConst) || effConst <= 0 || isNaN(inputValue) || inputValue <= 0) {
-    resultDiv.innerText = "Please enter valid positive values.";
-    return;
-  }
-
-  const vp = c / Math.sqrt(effConst);
-  let result, frequency;
-
-  if (inputType === "time") {
-    const timeInSeconds = inputValue * prefix;
-    result = timeInSeconds * vp;
-    frequency = vp / result;
-    resultDiv.innerHTML = `Wavelength: ${result.toExponential(6)} meters<br>Frequency: ${frequency.toExponential(6)} Hz`;
-  } else if (inputType === "wavelength") {
-    const wavelengthInMeters = inputValue * prefix;
-    result = wavelengthInMeters / vp;
-    frequency = vp / wavelengthInMeters;
-    resultDiv.innerHTML = `Time Delay: ${result.toExponential(6)} seconds<br>Frequency: ${frequency.toExponential(6)} Hz`;
-  } else {
-    resultDiv.innerText = "Unknown conversion type.";
-  }
-}
-
-function plotBlackbodySpectrum() {
-  const T = parseFloat(document.getElementById('temperature').value);
-  if (isNaN(T) || T <= 0) {
-    alert("Please enter a valid positive temperature in Kelvin.");
-    return;
-  }
-
-  const h = 6.62607015e-34;
-  const c = 2.99792458e8;
-  const kB = 1.380649e-23;
-  const b = 2.897771955e-3;
-  const sigma = 5.670374419e-8;
-
-  const lambdaPeak = b / T;
-  const freqPeak = c / lambdaPeak;
-  const energyPeak_eV = (h * freqPeak) / (1.602176634e-19);
-  const totalRadiatedPower = sigma * Math.pow(T, 4);
-
-  const wavelengths = [];
-  const radiances = [];
-
-  for (let lambda = 1e-9; lambda <= 5 * lambdaPeak; lambda += 5e-9) {
-    const B = (2 * h * c**2) / (lambda**5) / (Math.exp((h * c) / (lambda * kB * T)) - 1);
-    wavelengths.push(lambda * 1e9);
-    radiances.push(B);
-  }
-
-  const trace = {
-    x: wavelengths,
-    y: radiances,
-    type: 'scatter',
-    mode: 'lines',
-    name: `T = ${T} K`
-  };
-
-  const layout = {
-    title: `Blackbody Radiation Spectrum (T = ${T} K)`,
-    xaxis: { title: 'Wavelength (nm)', range: [0, 5 * lambdaPeak * 1e9] },
-    yaxis: { title: 'Spectral Radiance (W·sr⁻¹·m⁻³)' }
-  };
-
-  Plotly.newPlot('plot', [trace], layout);
-
-  document.getElementById('blackbody-info').innerHTML = `
-    Peak Wavelength (λₚ): ${lambdaPeak.toExponential(6)} m<br>
-    Energy at Peak: ${energyPeak_eV.toExponential(6)} eV<br>
-    Frequency at Peak: ${freqPeak.toExponential(6)} Hz<br>
-    Total Radiated Power: ${totalRadiatedPower.toExponential(6)} W/m²
-  `;
-}
-
-function translateEnergy() {
-  const h = 6.62607015e-34;
-  const c = 2.99792458e8;
-  const kB = 1.380649e-23;
-  const eV_J = 1.602176634e-19;
-
-  const value = parseFloat(document.getElementById('energy-value').value);
-  const unit = document.getElementById('energy-unit').value;
-  const prefix = parseFloat(document.getElementById('energy-prefix').value);
-  const resultDiv = document.getElementById('energy-result');
-
-  if (isNaN(value) || value <= 0) {
-    resultDiv.innerText = "Please enter a valid positive number.";
-    return;
-  }
-
-  let E_J;
-
-  if (unit === 'joule') E_J = value * prefix;
-  else if (unit === 'ev') E_J = value * prefix * eV_J;
-  else if (unit === 'hz') E_J = value * prefix * h;
-  else if (unit === 'k') E_J = value * prefix * kB;
-  else if (unit === 'wavelength') E_J = h * c / (value * prefix);
-  else if (unit === 'mass') E_J = value * prefix * c**2;
-
-  const outputs = `
-    Joule: ${E_J.toExponential(6)} J<br>
-    Electronvolt: ${(E_J / eV_J).toExponential(6)} eV<br>
-    Frequency: ${(E_J / h).toExponential(6)} Hz<br>
-    Temperature: ${(E_J / kB).toExponential(6)} K<br>
-    Photon Wavelength: ${(h * c / E_J).toExponential(6)} m<br>
-    Mass (rest energy): ${(E_J / (c**2)).toExponential(6)} kg<br>
-    De Broglie Wavelength (nonrelativistic): ${(h / Math.sqrt(2 * E_J / (c**2))).toExponential(6)} m
-  `;
-
-  resultDiv.innerHTML = outputs;
-}
-</script>
-
+  <div class="card">
+    <a href="energy.html">⚡ Energy Unit Translator</a>
+  </div>
 </body>
 </html>

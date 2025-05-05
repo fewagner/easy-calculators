@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackbody Radiation Calculator</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background: #f9f9f9;
+    }
+    .converter {
+      background: white;
+      padding: 1.5em;
+      max-width: 500px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-top: 1em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.7em;
+      font-size: 1em;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 1em;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="converter">
+    <h2>Blackbody Radiation Spectrum</h2>
+
+    <label for="temperature">Temperature (K):</label>
+    <input type="number" id="temperature" placeholder="e.g., 3000" step="any">
+
+    <button onclick="plotBlackbodySpectrum()">Plot Spectrum</button>
+
+    <div id="plot"></div>
+    <div class="result" id="blackbody-info"></div>
+  </div>
+
+  <script>
+    function plotBlackbodySpectrum() {
+      const T = parseFloat(document.getElementById('temperature').value);
+      if (isNaN(T) || T <= 0) {
+        alert("Please enter a valid positive temperature in Kelvin.");
+        return;
+      }
+
+      const h = 6.62607015e-34;
+      const c = 2.99792458e8;
+      const kB = 1.380649e-23;
+      const b = 2.897771955e-3;
+      const sigma = 5.670374419e-8;
+
+      const lambdaPeak = b / T;
+      const freqPeak = c / lambdaPeak;
+      const energyPeak_eV = (h * freqPeak) / (1.602176634e-19);
+      const totalRadiatedPower = sigma * Math.pow(T, 4);
+
+      const wavelengths = [];
+      const radiances = [];
+
+      for (let lambda = 1e-9; lambda <= 5 * lambdaPeak; lambda += 5e-9) {
+        const B = (2 * h * c**2) / (lambda**5) / (Math.exp((h * c) / (lambda * kB * T)) - 1);
+        wavelengths.push(lambda * 1e9);
+        radiances.push(B);
+      }
+
+      const trace = {
+        x: wavelengths,
+        y: radiances,
+        type: 'scatter',
+        mode: 'lines',
+        name: `T = ${T} K`
+      };
+
+      const layout = {
+        title: `Blackbody Radiation Spectrum (T = ${T} K)` ,
+        xaxis: { title: 'Wavelength (nm)', range: [0, 5 * lambdaPeak * 1e9] },
+        yaxis: { title: 'Spectral Radiance (W·sr⁻¹·m⁻³)' }
+      };
+
+      Plotly.newPlot('plot', [trace], layout);
+
+      document.getElementById('blackbody-info').innerHTML = `
+        Peak Wavelength (λₚ): ${lambdaPeak.toExponential(6)} m<br>
+        Energy at Peak: ${energyPeak_eV.toExponential(6)} eV<br>
+        Frequency at Peak: ${freqPeak.toExponential(6)} Hz<br>
+        Total Radiated Power: ${totalRadiatedPower.toExponential(6)} W/m²
+      `;
+    }
+  </script>
+</body>
+</html>
