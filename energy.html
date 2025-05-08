@@ -9,6 +9,9 @@
       font-family: Arial, sans-serif;
       background: #f0f0f0;
       padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .converter {
       background: white;
@@ -39,6 +42,24 @@
       margin-top: 1.5em;
       font-weight: bold;
       text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+    .card a {
+      text-decoration: none;
+      font-size: 1.2em;
+      color: #0077cc;
+    }
+    .card a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -116,5 +137,8 @@
       resultDiv.innerHTML = outputs;
     }
   </script>
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
 </body>
 </html>
