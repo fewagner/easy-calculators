@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transmon Qubit Calculator</title>
+  <title>Cooper Pair Box / Transmon Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,7 +18,8 @@
     .container {
       background: white;
       padding: 2em;
-      max-width: 600px;
+      max-width: 660px;
+      width: 100%;
       margin: auto;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -25,6 +28,13 @@
       display: block;
       width: 100%;
       margin-top: 1em;
+    }
+    input {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
     }
     button {
       background: #4CAF50;
@@ -35,28 +45,33 @@
       font-size: 1em;
       cursor: pointer;
     }
-    button:hover {
-      background: #388e3c;
-    }
-    .result {
-      margin-top: 1.5em;
+    button:hover { background: #388e3c; }
+    .result { margin-top: 1.5em; line-height: 2em; }
+    .regime-badge {
+      display: inline-block;
+      padding: 0.35em 1.1em;
+      border-radius: 20px;
       font-weight: bold;
+      color: white;
+      margin-bottom: 1em;
+    }
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1em;
+      margin-bottom: 0.1em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
     }
     table {
       margin-top: 2em;
       width: 100%;
       border-collapse: collapse;
     }
-    table, th, td {
-      border: 1px solid #ddd;
-    }
-    th, td {
-      padding: 0.5em;
-      text-align: left;
-    }
-    th {
-      background: #f0f0f0;
-    }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 0.5em; text-align: left; }
+    th { background: #f0f0f0; }
     .card {
       background: white;
       padding: 1.5em;
@@ -64,106 +79,217 @@
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 500px;
+      max-width: 660px;
       text-align: center;
     }
-    .card a {
-      text-decoration: none;
-      font-size: 1.2em;
-      color: #0077cc;
-    }
-    .card a:hover {
-      text-decoration: underline;
-    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+    #band-plot { margin-top: 1.5em; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Transmon Qubit Calculator</h2>
+    <h2>Cooper Pair Box / Transmon Calculator</h2>
+
     <label for="Ec">Charging energy E<sub>C</sub> [GHz]:</label>
-    <input type="number" id="Ec" step="any">
+    <input type="number" id="Ec" step="any" placeholder="e.g. 0.2">
 
     <label for="Ej">Josephson energy E<sub>J</sub> [GHz]:</label>
-    <input type="number" id="Ej" step="any">
+    <input type="number" id="Ej" step="any" placeholder="e.g. 10">
 
-    <label for="f_r">Readout resonator freq f<sub>r</sub> [GHz] (optional):</label>
+    <label for="ng">Gate charge n<sub>g</sub> [Cooper pairs] (0 = integer charge, 0.5 = half-charge sweet spot):</label>
+    <input type="number" id="ng" step="any" value="0" placeholder="0">
+
+    <label for="f_r">Readout resonator f<sub>r</sub> [GHz] (optional):</label>
     <input type="number" id="f_r" step="any">
 
     <label for="g">Coupling g [MHz] (optional):</label>
     <input type="number" id="g" step="any">
 
-    <label for="kappa">Kappa [MHz] (optional):</label>
+    <label for="kappa">Resonator linewidth &kappa; [MHz] (optional):</label>
     <input type="number" id="kappa" step="any">
 
-    <button onclick="calculateTransmon()">Calculate</button>
+    <button onclick="calculate()">Calculate</button>
 
     <div class="result" id="output"></div>
+    <div id="band-plot"></div>
 
-    <h3>Formulas Used</h3>
+    <h3>Formulas</h3>
     <table>
-      <tr><th>Quantity</th><th>Formula</th></tr>
-      <tr><td>Critical current I<sub>c</sub></td><td>E<sub>J</sub> = &hbar; I<sub>c</sub> / (2e)</td></tr>
-      <tr><td>Capacitance C</td><td>E<sub>C</sub> = e² / (2C)</td></tr>
-      <tr><td>Josephson inductance</td><td>L<sub>J</sub> = &Phi;<sub>0</sub> / (2&pi; I<sub>c</sub>) = &hbar; / (2e I<sub>c</sub>)</td></tr>
-      <tr><td>Qubit frequency</td><td>f<sub>01</sub> ≈ √(8E<sub>J</sub>E<sub>C</sub>) - E<sub>C</sub></td></tr>
-      <tr><td>Anharmonicity α</td><td>α ≈ -E<sub>C</sub></td></tr>
-      <tr><td>Charge dispersion</td><td>Δ ≈ E<sub>C</sub> exp(-√(8E<sub>J</sub>/E<sub>C</sub>))</td></tr>
-      <tr><td>Lamb shift</td><td>δ<sub>L</sub> ≈ g² / (f<sub>01</sub> - f<sub>r</sub>)</td></tr>
-      <tr><td>Dispersive shift χ</td><td>χ ≈ g² α / ((f<sub>01</sub> - f<sub>r</sub>) (α + f<sub>01</sub> - f<sub>r</sub>))</td></tr>
+      <tr><th>Quantity</th><th>Method / Formula</th></tr>
+      <tr><td>Hamiltonian</td><td>H = 4E<sub>C</sub>(n&#x0302; &minus; n<sub>g</sub>)&sup2; &minus; E<sub>J</sub>cos(&phi;&#x0302;)</td></tr>
+      <tr><td>f&#x2080;&#x2081;, &alpha;, &Delta;</td><td>Exact numerical diagonalization (charge basis, 31 states)</td></tr>
+      <tr><td>Charge dispersion &Delta;</td><td>|f&#x2080;&#x2081;(n<sub>g</sub>=0) &minus; f&#x2080;&#x2081;(n<sub>g</sub>=&frac12;)|</td></tr>
+      <tr><td>f&#x2080;&#x2081; (transmon approx.)</td><td>&radic;(8E<sub>J</sub>E<sub>C</sub>) &minus; E<sub>C</sub> &nbsp;(valid for E<sub>J</sub>/E<sub>C</sub> &Gt; 1)</td></tr>
+      <tr><td>Critical current I<sub>c</sub></td><td>E<sub>J</sub> = &hbar;I<sub>c</sub> / (2e)</td></tr>
+      <tr><td>Capacitance C</td><td>E<sub>C</sub> = e&sup2; / (2C)</td></tr>
+      <tr><td>Josephson inductance L<sub>J</sub></td><td>&Phi;<sub>0</sub> / (2&pi;I<sub>c</sub>) = &hbar; / (2eI<sub>c</sub>)</td></tr>
+      <tr><td>Lamb shift</td><td>&delta;<sub>L</sub> &approx; g&sup2; / (f&#x2080;&#x2081; &minus; f<sub>r</sub>)</td></tr>
+      <tr><td>Dispersive shift &chi;</td><td>g&sup2;&alpha; / ((f&#x2080;&#x2081;&minus;f<sub>r</sub>)(&alpha;+f&#x2080;&#x2081;&minus;f<sub>r</sub>))</td></tr>
     </table>
   </div>
 
   <script>
-    function calculateTransmon() {
-      const h = 6.62607015e-34;
+    // Charge basis truncated at ±N_STATES → 31×31 Hamiltonian.
+    // N=15 gives < 0.01% error for any practical E_J/E_C ratio.
+    const N_STATES = 15;
+
+    function getEigenvalues(Ec, Ej, ng) {
+      const dim = 2 * N_STATES + 1;
+      const H = [];
+      for (let i = 0; i < dim; i++) {
+        H.push(new Array(dim).fill(0));
+        const n = i - N_STATES;
+        H[i][i] = 4 * Ec * (n - ng) ** 2;
+        if (i > 0)       H[i][i - 1] = -Ej / 2;
+        if (i < dim - 1) H[i][i + 1] = -Ej / 2;
+      }
+      const result = math.eigs(H);
+      // math.re() handles both plain numbers and Complex objects safely
+      return result.values.map(v => math.re(v)).sort((a, b) => a - b);
+    }
+
+    function calculate() {
+      const h    = 6.62607015e-34;
       const hbar = h / (2 * Math.PI);
-      const e = 1.602176634e-19;
-      const phi0 = h / (2 * e);
+      const e    = 1.602176634e-19;
       const GHz_to_J = h * 1e9;
 
-      const Ec = parseFloat(document.getElementById('Ec').value);
-      const Ej = parseFloat(document.getElementById('Ej').value);
-      const fr = parseFloat(document.getElementById('f_r').value);
-      const gMHz = parseFloat(document.getElementById('g').value);
+      const Ec      = parseFloat(document.getElementById('Ec').value);
+      const Ej      = parseFloat(document.getElementById('Ej').value);
+      const ng_raw  = parseFloat(document.getElementById('ng').value);
+      const fr      = parseFloat(document.getElementById('f_r').value);
+      const gMHz    = parseFloat(document.getElementById('g').value);
       const kappaMHz = parseFloat(document.getElementById('kappa').value);
+      const outDiv  = document.getElementById('output');
 
       if (isNaN(Ec) || isNaN(Ej) || Ec <= 0 || Ej <= 0) {
-        document.getElementById('output').innerText = "Please enter valid positive E_C and E_J.";
+        outDiv.innerText = 'Please enter valid positive E_C and E_J.';
         return;
       }
+      const ng = isNaN(ng_raw) ? 0 : ng_raw;
 
-      const Ej_J = Ej * GHz_to_J;
-      const Ec_J = Ec * GHz_to_J;
-      const Ic = (2 * e * Ej_J) / hbar;
-      const C = e * e / (2 * Ec_J);
-      const Lj = hbar / (2 * e * Ic);
-      const f01 = Math.sqrt(8 * Ej * Ec) - Ec;
-      const alpha = -Ec;
-      const delta = Ec * Math.exp(-Math.sqrt(8 * Ej / Ec));
-
-      let extra = "";
-      if (!isNaN(fr) && !isNaN(gMHz)) {
-        const gGHz = gMHz / 1000;
-        const deltaFreq = f01 - fr;
-        const lamb = (gGHz ** 2) / deltaFreq;
-        let chi = 0;
-        if (alpha + deltaFreq !== 0) {
-          chi = gGHz ** 2 * alpha / (deltaFreq * (alpha + deltaFreq));
-        }
-        extra = `Lamb shift: ${lamb.toExponential(6)} GHz<br>Dispersive shift χ: ${chi.toExponential(6)} GHz`;
+      // ── Regime indicator ────────────────────────────────────────────────
+      const ratio = Ej / Ec;
+      let regimeLabel, regimeColor;
+      if (ratio < 5) {
+        regimeLabel = `Charge qubit regime  (E\u2C7C/E\u1D04 = ${ratio.toFixed(2)} < 5)`;
+        regimeColor = '#c62828';
+      } else if (ratio < 50) {
+        regimeLabel = `Intermediate regime  (E\u2C7C/E\u1D04 = ${ratio.toFixed(2)})`;
+        regimeColor = '#e65100';
+      } else {
+        regimeLabel = `Transmon regime  (E\u2C7C/E\u1D04 = ${ratio.toFixed(2)} > 50)`;
+        regimeColor = '#2e7d32';
       }
 
-      document.getElementById('output').innerHTML = `
-        Critical current Iₙ: ${Ic.toExponential(6)} A<br>
+      // ── Exact diagonalization ───────────────────────────────────────────
+      const ev    = getEigenvalues(Ec, Ej, ng);
+      const ev0   = getEigenvalues(Ec, Ej, 0.0);
+      const ev05  = getEigenvalues(Ec, Ej, 0.5);
+
+      const f01   = ev[1]  - ev[0];
+      const alpha = (ev[2] - ev[1]) - (ev[1] - ev[0]);
+      const chargeDisp = Math.abs((ev0[1] - ev0[0]) - (ev05[1] - ev05[0]));
+
+      // ── Transmon approximations (for comparison) ────────────────────────
+      const f01_approx   = Math.sqrt(8 * Ej * Ec) - Ec;
+      const alpha_approx = -Ec;
+      const delta_approx = Ec * Math.exp(-Math.sqrt(8 * Ej / Ec));
+
+      // ── Circuit parameters (exact) ──────────────────────────────────────
+      const Ic = (2 * e * Ej * GHz_to_J) / hbar;
+      const C  = (e * e) / (2 * Ec * GHz_to_J);
+      const Lj = hbar / (2 * e * Ic);
+
+      // ── Coupling / dispersive (optional) ───────────────────────────────
+      let couplingHTML = '';
+      if (!isNaN(fr) && !isNaN(gMHz)) {
+        const gGHz   = gMHz / 1000;
+        const deltaF = f01 - fr;
+        const lamb   = gGHz ** 2 / deltaF;
+        let chi = 0;
+        if (Math.abs(alpha + deltaF) > 1e-12)
+          chi = gGHz ** 2 * alpha / (deltaF * (alpha + deltaF));
+
+        let kappaLine = '';
+        if (!isNaN(kappaMHz) && kappaMHz > 0) {
+          const chiMHz = Math.abs(chi) * 1000;
+          const r = chiMHz / kappaMHz;
+          const regime = r > 1
+            ? `<span style="color:#2e7d32">strong dispersive ✓ (|&chi;|/&kappa; = ${r.toFixed(2)})</span>`
+            : `<span style="color:#c62828">weak dispersive (|&chi;|/&kappa; = ${r.toFixed(2)})</span>`;
+          kappaLine = `&kappa;: ${kappaMHz} MHz &nbsp;&nbsp; ${regime}<br>`;
+        }
+
+        couplingHTML = `
+          <span class="section-label">Coupling / Dispersive (using exact f&#x2080;&#x2081;, &alpha;)</span>
+          Lamb shift &delta;<sub>L</sub>: ${lamb.toExponential(4)} GHz<br>
+          Dispersive shift &chi;: ${chi.toExponential(4)} GHz &nbsp;(${(chi * 1000).toExponential(4)} MHz)<br>
+          ${kappaLine}
+        `;
+      }
+
+      outDiv.innerHTML = `
+        <div class="regime-badge" style="background:${regimeColor};">${regimeLabel}</div>
+
+        <span class="section-label">Exact &mdash; CPB diagonalization at n<sub>g</sub> = ${ng}</span>
+        Qubit frequency f&#x2080;&#x2081;: ${f01.toExponential(6)} GHz<br>
+        Anharmonicity &alpha;: ${alpha.toExponential(6)} GHz<br>
+        Charge dispersion &Delta;: ${chargeDisp.toExponential(6)} GHz<br>
+
+        <span class="section-label">Transmon approximation (valid when E<sub>J</sub>/E<sub>C</sub> &Gt; 1)</span>
+        f&#x2080;&#x2081; &approx; &radic;(8E<sub>J</sub>E<sub>C</sub>) &minus; E<sub>C</sub>: ${f01_approx.toExponential(6)} GHz<br>
+        &alpha; &approx; &minus;E<sub>C</sub>: ${alpha_approx.toExponential(6)} GHz<br>
+        &Delta; &approx; E<sub>C</sub>&thinsp;exp(&minus;&radic;(8E<sub>J</sub>/E<sub>C</sub>)): ${delta_approx.toExponential(6)} GHz<br>
+
+        <span class="section-label">Circuit parameters (exact)</span>
+        Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
         Capacitance C: ${C.toExponential(6)} F<br>
         Josephson inductance L<sub>J</sub>: ${Lj.toExponential(6)} H<br>
-        Qubit frequency f₀₁: ${f01.toExponential(6)} GHz<br>
-        Anharmonicity α: ${alpha.toExponential(6)} GHz<br>
-        Charge dispersion Δ: ${delta.toExponential(6)} GHz<br>
-        ${extra}
+        ${couplingHTML}
       `;
+
+      plotBandStructure(Ec, Ej);
+    }
+
+    function plotBandStructure(Ec, Ej) {
+      const ngArr  = [];
+      const f01Arr = [];
+      const f12Arr = [];
+      const steps  = 150;
+
+      for (let i = 0; i <= steps; i++) {
+        const ng = -0.5 + 2 * i / steps;   // sweeps -0.5 → 1.5 (two full periods)
+        ngArr.push(ng);
+        const ev = getEigenvalues(Ec, Ej, ng);
+        f01Arr.push(ev[1] - ev[0]);
+        f12Arr.push(ev[2] - ev[1]);
+      }
+
+      Plotly.newPlot('band-plot', [
+        {
+          x: ngArr, y: f01Arr,
+          name: 'f\u2080\u2081  (|0\u27E9\u2192|1\u27E9)',
+          type: 'scatter', mode: 'lines',
+          line: { color: '#1565c0', width: 2 }
+        },
+        {
+          x: ngArr, y: f12Arr,
+          name: 'f\u2081\u2082  (|1\u27E9\u2192|2\u27E9)',
+          type: 'scatter', mode: 'lines',
+          line: { color: '#b71c1c', width: 2, dash: 'dash' }
+        }
+      ], {
+        title: `Band structure  (E_J/E_C = ${(Ej / Ec).toFixed(1)})`,
+        xaxis: { title: 'Gate charge n\u1D4D (Cooper pairs)', zeroline: true, dtick: 0.5 },
+        yaxis: { title: 'Transition frequency (GHz)' },
+        margin: { t: 50 },
+        legend: { x: 0.02, y: 0.98 }
+      });
     }
   </script>
+
   <div class="card">
     <a href="index.html">Back</a>
   </div>
