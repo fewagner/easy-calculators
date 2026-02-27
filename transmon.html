@@ -104,7 +104,7 @@
       <tr><th>Quantity</th><th>Formula</th></tr>
       <tr><td>Critical current I<sub>c</sub></td><td>E<sub>J</sub> = &hbar; I<sub>c</sub> / (2e)</td></tr>
       <tr><td>Capacitance C</td><td>E<sub>C</sub> = e² / (2C)</td></tr>
-      <tr><td>Josephson inductance</td><td>L<sub>J</sub> = &phi;<sub>0</sub> / I<sub>c</sub></td></tr>
+      <tr><td>Josephson inductance</td><td>L<sub>J</sub> = &Phi;<sub>0</sub> / (2&pi; I<sub>c</sub>) = &hbar; / (2e I<sub>c</sub>)</td></tr>
       <tr><td>Qubit frequency</td><td>f<sub>01</sub> ≈ √(8E<sub>J</sub>E<sub>C</sub>) - E<sub>C</sub></td></tr>
       <tr><td>Anharmonicity α</td><td>α ≈ -E<sub>C</sub></td></tr>
       <tr><td>Charge dispersion</td><td>Δ ≈ E<sub>C</sub> exp(-√(8E<sub>J</sub>/E<sub>C</sub>))</td></tr>
@@ -136,7 +136,7 @@
       const Ec_J = Ec * GHz_to_J;
       const Ic = (2 * e * Ej_J) / hbar;
       const C = e * e / (2 * Ec_J);
-      const Lj = phi0 / Ic;
+      const Lj = hbar / (2 * e * Ic);
       const f01 = Math.sqrt(8 * Ej * Ec) - Ec;
       const alpha = -Ec;
       const delta = Ec * Math.exp(-Math.sqrt(8 * Ej / Ec));

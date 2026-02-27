@@ -131,7 +131,7 @@
         Temperature: ${(E_J / kB).toExponential(6)} K<br>
         Photon Wavelength: ${(h * c / E_J).toExponential(6)} m<br>
         Mass (rest energy): ${(E_J / (c**2)).toExponential(6)} kg<br>
-        De Broglie Wavelength (nonrelativistic): ${(h / Math.sqrt(2 * E_J / (c**2))).toExponential(6)} m
+        De Broglie Wavelength (nonrelativistic): ${(h * c / (Math.sqrt(2) * E_J)).toExponential(6)} m
       `;
 
       resultDiv.innerHTML = outputs;
