@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usadel Bilayer Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.3em;
+      align-items: center;
+    }
+    .input-row input, .input-row select {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .input-row input { flex: 1; }
+    input[type=number] {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      width: 100%;
+    }
+    select {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      background: white;
+      width: 100%;
+      margin-top: 0.3em;
+    }
+    .custom-fields {
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 0.8em 1em;
+      margin-top: 0.5em;
+    }
+    .custom-fields label { margin-top: 0.5em; }
+    .custom-fields input {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      width: 100%;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin-top: 1.5em;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.8em;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover { background: #388e3c; }
+    .result { margin-top: 1.5em; line-height: 2em; }
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1em;
+      margin-bottom: 0.1em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+    }
+    .regime-badge {
+      display: inline-block;
+      padding: 0.35em 1.1em;
+      border-radius: 20px;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 0.5em;
+    }
+    table {
+      margin-top: 2em;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 0.5em; text-align: left; }
+    th { background: #f0f0f0; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+    .warn { color: #c62828; }
+    h3 { margin-top: 1.5em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Usadel Bilayer Calculator</h2>
+    <p style="color:#555; margin-top:0;">Estimates T<sub>c</sub> and the superconducting gap of a proximitized S/N (or S/S) bilayer using the Cooper-limit approximation.</p>
+
+    <!-- Material 1 -->
+    <h3 style="margin-top:1.2em;">Material 1 (superconductor)</h3>
+
+    <label for="mat1_select">Material:</label>
+    <select id="mat1_select" onchange="updateMat(1)">
+      <option value="Al">Al &mdash; T<sub>c</sub> = 1.20 K, D = 5&times;10&minus;&sup3; m&sup2;/s</option>
+      <option value="Ti">Ti &mdash; T<sub>c</sub> = 0.45 K, D = 2&times;10&minus;&sup4; m&sup2;/s</option>
+      <option value="custom">Custom&hellip;</option>
+    </select>
+
+    <div class="custom-fields" id="mat1_custom" style="display:none;">
+      <label>T<sub>c</sub> [K]:</label>
+      <input type="number" id="mat1_Tc" step="any" placeholder="e.g. 1.20">
+      <label>Diffusion constant D [m&sup2;/s]:</label>
+      <input type="number" id="mat1_D" step="any" placeholder="e.g. 5e-3">
+    </div>
+
+    <label>Thickness d<sub>1</sub> [nm]:</label>
+    <div class="input-row">
+      <input type="number" id="d1" step="any" placeholder="e.g. 30">
+    </div>
+
+    <!-- Material 2 -->
+    <h3 style="margin-top:1.2em;">Material 2 (proximitized normal metal or weaker SC)</h3>
+
+    <label for="mat2_select">Material:</label>
+    <select id="mat2_select" onchange="updateMat(2)">
+      <option value="Ti">Ti &mdash; T<sub>c</sub> = 0.45 K, D = 2&times;10&minus;&sup4; m&sup2;/s</option>
+      <option value="Al">Al &mdash; T<sub>c</sub> = 1.20 K, D = 5&times;10&minus;&sup3; m&sup2;/s</option>
+      <option value="custom">Custom&hellip;</option>
+    </select>
+
+    <div class="custom-fields" id="mat2_custom" style="display:none;">
+      <label>T<sub>c</sub> [K] (set to 0 for a normal metal):</label>
+      <input type="number" id="mat2_Tc" step="any" placeholder="e.g. 0.45">
+      <label>Diffusion constant D [m&sup2;/s]:</label>
+      <input type="number" id="mat2_D" step="any" placeholder="e.g. 2e-4">
+    </div>
+
+    <label>Thickness d<sub>2</sub> [nm]:</label>
+    <div class="input-row">
+      <input type="number" id="d2" step="any" placeholder="e.g. 5">
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="output"></div>
+
+    <h3>Formulas &amp; model</h3>
+    <table>
+      <tr><th>Quantity</th><th>Formula / Note</th></tr>
+      <tr>
+        <td>Coherence length &xi;</td>
+        <td>&xi; = &radic;(&hbar;D / (2&pi;k<sub>B</sub>T<sub>c</sub>))</td>
+      </tr>
+      <tr>
+        <td>Effective T<sub>c</sub> (Cooper limit)</td>
+        <td>T<sub>c,eff</sub> = exp[(d<sub>1</sub> ln T<sub>c,1</sub> + d<sub>2</sub> ln T<sub>c,2</sub>) / (d<sub>1</sub> + d<sub>2</sub>)]</td>
+      </tr>
+      <tr>
+        <td>Gap estimate</td>
+        <td>&Delta;(0) &approx; 1.76 k<sub>B</sub> T<sub>c,eff</sub> &nbsp;(BCS)</td>
+      </tr>
+      <tr>
+        <td>Regime (Cooper limit)</td>
+        <td>d &lt; 0.3 &xi; for both layers &rarr; uniform proximitized bilayer</td>
+      </tr>
+      <tr>
+        <td>Regime (coupled)</td>
+        <td>d &lt; &xi; for both layers &rarr; coupled but non-uniform gap</td>
+      </tr>
+      <tr>
+        <td>Thick film regime</td>
+        <td>d &ge; &xi; for either layer &rarr; strong spatial variation, Cooper limit invalid</td>
+      </tr>
+    </table>
+
+    <p style="color:#777; font-size:0.9em; margin-top:1em;">
+      Note: The Cooper-limit formula assumes equal density of states (thickness-weighted average).
+      It is most accurate when both layers are thin compared to their coherence lengths.
+      For thick films the result is an overestimate and a full Usadel numerical solution is required.
+    </p>
+  </div>
+
+  <script>
+    const MATERIALS = {
+      Al: { Tc: 1.20, D: 5e-3 },
+      Ti: { Tc: 0.45, D: 2e-4 },
+    };
+
+    function updateMat(idx) {
+      const sel = document.getElementById(`mat${idx}_select`).value;
+      document.getElementById(`mat${idx}_custom`).style.display = sel === 'custom' ? '' : 'none';
+    }
+
+    function getMat(idx) {
+      const sel = document.getElementById(`mat${idx}_select`).value;
+      if (sel !== 'custom') return { ...MATERIALS[sel] };
+      const Tc = parseFloat(document.getElementById(`mat${idx}_Tc`).value);
+      const D  = parseFloat(document.getElementById(`mat${idx}_D`).value);
+      return { Tc, D };
+    }
+
+    function calculate() {
+      const kB   = 1.380649e-23;
+      const hbar = 1.0545718e-34;
+      const e    = 1.602176634e-19;
+      const outDiv = document.getElementById('output');
+
+      const m1 = getMat(1);
+      const m2 = getMat(2);
+      const d1 = parseFloat(document.getElementById('d1').value);
+      const d2 = parseFloat(document.getElementById('d2').value);
+
+      // Validation
+      if (isNaN(m1.Tc) || isNaN(m1.D) || m1.Tc < 0 || m1.D <= 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter valid parameters for Material 1 (T<sub>c</sub> &ge; 0, D &gt; 0).</span>'; return;
+      }
+      if (isNaN(m2.Tc) || isNaN(m2.D) || m2.Tc < 0 || m2.D <= 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter valid parameters for Material 2 (T<sub>c</sub> &ge; 0, D &gt; 0).</span>'; return;
+      }
+      if (isNaN(d1) || d1 <= 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter a positive thickness d<sub>1</sub>.</span>'; return;
+      }
+      if (isNaN(d2) || d2 <= 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter a positive thickness d<sub>2</sub>.</span>'; return;
+      }
+
+      // Coherence lengths (in nm)
+      // For a normal metal (Tc = 0) use an effective coherence length based on the
+      // bilayer Tc after the fact — approximate with xi using Tc,eff; we'll
+      // use each material's individual Tc if nonzero, else use the other's Tc.
+      function xi_nm(D, Tc) {
+        return Math.sqrt(hbar * D / (2 * Math.PI * kB * Tc)) * 1e9;
+      }
+
+      const Tc1 = m1.Tc;
+      const Tc2 = m2.Tc;
+
+      // Cooper-limit effective Tc (thickness-weighted log average)
+      // If Tc = 0 for one material, ln(Tc) → -∞, driving Tc_eff → 0
+      // Guard: treat Tc = 0 as a true normal metal (no gap contribution)
+      let Tc_eff;
+      if (Tc1 <= 0 && Tc2 <= 0) {
+        outDiv.innerHTML = '<span class="warn">Both materials have T<sub>c</sub> = 0 — no superconductivity.</span>'; return;
+      } else if (Tc1 <= 0) {
+        // Material 1 is a normal metal: its contribution drives Tc down
+        // weighted log: d1*(-inf) dominates → 0; physically Tc_eff decays
+        // Use a cutoff: treat ln(Tc=0) as very large negative → exp = 0
+        Tc_eff = 0;
+        outDiv.innerHTML = '<span class="warn">Material 1 has T<sub>c</sub> = 0 (normal metal). Swap materials so the superconductor is Material 1, or use Material 2 as the superconductor.</span>';
+        return;
+      } else if (Tc2 <= 0) {
+        // Normal metal dilutes superconductor
+        // Strict Cooper limit: ln(0) = -∞, so Tc_eff = exp(-inf) = 0
+        // In practice there is always a small finite Tc; show it as 0 with a warning
+        Tc_eff = 0;
+        outDiv.innerHTML = `
+          <span class="warn">Material 2 has T<sub>c</sub> = 0 (ideal normal metal).<br>
+          In the strict Cooper limit this drives T<sub>c,eff</sub> &rarr; 0.<br>
+          In a real proximitized bilayer a finite gap persists for thin normal layers — a full Usadel simulation is needed.</span>`;
+        return;
+      } else {
+        const logTc_eff = (d1 * Math.log(Tc1) + d2 * Math.log(Tc2)) / (d1 + d2);
+        Tc_eff = Math.exp(logTc_eff);
+      }
+
+      // BCS gap (in μeV)
+      const gap_J   = 1.76 * kB * Tc_eff;
+      const gap_ueV = gap_J / (e * 1e-6);
+      const gap_GHz = gap_J / (6.62607015e-34 * 1e9);
+
+      // Coherence lengths for regime classification (use individual Tc values)
+      const xi1 = xi_nm(m1.D, Tc1);
+      const xi2 = xi_nm(m2.D, Tc2);
+
+      // Regime
+      let regimeLabel, regimeColor;
+      const r1 = d1 / xi1, r2 = d2 / xi2;
+      if (r1 < 0.3 && r2 < 0.3) {
+        regimeLabel = 'Cooper limit: uniform proximitized bilayer';
+        regimeColor = '#2e7d32';
+      } else if (r1 < 1.0 && r2 < 1.0) {
+        regimeLabel = 'Coupled bilayer — non-uniform gap (Cooper approx. less accurate)';
+        regimeColor = '#e65100';
+      } else {
+        regimeLabel = 'Thick-film regime — strong spatial variation (Cooper limit invalid)';
+        regimeColor = '#c62828';
+      }
+
+      const mat1Name = document.getElementById('mat1_select').value === 'custom' ? 'Custom 1' : document.getElementById('mat1_select').value;
+      const mat2Name = document.getElementById('mat2_select').value === 'custom' ? 'Custom 2' : document.getElementById('mat2_select').value;
+
+      outDiv.innerHTML = `
+        <div class="regime-badge" style="background:${regimeColor};">${regimeLabel}</div>
+
+        <span class="section-label">Material parameters</span>
+        ${mat1Name}: T<sub>c</sub> = ${Tc1} K, D = ${m1.D.toExponential(2)} m&sup2;/s, &xi;<sub>1</sub> = ${xi1.toFixed(1)} nm<br>
+        ${mat2Name}: T<sub>c</sub> = ${Tc2} K, D = ${m2.D.toExponential(2)} m&sup2;/s, &xi;<sub>2</sub> = ${xi2.toFixed(1)} nm<br>
+
+        <span class="section-label">Geometry</span>
+        d<sub>1</sub> = ${d1} nm &nbsp;(d<sub>1</sub>/&xi;<sub>1</sub> = ${r1.toFixed(3)})<br>
+        d<sub>2</sub> = ${d2} nm &nbsp;(d<sub>2</sub>/&xi;<sub>2</sub> = ${r2.toFixed(3)})<br>
+
+        <span class="section-label">Bilayer estimates (Cooper limit)</span>
+        <strong>T<sub>c,eff</sub> &approx; ${Tc_eff.toFixed(4)} K</strong><br>
+        <strong>&Delta;(0) &approx; ${gap_ueV.toFixed(2)} &mu;eV</strong> &nbsp;|&nbsp; ${gap_GHz.toFixed(3)} GHz &nbsp;|&nbsp; ${(gap_J / kB).toFixed(4)} K<br>
+      `;
+    }
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>

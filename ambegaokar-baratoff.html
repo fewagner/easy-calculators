@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ambegaokar-Baratoff Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+      font-weight: normal;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .input-row input {
+      flex: 1;
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .input-row select, select {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      background: white;
+    }
+    input[type=number] {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      width: 100%;
+    }
+    .radio-group {
+      display: flex;
+      gap: 2em;
+      margin-top: 0.5em;
+      align-items: center;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin-top: 1.5em;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.8em;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover { background: #388e3c; }
+    .result {
+      margin-top: 1.5em;
+      line-height: 2em;
+    }
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1em;
+      margin-bottom: 0.1em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+    }
+    table {
+      margin-top: 2em;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 0.5em; text-align: left; }
+    th { background: #f0f0f0; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+    .warn { color: #c62828; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Ambegaokar-Baratoff Calculator</h2>
+    <p style="color:#555; margin-top:0;">Convert between Josephson energy E<sub>J</sub> and normal-state resistance R<sub>N</sub> of a Josephson junction, including finite-temperature gap suppression.</p>
+
+    <label>Superconducting gap &Delta;(0) at zero temperature:</label>
+    <div class="input-row">
+      <input type="number" id="delta0" step="any" placeholder="e.g. 180">
+      <select id="delta0_unit">
+        <option value="ueV">&mu;eV</option>
+        <option value="meV">meV</option>
+        <option value="K">K (k<sub>B</sub>T)</option>
+        <option value="GHz">GHz (h&nu;)</option>
+      </select>
+    </div>
+
+    <label for="T_obs">Temperature T [K]:</label>
+    <input type="number" id="T_obs" step="any" placeholder="e.g. 0.02" value="0.02">
+
+    <label style="margin-top:1.2em;">Calculate:</label>
+    <div class="radio-group">
+      <label><input type="radio" name="calc_dir" value="RN_from_EJ" id="r1"> R<sub>N</sub> from E<sub>J</sub></label>
+      <label><input type="radio" name="calc_dir" value="EJ_from_RN" id="r2" checked> E<sub>J</sub> from R<sub>N</sub></label>
+    </div>
+
+    <div id="input_EJ_block">
+      <label>Normal-state resistance R<sub>N</sub>:</label>
+      <div class="input-row">
+        <input type="number" id="RN_val" step="any" placeholder="e.g. 5">
+        <select id="RN_unit">
+          <option value="Ohm">&Omega;</option>
+          <option value="kOhm">k&Omega;</option>
+          <option value="MOhm">M&Omega;</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="input_RN_block" style="display:none;">
+      <label>Josephson energy E<sub>J</sub>:</label>
+      <div class="input-row">
+        <input type="number" id="EJ_val" step="any" placeholder="e.g. 10">
+        <select id="EJ_unit">
+          <option value="GHz">GHz (h&nu;)</option>
+          <option value="ueV">&mu;eV</option>
+          <option value="meV">meV</option>
+          <option value="K">K (k<sub>B</sub>T)</option>
+          <option value="J">J</option>
+        </select>
+      </div>
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="output"></div>
+
+    <h3>Formulas</h3>
+    <table>
+      <tr><th>Quantity</th><th>Formula</th></tr>
+      <tr>
+        <td>AB formula (Ic R<sub>N</sub>)</td>
+        <td>I<sub>c</sub>R<sub>N</sub> = &pi;&Delta;(T) / (2e) &times; tanh(&Delta;(T) / (2k<sub>B</sub>T))</td>
+      </tr>
+      <tr>
+        <td>E<sub>J</sub> from R<sub>N</sub></td>
+        <td>E<sub>J</sub> = h&Delta;(T) / (8e&sup2;R<sub>N</sub>) &times; tanh(&Delta;(T) / (2k<sub>B</sub>T))</td>
+      </tr>
+      <tr>
+        <td>T = 0 limit</td>
+        <td>E<sub>J</sub> = h&Delta;(0) / (8e&sup2;R<sub>N</sub>)</td>
+      </tr>
+      <tr>
+        <td>T-dependent gap</td>
+        <td>&Delta;(T) &approx; &Delta;(0) &times; tanh(1.74 &times; &radic;(T<sub>c</sub>/T &minus; 1)) &nbsp;for T &lt; T<sub>c</sub></td>
+      </tr>
+      <tr>
+        <td>BCS relation</td>
+        <td>T<sub>c</sub> = &Delta;(0) / (1.76 k<sub>B</sub>)</td>
+      </tr>
+      <tr>
+        <td>Josephson energy</td>
+        <td>E<sub>J</sub> = &Phi;<sub>0</sub> I<sub>c</sub> / (2&pi;) = &hbar; I<sub>c</sub> / (2e)</td>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    // Toggle input blocks based on radio selection
+    document.querySelectorAll('input[name="calc_dir"]').forEach(r => {
+      r.addEventListener('change', () => {
+        const dir = document.querySelector('input[name="calc_dir"]:checked').value;
+        document.getElementById('input_EJ_block').style.display = dir === 'EJ_from_RN' ? '' : 'none';
+        document.getElementById('input_RN_block').style.display = dir === 'RN_from_EJ' ? '' : 'none';
+      });
+    });
+
+    function calculate() {
+      const h    = 6.62607015e-34;
+      const hbar = h / (2 * Math.PI);
+      const e    = 1.602176634e-19;
+      const kB   = 1.380649e-23;
+
+      const outDiv = document.getElementById('output');
+
+      // Parse Δ(0)
+      const delta0_val  = parseFloat(document.getElementById('delta0').value);
+      const delta0_unit = document.getElementById('delta0_unit').value;
+      if (isNaN(delta0_val) || delta0_val <= 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter a positive &Delta;(0).</span>';
+        return;
+      }
+      let delta0_J;  // Δ(0) in Joules
+      if (delta0_unit === 'ueV') delta0_J = delta0_val * e * 1e-6;
+      else if (delta0_unit === 'meV') delta0_J = delta0_val * e * 1e-3;
+      else if (delta0_unit === 'K')   delta0_J = delta0_val * kB;
+      else if (delta0_unit === 'GHz') delta0_J = delta0_val * h * 1e9;
+
+      // Tc from BCS
+      const Tc = delta0_J / (1.76 * kB);
+
+      // Parse T
+      const T = parseFloat(document.getElementById('T_obs').value);
+      if (isNaN(T) || T < 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter a valid temperature T &ge; 0.</span>';
+        return;
+      }
+
+      // Δ(T)
+      let deltaT_J;
+      let deltaT_note = '';
+      if (T <= 0) {
+        deltaT_J = delta0_J;
+        deltaT_note = '(T = 0, using &Delta;(0))';
+      } else if (T >= Tc) {
+        outDiv.innerHTML = `<span class="warn">T &ge; T<sub>c</sub> = ${Tc.toFixed(4)} K — the gap vanishes, junction is not superconducting.</span>`;
+        return;
+      } else {
+        const arg = 1.74 * Math.sqrt(Tc / T - 1);
+        deltaT_J = delta0_J * Math.tanh(arg);
+        deltaT_note = `(BCS interpolation at T = ${T} K)`;
+      }
+
+      const deltaT_ueV = deltaT_J / (e * 1e-6);
+      const deltaT_GHz = deltaT_J / (h * 1e9);
+      const deltaT_K   = deltaT_J / kB;
+
+      // tanh factor for AB
+      let tanh_factor;
+      if (T <= 0) {
+        tanh_factor = 1.0;
+      } else {
+        tanh_factor = Math.tanh(deltaT_J / (2 * kB * T));
+      }
+
+      const dir = document.querySelector('input[name="calc_dir"]:checked').value;
+
+      let resultHTML = '';
+
+      // Common gap info
+      resultHTML += `
+        <span class="section-label">Gap parameters</span>
+        T<sub>c</sub> (BCS from &Delta;(0)): ${Tc.toFixed(4)} K<br>
+        &Delta;(0): ${(delta0_J/(e*1e-6)).toFixed(3)} &mu;eV &nbsp;|&nbsp; ${(delta0_J/(h*1e9)).toFixed(4)} GHz &nbsp;|&nbsp; ${(delta0_J/kB).toFixed(4)} K<br>
+        &Delta;(T=${T} K): ${deltaT_ueV.toFixed(3)} &mu;eV &nbsp;|&nbsp; ${deltaT_GHz.toFixed(4)} GHz &nbsp;|&nbsp; ${deltaT_K.toFixed(4)} K &nbsp;${deltaT_note}<br>
+        &Delta;(T)/&Delta;(0): ${(deltaT_J/delta0_J).toFixed(6)}<br>
+        tanh(&Delta;(T)/(2k<sub>B</sub>T)): ${tanh_factor.toFixed(6)}<br>
+      `;
+
+      if (dir === 'EJ_from_RN') {
+        const RN_val  = parseFloat(document.getElementById('RN_val').value);
+        const RN_unit = document.getElementById('RN_unit').value;
+        if (isNaN(RN_val) || RN_val <= 0) {
+          outDiv.innerHTML = '<span class="warn">Please enter a positive R<sub>N</sub>.</span>';
+          return;
+        }
+        let RN;
+        if (RN_unit === 'Ohm')  RN = RN_val;
+        else if (RN_unit === 'kOhm') RN = RN_val * 1e3;
+        else if (RN_unit === 'MOhm') RN = RN_val * 1e6;
+
+        const Ic   = (Math.PI * deltaT_J * tanh_factor) / (2 * e * RN);
+        const EJ_J = hbar * Ic / (2 * e);
+        const EJ_GHz = EJ_J / (h * 1e9);
+        const EJ_ueV = EJ_J / (e * 1e-6);
+        const EJ_K   = EJ_J / kB;
+
+        resultHTML += `
+          <span class="section-label">Result — E<sub>J</sub></span>
+          R<sub>N</sub>: ${RN_val} ${RN_unit === 'Ohm' ? '&Omega;' : RN_unit === 'kOhm' ? 'k&Omega;' : 'M&Omega;'} = ${RN.toExponential(4)} &Omega;<br>
+          Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
+          <strong>E<sub>J</sub>: ${EJ_GHz.toExponential(6)} GHz</strong><br>
+          E<sub>J</sub>: ${EJ_ueV.toExponential(6)} &mu;eV<br>
+          E<sub>J</sub>: ${EJ_K.toExponential(6)} K<br>
+          E<sub>J</sub>: ${EJ_J.toExponential(6)} J<br>
+          I<sub>c</sub>R<sub>N</sub> product: ${(Ic * RN * 1e6).toFixed(4)} &mu;V<br>
+        `;
+      } else {
+        // RN from EJ
+        const EJ_val  = parseFloat(document.getElementById('EJ_val').value);
+        const EJ_unit = document.getElementById('EJ_unit').value;
+        if (isNaN(EJ_val) || EJ_val <= 0) {
+          outDiv.innerHTML = '<span class="warn">Please enter a positive E<sub>J</sub>.</span>';
+          return;
+        }
+        let EJ_J;
+        if (EJ_unit === 'GHz') EJ_J = EJ_val * h * 1e9;
+        else if (EJ_unit === 'ueV') EJ_J = EJ_val * e * 1e-6;
+        else if (EJ_unit === 'meV') EJ_J = EJ_val * e * 1e-3;
+        else if (EJ_unit === 'K')   EJ_J = EJ_val * kB;
+        else if (EJ_unit === 'J')   EJ_J = EJ_val;
+
+        const Ic = 2 * e * EJ_J / hbar;
+        // Ic = (π ΔT tanh) / (2e RN)  →  RN = (π ΔT tanh) / (2e Ic)
+        const RN = (Math.PI * deltaT_J * tanh_factor) / (2 * e * Ic);
+
+        resultHTML += `
+          <span class="section-label">Result — R<sub>N</sub></span>
+          E<sub>J</sub>: ${(EJ_J/(h*1e9)).toExponential(6)} GHz &nbsp;|&nbsp; ${(EJ_J/(e*1e-6)).toExponential(6)} &mu;eV<br>
+          Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
+          <strong>R<sub>N</sub>: ${RN.toExponential(6)} &Omega;</strong><br>
+          R<sub>N</sub>: ${(RN/1e3).toExponential(6)} k&Omega;<br>
+          I<sub>c</sub>R<sub>N</sub> product: ${(Ic * RN * 1e6).toFixed(4)} &mu;V<br>
+        `;
+      }
+
+      outDiv.innerHTML = resultHTML;
+    }
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>
