@@ -140,6 +140,10 @@
     <select id="mat1_select" onchange="updateMat(1)">
       <option value="Al">Al &mdash; T<sub>c</sub> = 1.20 K, D = 5&times;10&minus;&sup3; m&sup2;/s</option>
       <option value="Ti">Ti &mdash; T<sub>c</sub> = 0.45 K, D = 2&times;10&minus;&sup4; m&sup2;/s</option>
+      <option value="Nb">Nb &mdash; T<sub>c</sub> = 9.25 K, D = 2&times;10&minus;&sup3; m&sup2;/s</option>
+      <option value="Ta">Ta &mdash; T<sub>c</sub> = 4.40 K, D = 5&times;10&minus;&sup4; m&sup2;/s</option>
+      <option value="Au">Au &mdash; T<sub>c</sub> = 0 K, D = 2&times;10&minus;&sup2; m&sup2;/s</option>
+      <option value="W">W &mdash; T<sub>c</sub> = 0.015 K, D = 3&times;10<sup>&minus;5</sup> m&sup2;/s</option>
       <option value="custom">Custom&hellip;</option>
     </select>
 
@@ -162,6 +166,10 @@
     <select id="mat2_select" onchange="updateMat(2)">
       <option value="Ti">Ti &mdash; T<sub>c</sub> = 0.45 K, D = 2&times;10&minus;&sup4; m&sup2;/s</option>
       <option value="Al">Al &mdash; T<sub>c</sub> = 1.20 K, D = 5&times;10&minus;&sup3; m&sup2;/s</option>
+      <option value="Nb">Nb &mdash; T<sub>c</sub> = 9.25 K, D = 2&times;10&minus;&sup3; m&sup2;/s</option>
+      <option value="Ta">Ta &mdash; T<sub>c</sub> = 4.40 K, D = 5&times;10&minus;&sup4; m&sup2;/s</option>
+      <option value="Au">Au &mdash; T<sub>c</sub> = 0 K, D = 2&times;10&minus;&sup2; m&sup2;/s</option>
+      <option value="W">W &mdash; T<sub>c</sub> = 0.015 K, D = 3&times;10<sup>&minus;5</sup> m&sup2;/s</option>
       <option value="custom">Custom&hellip;</option>
     </select>
 
@@ -219,8 +227,12 @@
 
   <script>
     const MATERIALS = {
-      Al: { Tc: 1.20, D: 5e-3 },
-      Ti: { Tc: 0.45, D: 2e-4 },
+      Al: { Tc: 1.20, D: 5e-3  },
+      Ti: { Tc: 0.45, D: 2e-4  },
+      Nb: { Tc: 9.25, D: 2e-3  },  // sputtered Nb, RRR ~10–30
+      Ta: { Tc: 4.40, D: 5e-4  },  // α-phase Ta, qubit-grade (RRR ~4–17)
+      Au: { Tc: 0,    D: 2e-2  },  // normal metal, clean evaporated films
+      W:  { Tc: 0.015, D: 3e-5  },  // α-W (bcc), dirty limit (ρ ~150 μΩ·cm)
     };
 
     function updateMat(idx) {
