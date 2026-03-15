@@ -74,6 +74,7 @@
     <select id="input-type">
       <option value="time">Time Delay (s)</option>
       <option value="wavelength">Wavelength (m)</option>
+      <option value="frequency">Photon Frequency (Hz)</option>
     </select>
 
     <label for="si-prefix">SI Prefix:</label>
@@ -124,6 +125,11 @@
         result = wavelengthInMeters / vp;
         frequency = vp / wavelengthInMeters;
         resultDiv.innerHTML = `Time Delay: ${result.toExponential(6)} seconds<br>Frequency: ${frequency.toExponential(6)} Hz`;
+      } else if (inputType === "frequency") {
+        const freqInHz = inputValue * prefix;
+        const wavelength = vp / freqInHz;
+        const timeDelay = wavelength / vp;
+        resultDiv.innerHTML = `Wavelength: ${wavelength.toExponential(6)} meters<br>Time Delay: ${timeDelay.toExponential(6)} seconds`;
       } else {
         resultDiv.innerText = "Unknown conversion type.";
       }
