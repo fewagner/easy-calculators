@@ -120,7 +120,13 @@
     </div>
 
     <label for="thickness">Film thickness (nm):</label>
-    <input type="number" id="thickness" step="any" min="0" placeholder="e.g. 20">
+    <div style="display:flex; align-items:center; gap:0.8em; margin-top:1em;">
+      <input type="number" id="thickness" step="any" min="0" placeholder="e.g. 20" style="margin-top:0; flex:1;">
+      <label style="display:flex; align-items:center; gap:0.3em; margin-top:0; width:auto; font-weight:normal; white-space:nowrap;">
+        <input type="checkbox" id="angle45" style="display:inline; width:auto; margin-top:0;">
+        deposited at 45° angle
+      </label>
+    </div>
 
     <button onclick="calculate()">Calculate</button>
 
@@ -143,7 +149,10 @@
       // So 1 GHz = 1 / 0.241799 μeV ≈ 4.13567 μeV
       const mueV_per_GHz = 1e9 * h_eV * 1e6; // h in eV·s * 1e9 Hz/GHz * 1e6 μeV/eV
 
-      const delta_GHz = (0.18 + 0.9 / d) * 241.8;
+      const angle45 = document.getElementById('angle45').checked;
+      const d_eff = angle45 ? d / Math.sqrt(2) : d;
+
+      const delta_GHz = (0.18 + 0.9 / d_eff) * 241.8;
       const delta_mueV = delta_GHz * mueV_per_GHz;
 
       resultDiv.innerHTML =
