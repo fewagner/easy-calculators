@@ -85,25 +85,30 @@
       const h = 6.62607015e-34;
       const c = 2.99792458e8;
       const kB = 1.380649e-23;
-      const b = 2.897771955e-3;
       const sigma = 5.670374419e-8;
 
-      const lambdaPeak = b / T;
-      const freqPeak = c / lambdaPeak;
-      const energyPeak_eV = (h * freqPeak) / (1.602176634e-19);
+      // Wien's displacement law in frequency: nu_peak = 2.82144 * kB * T / h
+      const freqPeak = 2.821439372 * kB * T / h;
+      const lambdaPeak = c / freqPeak;
+      const energyPeak_eV = (h * freqPeak) / 1.602176634e-19;
       const totalRadiatedPower = sigma * Math.pow(T, 4);
 
-      const wavelengths = [];
+      const frequencies = [];
       const radiances = [];
 
-      for (let lambda = 1e-9; lambda <= 5 * lambdaPeak; lambda += 5e-9) {
-        const B = (2 * h * c**2) / (lambda**5) / (Math.exp((h * c) / (lambda * kB * T)) - 1);
-        wavelengths.push(lambda * 1e9);
+      const freqMin = 0.01 * freqPeak;
+      const freqMax = 5 * freqPeak;
+      const N = 500;
+      const step = (freqMax - freqMin) / N;
+
+      for (let nu = freqMin; nu <= freqMax; nu += step) {
+        const B = (2 * h * nu**3 / c**2) / (Math.exp(h * nu / (kB * T)) - 1);
+        frequencies.push(nu);
         radiances.push(B);
       }
 
       const trace = {
-        x: wavelengths,
+        x: frequencies,
         y: radiances,
         type: 'scatter',
         mode: 'lines',
@@ -111,17 +116,17 @@
       };
 
       const layout = {
-        title: `Blackbody Radiation Spectrum (T = ${T} K)` ,
-        xaxis: { title: 'Wavelength (nm)', range: [0, 5 * lambdaPeak * 1e9] },
-        yaxis: { title: 'Spectral Radiance (W·sr⁻¹·m⁻³)' }
+        title: `Blackbody Radiation Spectrum (T = ${T} K)`,
+        xaxis: { title: 'Frequency (Hz)', range: [freqMin, freqMax] },
+        yaxis: { title: 'Spectral Radiance (W·sr⁻¹·m⁻²·Hz⁻¹)' }
       };
 
       Plotly.newPlot('plot', [trace], layout);
 
       document.getElementById('blackbody-info').innerHTML = `
-        Peak Wavelength (λₚ): ${lambdaPeak.toExponential(6)} m<br>
+        Peak Frequency (νₚ): ${freqPeak.toExponential(6)} Hz<br>
+        Corresponding Wavelength (c/νₚ): ${lambdaPeak.toExponential(6)} m<br>
         Energy at Peak: ${energyPeak_eV.toExponential(6)} eV<br>
-        Frequency at peak wavelength (c/λₚ): ${freqPeak.toExponential(6)} Hz<br>
         Total Radiated Power: ${totalRadiatedPower.toExponential(6)} W/m²
       `;
     }
