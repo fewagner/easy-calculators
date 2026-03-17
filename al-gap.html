@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aluminum Superconducting Gap</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 580px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+    }
+    .graph-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 1.5em;
+    }
+    .graph-row {
+      display: flex;
+      align-items: center;
+    }
+    .y-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 0.85em;
+      color: #444;
+      margin-right: 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .x-label {
+      font-size: 0.85em;
+      color: #444;
+      text-align: center;
+      margin-top: 6px;
+    }
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-top: 1em;
+      box-sizing: border-box;
+    }
+    input[type="number"] {
+      padding: 0.4em;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .result {
+      margin-top: 1.5em;
+      font-weight: bold;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 580px;
+      text-align: center;
+    }
+    .card a {
+      text-decoration: none;
+      font-size: 1.2em;
+      color: #0077cc;
+    }
+    .card a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Aluminum Superconducting Gap</h2>
+    <p style="color:#555; margin-top:0;">
+      Superconducting gap &Delta; of an aluminum film as a function of film thickness,
+      based on the empirical relation
+      &Delta;(d) = (0.18 + 0.9/d) &times; 241.8 GHz.
+    </p>
+
+    <div class="graph-wrapper">
+      <div class="graph-row">
+        <div class="y-label">Superconducting gap (GHz)</div>
+        <iframe src="https://www.desmos.com/calculator/4kpq1bjagy?embed"
+                width="500" height="400"
+                style="border: 1px solid #ccc"
+                frameborder="0"></iframe>
+      </div>
+      <div class="x-label">Film thickness (nm)</div>
+    </div>
+
+    <label for="thickness">Film thickness (nm):</label>
+    <input type="number" id="thickness" step="any" min="0" placeholder="e.g. 20">
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    function calculate() {
+      const d = parseFloat(document.getElementById('thickness').value);
+      const resultDiv = document.getElementById('result');
+
+      if (isNaN(d) || d <= 0) {
+        resultDiv.innerText = "Please enter a valid positive film thickness.";
+        return;
+      }
+
+      const h_eV = 4.135667696e-15; // Planck's constant in eV·s
+      const GHz_per_mueV = 1e6 * h_eV * 1e9; // 1 μeV in GHz: f = E/h
+      // 1 μeV = 1e-6 eV → f = 1e-6 / (4.135667696e-15) Hz = 241.799 MHz
+      // So 1 GHz = 1 / 0.241799 μeV ≈ 4.13567 μeV
+      const mueV_per_GHz = 1e9 * h_eV * 1e6; // h in eV·s * 1e9 Hz/GHz * 1e6 μeV/eV
+
+      const delta_GHz = (0.18 + 0.9 / d) * 241.8;
+      const delta_mueV = delta_GHz * mueV_per_GHz;
+
+      resultDiv.innerHTML =
+        `&Delta; = ${delta_GHz.toFixed(2)} GHz<br>` +
+        `&Delta; = ${delta_mueV.toFixed(2)} &mu;eV`;
+    }
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>
