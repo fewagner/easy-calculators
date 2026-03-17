@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QP Tunneling Rate — Asymmetric Junction</title>
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 { margin-top: 0; }
+    p.description { color: #555; margin-top: 0; line-height: 1.5; }
+
+    /* Scenario toggle */
+    .scenario-toggle {
+      display: flex;
+      gap: 0;
+      margin: 1.5em 0 0 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #0077cc;
+    }
+    .scenario-toggle label {
+      flex: 1;
+      text-align: center;
+      padding: 0.6em 0;
+      cursor: pointer;
+      font-weight: bold;
+      color: #0077cc;
+      background: white;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .scenario-toggle input[type="radio"] { display: none; }
+    .scenario-toggle input[type="radio"]:checked + span {
+      background: #0077cc;
+      color: white;
+    }
+    .scenario-toggle label:first-child { border-right: 1px solid #0077cc; }
+
+    /* Formula box */
+    .formula-box {
+      background: #f8f9fb;
+      border-left: 4px solid #0077cc;
+      border-radius: 6px;
+      padding: 1em 1.2em;
+      margin: 1.2em 0;
+    }
+    .formula-box h3 { margin: 0 0 0.5em 0; font-size: 1em; }
+    .formula-box p { margin: 0.5em 0 0 0; font-size: 0.92em; color: #444; line-height: 1.5; }
+    .formula-box .takeaway {
+      font-style: italic;
+      color: #555;
+      margin-top: 0.7em;
+      font-size: 0.9em;
+    }
+
+    /* Inputs */
+    label.field-label {
+      display: block;
+      margin-top: 1.1em;
+      font-weight: normal;
+      color: #333;
+    }
+    label.field-label span { font-size: 0.85em; color: #777; margin-left: 0.4em; }
+    input[type="number"] {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      margin-top: 0.3em;
+    }
+    button {
+      display: block;
+      width: 100%;
+      background: #0077cc;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.5em;
+    }
+    button:hover { background: #005fa3; }
+    .result {
+      margin-top: 1.5em;
+      font-size: 1.1em;
+      font-weight: bold;
+      text-align: center;
+      min-height: 2em;
+    }
+    .result-line { margin: 0.3em 0; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+    }
+    .card a {
+      text-decoration: none;
+      font-size: 1.2em;
+      color: #0077cc;
+    }
+    .card a:hover { text-decoration: underline; }
+    .section-divider {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 1.5em 0 0.5em 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Quasiparticle Tunneling Rate &mdash; Asymmetric Junction</h2>
+    <p class="description">
+      Calculates the quasiparticle (QP) tunneling rate through a Josephson junction with
+      gap asymmetry &Delta;<sub>2</sub> &ne; &Delta;<sub>1</sub>.
+      The result depends critically on whether the quasiparticles are cold (relaxed to the gap edge)
+      or hot (excited well above the gap).
+    </p>
+
+    <!-- Scenario selector -->
+    <div class="scenario-toggle">
+      <label>
+        <input type="radio" name="scenario" value="cold" checked onchange="switchScenario()">
+        <span>Scenario A &mdash; Cold (Relaxed) QPs</span>
+      </label>
+      <label>
+        <input type="radio" name="scenario" value="hot" onchange="switchScenario()">
+        <span>Scenario B &mdash; Hot QPs</span>
+      </label>
+    </div>
+
+    <!-- Cold QP formula & description -->
+    <div id="formula-cold" class="formula-box">
+      <h3>Scenario A: Cold (Relaxed) Quasiparticles</h3>
+      <p>
+        The QP sits at \(E \approx \Delta_1\) and faces a hard wall: it can only tunnel
+        if a thermal fluctuation overcomes the gap difference \(\delta\Delta = \Delta_2 - \Delta_1\).
+        The rate is the symmetric cold rate, suppressed exponentially by a Boltzmann factor:
+      </p>
+      \[
+        \Gamma_{\text{cold,asym}} \approx
+        \frac{16\,E_J}{h\,\Delta_1\,\nu_0\,V}
+        \sqrt{\frac{\pi\Delta_1}{2\,k_B T_{qp}}}
+        \exp\!\left(-\frac{\Delta_2 - \Delta_1}{k_B T_{qp}}\right)
+      \]
+      <p class="takeaway">
+        <em>Key takeaway:</em> A slight gap asymmetry exponentially suppresses tunneling of relaxed QPs,
+        effectively trapping them on the lower-gap island.
+      </p>
+    </div>
+
+    <!-- Hot QP formula & description -->
+    <div id="formula-hot" class="formula-box" style="display:none">
+      <h3>Scenario B: Hot Quasiparticles</h3>
+      <p>
+        The QP has high energy \(E = N\Delta_1\) and easily clears the gap difference \(\Delta_2\).
+        The densities of states on both sides flatten out to roughly 1, and the gap asymmetry
+        becomes mathematically negligible:
+      </p>
+      \[
+        \Gamma_{\text{hot,asym}} \approx
+        \frac{8\,E_J}{h\,\Delta_1\,\nu_0\,V}
+        \left(1 + \frac{\Delta_2}{N^2\Delta_1}\right)
+      \]
+      <p class="takeaway">
+        <em>Key takeaway:</em> Hot quasiparticles punch right through the junction almost as if it
+        were a normal metal, entirely unaffected by the gap asymmetry until they scatter and
+        lose their energy.
+      </p>
+    </div>
+
+    <!-- Common inputs -->
+    <hr class="section-divider">
+
+    <label class="field-label">
+      &Delta;<sub>1</sub> &mdash; Superconducting gap on side 1 (where QP originates)
+      <span>(GHz)</span>
+      <input type="number" id="d1" step="any" value="43" placeholder="e.g. 43">
+    </label>
+
+    <label class="field-label">
+      &Delta;<sub>2</sub> &mdash; Superconducting gap on side 2 (where QP tunnels to)
+      <span>(GHz)</span>
+      <input type="number" id="d2" step="any" value="48" placeholder="e.g. 48">
+    </label>
+
+    <label class="field-label">
+      E<sub>J</sub> &mdash; Josephson energy
+      <span>(GHz, i.e. E<sub>J</sub>/h)</span>
+      <input type="number" id="ej" step="any" value="10" placeholder="e.g. 10">
+    </label>
+
+    <label class="field-label">
+      &nu;<sub>0</sub> &mdash; Normal-state single-particle DOS at Fermi level
+      <span>(&mu;m<sup>&minus;3</sup> &mu;eV<sup>&minus;1</sup>, Al &asymp; 2.3 &times; 10<sup>4</sup>)</span>
+      <input type="number" id="nu0" step="any" value="23000" placeholder="e.g. 23000">
+    </label>
+
+    <label class="field-label">
+      V &mdash; Volume of junction + surrounding Al island
+      <span>(&mu;m<sup>3</sup>)</span>
+      <input type="number" id="vol" step="any" value="100" placeholder="e.g. 100">
+    </label>
+
+    <!-- Cold-only input -->
+    <div id="cold-inputs">
+      <label class="field-label">
+        T<sub>qp</sub> &mdash; Quasiparticle temperature
+        <span>(mK)</span>
+        <input type="number" id="Tqp" step="any" value="150" placeholder="e.g. 150">
+      </label>
+    </div>
+
+    <!-- Hot-only input -->
+    <div id="hot-inputs" style="display:none">
+      <label class="field-label">
+        N &mdash; QP energy parameter &nbsp;(E = N &sdot; &Delta;<sub>1</sub>)
+        <span>(dimensionless, N &gt; 1)</span>
+        <input type="number" id="N" step="any" value="3" min="1" placeholder="e.g. 3">
+      </label>
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+
+  <script>
+    function switchScenario() {
+      const hot = document.querySelector('input[name="scenario"]:checked').value === 'hot';
+      document.getElementById('formula-cold').style.display = hot ? 'none' : '';
+      document.getElementById('formula-hot').style.display  = hot ? ''     : 'none';
+      document.getElementById('cold-inputs').style.display  = hot ? 'none' : '';
+      document.getElementById('hot-inputs').style.display   = hot ? ''     : 'none';
+      document.getElementById('result').innerHTML = '';
+    }
+
+    function formatRate(hz) {
+      if (hz >= 1e9) return `${(hz / 1e9).toPrecision(4)} GHz`;
+      if (hz >= 1e6) return `${(hz / 1e6).toPrecision(4)} MHz`;
+      if (hz >= 1e3) return `${(hz / 1e3).toPrecision(4)} kHz`;
+      if (hz >= 1)   return `${hz.toPrecision(4)} Hz`;
+      return `${hz.toExponential(3)} Hz`;
+    }
+
+    function formatTime(s) {
+      if (s >= 1)      return `${s.toPrecision(4)} s`;
+      if (s >= 1e-3)   return `${(s * 1e3).toPrecision(4)} ms`;
+      if (s >= 1e-6)   return `${(s * 1e6).toPrecision(4)} &mu;s`;
+      if (s >= 1e-9)   return `${(s * 1e9).toPrecision(4)} ns`;
+      return `${(s * 1e12).toPrecision(4)} ps`;
+    }
+
+    function calculate() {
+      const h   = 6.62607015e-34;   // J·s
+      const kB  = 1.380649e-23;     // J/K
+      const eV  = 1.602176634e-19;  // J/eV
+      const resultDiv = document.getElementById('result');
+
+      const scenario = document.querySelector('input[name="scenario"]:checked').value;
+
+      const D1_GHz     = parseFloat(document.getElementById('d1').value);
+      const D2_GHz     = parseFloat(document.getElementById('d2').value);
+      const EJ_GHz     = parseFloat(document.getElementById('ej').value);
+      const nu0_input  = parseFloat(document.getElementById('nu0').value);  // μm⁻³ μeV⁻¹
+      const V_um3      = parseFloat(document.getElementById('vol').value);
+
+      // Validate common inputs
+      if ([D1_GHz, D2_GHz, EJ_GHz, nu0_input, V_um3].some(v => isNaN(v) || v <= 0)) {
+        resultDiv.innerHTML = '<span style="color:red">Please fill in all fields with positive values.</span>';
+        return;
+      }
+
+      // Convert to SI
+      const D1     = h * D1_GHz * 1e9;           // J
+      const D2     = h * D2_GHz * 1e9;           // J
+      const EJ     = h * EJ_GHz * 1e9;           // J
+      // 1 μm⁻³ μeV⁻¹ = 1e18 m⁻³ × (eV × 1e-6)⁻¹ J⁻¹ = 1e18 / (eV×1e-6) m⁻³ J⁻¹
+      const nu0    = nu0_input * 1e18 / (eV * 1e-6);  // J⁻¹ m⁻³
+      const V      = V_um3 * 1e-18;              // m³
+
+      let rate;
+
+      if (scenario === 'cold') {
+        const T_mK = parseFloat(document.getElementById('Tqp').value);
+        if (isNaN(T_mK) || T_mK <= 0) {
+          resultDiv.innerHTML = '<span style="color:red">Please enter a valid quasiparticle temperature.</span>';
+          return;
+        }
+        const T    = T_mK * 1e-3;         // K
+        const kBT  = kB * T;              // J
+
+        const prefactor = (16 * EJ) / (h * D1 * nu0 * V);
+        const sqrtTerm  = Math.sqrt(Math.PI * D1 / (2 * kBT));
+        const expArg    = -(D2 - D1) / kBT;
+        const expTerm   = Math.exp(expArg);
+
+        rate = prefactor * sqrtTerm * expTerm;
+
+        // Warn if exponent is very large negative (rate effectively zero)
+        if (expArg < -700) {
+          resultDiv.innerHTML = '<span style="color:#c00">Rate is effectively zero &mdash; gap asymmetry completely suppresses tunneling at this temperature.</span>';
+          return;
+        }
+      } else {
+        const N = parseFloat(document.getElementById('N').value);
+        if (isNaN(N) || N <= 0) {
+          resultDiv.innerHTML = '<span style="color:red">Please enter a valid N > 0.</span>';
+          return;
+        }
+        rate = (8 * EJ) / (h * D1 * nu0 * V) * (1 + D2 / (N * N * D1));
+      }
+
+      if (!isFinite(rate) || rate <= 0) {
+        resultDiv.innerHTML = '<span style="color:red">Could not compute a valid rate. Check inputs.</span>';
+        return;
+      }
+
+      const lifetime = 1 / rate;
+      resultDiv.innerHTML =
+        `<div class="result-line">&Gamma; = ${formatRate(rate)}</div>` +
+        `<div class="result-line" style="font-weight:normal; font-size:0.95em; color:#555">` +
+        `1/&Gamma; = ${formatTime(lifetime)}</div>`;
+    }
+  </script>
+</body>
+</html>
