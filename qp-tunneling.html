@@ -111,12 +111,9 @@
     button:hover { background: #005fa3; }
     .result {
       margin-top: 1.5em;
-      font-size: 1.1em;
-      font-weight: bold;
-      text-align: center;
+      font-size: 1em;
       min-height: 2em;
     }
-    .result-line { margin: 0.3em 0; }
     .card {
       background: white;
       padding: 1.5em;
@@ -137,6 +134,54 @@
       border: none;
       border-top: 1px solid #e0e0e0;
       margin: 1.5em 0 0.5em 0;
+    }
+
+    /* QP population mode toggle (3-way) */
+    .qp-mode-toggle {
+      display: flex;
+      gap: 0;
+      margin: 0.4em 0 0 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #5a8a5a;
+    }
+    .qp-mode-toggle label {
+      flex: 1;
+      text-align: center;
+      padding: 0.5em 0;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.92em;
+      color: #5a8a5a;
+      background: white;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+      border-right: 1px solid #5a8a5a;
+    }
+    .qp-mode-toggle label:last-child { border-right: none; }
+    .qp-mode-toggle input[type="radio"] { display: none; }
+    .qp-mode-toggle input[type="radio"]:checked + span {
+      background: #5a8a5a;
+      color: white;
+    }
+
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.4em;
+      font-size: 0.97em;
+    }
+    .result-table td {
+      padding: 0.25em 0.5em;
+    }
+    .result-table td:first-child {
+      color: #555;
+      font-weight: normal;
+      width: 55%;
+    }
+    .result-table td:last-child {
+      font-weight: bold;
+      text-align: right;
     }
   </style>
 </head>
@@ -225,8 +270,8 @@
 
     <label class="field-label">
       &nu;<sub>0</sub> &mdash; Normal-state single-particle DOS at Fermi level
-      <span>(&mu;m<sup>&minus;3</sup> &mu;eV<sup>&minus;1</sup>, Al &asymp; 2.3 &times; 10<sup>4</sup>)</span>
-      <input type="number" id="nu0" step="any" value="23000" placeholder="e.g. 23000">
+      <span>(&mu;m<sup>&minus;3</sup> &mu;eV<sup>&minus;1</sup>, Al &asymp; 1.45 &times; 10<sup>4</sup>, single-spin, Catelani et al.)</span>
+      <input type="number" id="nu0" step="any" value="14500" placeholder="e.g. 14500">
     </label>
 
     <label class="field-label">
@@ -234,6 +279,48 @@
       <span>(&mu;m<sup>3</sup>)</span>
       <input type="number" id="vol" step="any" value="100" placeholder="e.g. 100">
     </label>
+
+    <!-- QP population section -->
+    <hr class="section-divider">
+    <label class="field-label" style="margin-top:0.5em;">
+      Quasiparticle population
+      <span style="font-weight:normal">(multiplies the per-QP rate to give the total rate)</span>
+    </label>
+    <div class="qp-mode-toggle" style="margin-top:0.5em;">
+      <label>
+        <input type="radio" name="qpmode" value="xqp" checked onchange="switchQPMode()">
+        <span>x<sub>qp</sub> = n<sub>qp</sub> / (2&nu;<sub>0</sub>&Delta;<sub>1</sub>)</span>
+      </label>
+      <label>
+        <input type="radio" name="qpmode" value="density" onchange="switchQPMode()">
+        <span>n<sub>qp</sub> (&mu;m<sup>&minus;3</sup>)</span>
+      </label>
+      <label>
+        <input type="radio" name="qpmode" value="number" onchange="switchQPMode()">
+        <span>N<sub>qp</sub> (total count)</span>
+      </label>
+    </div>
+
+    <div id="qp-xqp">
+      <label class="field-label">
+        x<sub>qp</sub> &mdash; Dimensionless QP density (QPs per Cooper pair)
+        <span>(typical range 10<sup>&minus;7</sup> &ndash; 10<sup>&minus;4</sup>)</span>
+        <input type="number" id="xqp" step="any" value="1e-6" placeholder="e.g. 1e-6">
+      </label>
+    </div>
+    <div id="qp-density" style="display:none">
+      <label class="field-label">
+        n<sub>qp</sub> &mdash; Quasiparticle volume density
+        <span>(&mu;m<sup>&minus;3</sup>)</span>
+        <input type="number" id="nqp" step="any" value="1" placeholder="e.g. 1">
+      </label>
+    </div>
+    <div id="qp-number" style="display:none">
+      <label class="field-label">
+        N<sub>qp</sub> &mdash; Total number of quasiparticles in volume V
+        <input type="number" id="Nqp" step="any" value="1" min="0" placeholder="e.g. 1">
+      </label>
+    </div>
 
     <!-- Cold-only input -->
     <div id="cold-inputs">
@@ -272,6 +359,14 @@
       document.getElementById('result').innerHTML = '';
     }
 
+    function switchQPMode() {
+      const mode = document.querySelector('input[name="qpmode"]:checked').value;
+      document.getElementById('qp-xqp').style.display     = mode === 'xqp'     ? '' : 'none';
+      document.getElementById('qp-density').style.display = mode === 'density'  ? '' : 'none';
+      document.getElementById('qp-number').style.display  = mode === 'number'   ? '' : 'none';
+      document.getElementById('result').innerHTML = '';
+    }
+
     function formatRate(hz) {
       if (hz >= 1e9) return `${(hz / 1e9).toPrecision(4)} GHz`;
       if (hz >= 1e6) return `${(hz / 1e6).toPrecision(4)} MHz`;
@@ -288,6 +383,11 @@
       return `${(s * 1e12).toPrecision(4)} ps`;
     }
 
+    function formatNumber(x) {
+      if (x >= 1000 || x < 0.01) return x.toExponential(3);
+      return x.toPrecision(4);
+    }
+
     function calculate() {
       const h   = 6.62607015e-34;   // J·s
       const kB  = 1.380649e-23;     // J/K
@@ -295,6 +395,7 @@
       const resultDiv = document.getElementById('result');
 
       const scenario = document.querySelector('input[name="scenario"]:checked').value;
+      const qpmode   = document.querySelector('input[name="qpmode"]:checked').value;
 
       const D1_GHz     = parseFloat(document.getElementById('d1').value);
       const D2_GHz     = parseFloat(document.getElementById('d2').value);
@@ -309,14 +410,14 @@
       }
 
       // Convert to SI
-      const D1     = h * D1_GHz * 1e9;           // J
-      const D2     = h * D2_GHz * 1e9;           // J
-      const EJ     = h * EJ_GHz * 1e9;           // J
-      // 1 μm⁻³ μeV⁻¹ = 1e18 m⁻³ × (eV × 1e-6)⁻¹ J⁻¹ = 1e18 / (eV×1e-6) m⁻³ J⁻¹
-      const nu0    = nu0_input * 1e18 / (eV * 1e-6);  // J⁻¹ m⁻³
-      const V      = V_um3 * 1e-18;              // m³
+      const D1  = h * D1_GHz * 1e9;                    // J
+      const D2  = h * D2_GHz * 1e9;                    // J
+      const EJ  = h * EJ_GHz * 1e9;                    // J
+      const nu0 = nu0_input * 1e18 / (eV * 1e-6);      // J⁻¹ m⁻³
+      const V   = V_um3 * 1e-18;                        // m³
 
-      let rate;
+      // ── per-QP rate ──────────────────────────────────────────────────────────
+      let rate_perQP;
 
       if (scenario === 'cold') {
         const T_mK = parseFloat(document.getElementById('Tqp').value);
@@ -324,40 +425,95 @@
           resultDiv.innerHTML = '<span style="color:red">Please enter a valid quasiparticle temperature.</span>';
           return;
         }
-        const T    = T_mK * 1e-3;         // K
-        const kBT  = kB * T;              // J
-
-        const prefactor = (16 * EJ) / (h * D1 * nu0 * V);
-        const sqrtTerm  = Math.sqrt(Math.PI * D1 / (2 * kBT));
-        const expArg    = -(D2 - D1) / kBT;
-        const expTerm   = Math.exp(expArg);
-
-        rate = prefactor * sqrtTerm * expTerm;
-
-        // Warn if exponent is very large negative (rate effectively zero)
+        const kBT   = kB * T_mK * 1e-3;
+        const expArg = -(D2 - D1) / kBT;
         if (expArg < -700) {
           resultDiv.innerHTML = '<span style="color:#c00">Rate is effectively zero &mdash; gap asymmetry completely suppresses tunneling at this temperature.</span>';
           return;
         }
+        rate_perQP = (16 * EJ) / (h * D1 * nu0 * V)
+                   * Math.sqrt(Math.PI * D1 / (2 * kBT))
+                   * Math.exp(expArg);
       } else {
         const N = parseFloat(document.getElementById('N').value);
         if (isNaN(N) || N <= 0) {
           resultDiv.innerHTML = '<span style="color:red">Please enter a valid N > 0.</span>';
           return;
         }
-        rate = (8 * EJ) / (h * D1 * nu0 * V) * (1 + D2 / (N * N * D1));
+        rate_perQP = (8 * EJ) / (h * D1 * nu0 * V) * (1 + D2 / (N * N * D1));
       }
 
-      if (!isFinite(rate) || rate <= 0) {
+      if (!isFinite(rate_perQP) || rate_perQP <= 0) {
         resultDiv.innerHTML = '<span style="color:red">Could not compute a valid rate. Check inputs.</span>';
         return;
       }
 
-      const lifetime = 1 / rate;
-      resultDiv.innerHTML =
-        `<div class="result-line">&Gamma; = ${formatRate(rate)}</div>` +
-        `<div class="result-line" style="font-weight:normal; font-size:0.95em; color:#555">` +
-        `1/&Gamma; = ${formatTime(lifetime)}</div>`;
+      // ── QP count from chosen mode ────────────────────────────────────────────
+      // x_qp = n_qp / (2 ν₀ Δ₁)  →  N_qp = x_qp × 2 ν₀ Δ₁ × V
+      // D1 in J, nu0 in J⁻¹m⁻³, V in m³  →  ν₀Δ₁V is dimensionless (a count)
+      let N_qp, xqp_display, nqp_display;
+
+      if (qpmode === 'xqp') {
+        const xqp = parseFloat(document.getElementById('xqp').value);
+        if (isNaN(xqp) || xqp < 0) {
+          resultDiv.innerHTML = '<span style="color:red">Please enter a valid x<sub>qp</sub> &ge; 0.</span>';
+          return;
+        }
+        N_qp        = xqp * 2 * nu0 * D1 * V;
+        xqp_display = xqp;
+        // n_qp [μm⁻³] = x_qp × 2 × ν₀[μm⁻³μeV⁻¹] × Δ₁[μeV]
+        nqp_display = xqp * 2 * nu0_input * (D1_GHz * 4.13566769e-3);
+
+      } else if (qpmode === 'density') {
+        const nqp = parseFloat(document.getElementById('nqp').value);  // μm⁻³
+        if (isNaN(nqp) || nqp < 0) {
+          resultDiv.innerHTML = '<span style="color:red">Please enter a valid n<sub>qp</sub> &ge; 0.</span>';
+          return;
+        }
+        N_qp        = nqp * V_um3;
+        nqp_display = nqp;
+        // x_qp = n_qp / (2 ν₀ Δ₁)  in μm/μeV units
+        xqp_display = nqp / (2 * nu0_input * (D1_GHz * 4.13566769e-3));
+
+      } else {  // number
+        const Nqp = parseFloat(document.getElementById('Nqp').value);
+        if (isNaN(Nqp) || Nqp < 0) {
+          resultDiv.innerHTML = '<span style="color:red">Please enter a valid N<sub>qp</sub> &ge; 0.</span>';
+          return;
+        }
+        N_qp        = Nqp;
+        nqp_display = Nqp / V_um3;
+        xqp_display = Nqp / (2 * nu0_input * (D1_GHz * 4.13566769e-3) * V_um3);
+      }
+
+      const rate_total = rate_perQP * N_qp;
+
+      // ── Build result ─────────────────────────────────────────────────────────
+      let html = `<table class="result-table">
+        <tr><td>N<sub>qp</sub></td><td>${formatNumber(N_qp)}</td></tr>
+        <tr><td>n<sub>qp</sub></td><td>${formatNumber(nqp_display)} &mu;m<sup>&minus;3</sup></td></tr>
+        <tr><td>x<sub>qp</sub> = n<sub>qp</sub>/(2&nu;<sub>0</sub>&Delta;<sub>1</sub>)</td><td>${formatNumber(xqp_display)}</td></tr>
+        <tr style="border-top:1px solid #ddd">
+          <td>&Gamma; per QP</td><td>${formatRate(rate_perQP)}</td>
+        </tr>`;
+
+      if (N_qp > 0 && isFinite(rate_total)) {
+        html += `<tr>
+          <td><strong>&Gamma;<sub>total</sub></strong></td>
+          <td><strong>${formatRate(rate_total)}</strong></td>
+        </tr>
+        <tr>
+          <td>1/&Gamma;<sub>total</sub></td>
+          <td>${formatTime(1 / rate_total)}</td>
+        </tr>`;
+      } else {
+        html += `<tr><td colspan="2" style="color:#888; font-weight:normal">
+          Set a non-zero QP population above to compute &Gamma;<sub>total</sub>.
+        </td></tr>`;
+      }
+
+      html += `</table>`;
+      resultDiv.innerHTML = html;
     }
   </script>
 </body>
