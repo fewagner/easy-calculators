@@ -161,8 +161,16 @@
       </div>
     </div>
 
-    <label for="emp_factor">Empirical I<sub>c</sub>R<sub>N</sub> factor <i>f</i> (optional): your lab's I<sub>c</sub>R<sub>N</sub> / AB I<sub>c</sub>R<sub>N</sub></label>
-    <input type="number" id="emp_factor" step="any" placeholder="e.g. 0.85 (leave blank to skip)">
+    <label>Empirical E<sub>J</sub>&thinsp;&times;&thinsp;R<sub>N</sub> constant <i>K</i> (optional): E<sub>J</sub> = <i>K</i> / R<sub>N</sub></label>
+    <div class="input-row">
+      <input type="number" id="emp_K" step="any" placeholder="e.g. 1.8 (leave blank to skip)">
+      <select id="emp_K_unit">
+        <option value="GHz_kOhm">GHz &middot; k&Omega;</option>
+        <option value="GHz_Ohm">GHz &middot; &Omega;</option>
+        <option value="ueV_kOhm">&mu;eV &middot; k&Omega;</option>
+        <option value="ueV_Ohm">&mu;eV &middot; &Omega;</option>
+      </select>
+    </div>
 
     <button onclick="calculate()">Calculate</button>
 
@@ -196,10 +204,9 @@
         <td>E<sub>J</sub> = &Phi;<sub>0</sub> I<sub>c</sub> / (2&pi;) = &hbar; I<sub>c</sub> / (2e)</td>
       </tr>
       <tr>
-        <td>Empirical factor <i>f</i></td>
-        <td>E<sub>J</sub><sup>emp</sup> = <i>f</i> &times; E<sub>J</sub><sup>AB</sup> &nbsp;(R<sub>N</sub> fixed) &nbsp;&nbsp;
-            R<sub>N</sub><sup>emp</sup> = <i>f</i> &times; R<sub>N</sub><sup>AB</sup> &nbsp;(E<sub>J</sub> fixed) &nbsp;&nbsp;
-            equivalent to I<sub>c</sub>R<sub>N</sub><sup>emp</sup> = <i>f</i> &times; I<sub>c</sub>R<sub>N</sub><sup>AB</sup></td>
+        <td>Empirical constant <i>K</i></td>
+        <td>E<sub>J</sub> = <i>K</i> / R<sub>N</sub> &nbsp;&nbsp; R<sub>N</sub> = <i>K</i> / E<sub>J</sub> &nbsp;&nbsp;
+            K<sub>AB</sub> = h&Delta;(T) &times; tanh(&Delta;(T)/(2k<sub>B</sub>T)) / (8e&sup2;)</td>
       </tr>
     </table>
   </div>
@@ -286,12 +293,36 @@
         tanh(&Delta;(T)/(2k<sub>B</sub>T)): ${tanh_factor.toFixed(6)}<br>
       `;
 
-      const emp_f_raw = parseFloat(document.getElementById('emp_factor').value);
-      const has_emp   = !isNaN(emp_f_raw) && emp_f_raw > 0;
-      const emp_f     = has_emp ? emp_f_raw : null;
+      // Parse empirical K (EJ × RN constant, in J·Ω internally)
+      const emp_K_raw  = parseFloat(document.getElementById('emp_K').value);
+      const emp_K_unit = document.getElementById('emp_K_unit').value;
+      let emp_K_JOhm = null;
+      if (!isNaN(emp_K_raw) && emp_K_raw > 0) {
+        if      (emp_K_unit === 'GHz_kOhm') emp_K_JOhm = emp_K_raw * h * 1e9 * 1e3;
+        else if (emp_K_unit === 'GHz_Ohm')  emp_K_JOhm = emp_K_raw * h * 1e9;
+        else if (emp_K_unit === 'ueV_kOhm') emp_K_JOhm = emp_K_raw * e * 1e-6 * 1e3;
+        else if (emp_K_unit === 'ueV_Ohm')  emp_K_JOhm = emp_K_raw * e * 1e-6;
+      }
+      const has_emp = emp_K_JOhm !== null;
 
-      // AB IcRN product at this temperature
-      const IcRN_AB = (Math.PI * deltaT_J * tanh_factor) / (2 * e);  // in V
+      // AB EJ×RN constant at this temperature (J·Ω)
+      const K_AB_JOhm = (h * deltaT_J * tanh_factor) / (8 * e * e);
+
+      // Helper: format K in all units
+      const fmtK = (K_JOhm) =>
+        `${(K_JOhm / (h * 1e9 * 1e3)).toExponential(4)} GHz&middot;k&Omega; &nbsp;|&nbsp; ` +
+        `${(K_JOhm / (e * 1e-6 * 1e3)).toExponential(4)} &mu;eV&middot;k&Omega;`;
+
+      // Helper: format EJ in all units
+      const fmtEJ = (EJ_J) =>
+        `<strong>E<sub>J</sub>: ${(EJ_J/(h*1e9)).toExponential(6)} GHz</strong><br>` +
+        `E<sub>J</sub>: ${(EJ_J/(e*1e-6)).toExponential(6)} &mu;eV &nbsp;|&nbsp; ` +
+        `${(EJ_J/kB).toExponential(6)} K &nbsp;|&nbsp; ${EJ_J.toExponential(6)} J<br>`;
+
+      // Helper: format RN in Ω and kΩ
+      const fmtRN = (RN) =>
+        `<strong>R<sub>N</sub>: ${RN.toExponential(6)} &Omega;</strong><br>` +
+        `R<sub>N</sub>: ${(RN/1e3).toExponential(6)} k&Omega;<br>`;
 
       if (dir === 'EJ_from_RN') {
         const RN_val  = parseFloat(document.getElementById('RN_val').value);
@@ -301,37 +332,29 @@
           return;
         }
         let RN;
-        if (RN_unit === 'Ohm')  RN = RN_val;
+        if      (RN_unit === 'Ohm')  RN = RN_val;
         else if (RN_unit === 'kOhm') RN = RN_val * 1e3;
         else if (RN_unit === 'MOhm') RN = RN_val * 1e6;
 
-        const Ic_AB   = IcRN_AB / RN;
-        const EJ_AB_J = hbar * Ic_AB / (2 * e);
+        const EJ_AB_J  = K_AB_JOhm / RN;
+        const Ic_AB    = 2 * e * EJ_AB_J / hbar;
         const RN_label = `${RN_val} ${RN_unit === 'Ohm' ? '&Omega;' : RN_unit === 'kOhm' ? 'k&Omega;' : 'M&Omega;'} = ${RN.toExponential(4)} &Omega;`;
-
-        const fmtEJ = (EJ_J) => `
-          <strong>E<sub>J</sub>: ${(EJ_J/(h*1e9)).toExponential(6)} GHz</strong><br>
-          E<sub>J</sub>: ${(EJ_J/(e*1e-6)).toExponential(6)} &mu;eV &nbsp;|&nbsp;
-          ${(EJ_J/kB).toExponential(6)} K &nbsp;|&nbsp;
-          ${EJ_J.toExponential(6)} J<br>`;
 
         resultHTML += `
           <span class="section-label">AB result — E<sub>J</sub></span>
           R<sub>N</sub>: ${RN_label}<br>
-          I<sub>c</sub>R<sub>N</sub> (AB): ${(IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+          K<sub>AB</sub> = E<sub>J</sub>&thinsp;&times;&thinsp;R<sub>N</sub> (AB): ${fmtK(K_AB_JOhm)}<br>
           I<sub>c</sub> (AB): ${Ic_AB.toExponential(6)} A<br>
           ${fmtEJ(EJ_AB_J)}
         `;
 
         if (has_emp) {
-          const EJ_emp_J = emp_f * EJ_AB_J;
-          const Ic_emp   = emp_f * Ic_AB;
+          const EJ_emp_J = emp_K_JOhm / RN;
           resultHTML += `
-            <span class="section-label">Empirical result — E<sub>J</sub> &nbsp;<span style="font-weight:normal;color:#555;">(f = ${emp_f})</span></span>
-            I<sub>c</sub>R<sub>N</sub> (empirical): ${(emp_f * IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
-            I<sub>c</sub> (empirical): ${Ic_emp.toExponential(6)} A<br>
+            <span class="section-label">Empirical result — E<sub>J</sub> &nbsp;<span style="font-weight:normal;color:#555;">(K = ${emp_K_raw} ${emp_K_unit.replace('_','&middot;').replace('kOhm','k&Omega;').replace('Ohm','&Omega;')})</span></span>
+            K<sub>emp</sub> = E<sub>J</sub>&thinsp;&times;&thinsp;R<sub>N</sub>: ${fmtK(emp_K_JOhm)}<br>
             ${fmtEJ(EJ_emp_J)}
-            <span style="color:#555; font-size:0.93em;">Empirical / AB = ${emp_f.toFixed(4)} &nbsp;&nbsp; E<sub>J</sub> deviation: ${((emp_f - 1)*100).toFixed(2)}%</span><br>
+            <span style="color:#555; font-size:0.93em;">K<sub>emp</sub> / K<sub>AB</sub> = ${(emp_K_JOhm/K_AB_JOhm).toFixed(4)} &nbsp;&nbsp; E<sub>J</sub> deviation: ${((emp_K_JOhm/K_AB_JOhm - 1)*100).toFixed(2)}%</span><br>
           `;
         }
       } else {
@@ -343,37 +366,30 @@
           return;
         }
         let EJ_J;
-        if (EJ_unit === 'GHz') EJ_J = EJ_val * h * 1e9;
+        if      (EJ_unit === 'GHz') EJ_J = EJ_val * h * 1e9;
         else if (EJ_unit === 'ueV') EJ_J = EJ_val * e * 1e-6;
         else if (EJ_unit === 'meV') EJ_J = EJ_val * e * 1e-3;
         else if (EJ_unit === 'K')   EJ_J = EJ_val * kB;
         else if (EJ_unit === 'J')   EJ_J = EJ_val;
 
         const Ic_AB = 2 * e * EJ_J / hbar;
-        // RN_AB: AB formula for the given EJ (f=1 baseline)
-        const RN_AB = IcRN_AB / Ic_AB;
-
-        const fmtRN = (RN) => `
-          <strong>R<sub>N</sub>: ${RN.toExponential(6)} &Omega;</strong><br>
-          R<sub>N</sub>: ${(RN/1e3).toExponential(6)} k&Omega;<br>`;
+        const RN_AB = K_AB_JOhm / EJ_J;
 
         resultHTML += `
           <span class="section-label">AB result — R<sub>N</sub></span>
           E<sub>J</sub>: ${(EJ_J/(h*1e9)).toExponential(6)} GHz &nbsp;|&nbsp; ${(EJ_J/(e*1e-6)).toExponential(6)} &mu;eV<br>
-          I<sub>c</sub>: ${Ic_AB.toExponential(6)} A<br>
-          I<sub>c</sub>R<sub>N</sub> (AB): ${(IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+          K<sub>AB</sub> = E<sub>J</sub>&thinsp;&times;&thinsp;R<sub>N</sub> (AB): ${fmtK(K_AB_JOhm)}<br>
+          I<sub>c</sub> (AB): ${Ic_AB.toExponential(6)} A<br>
           ${fmtRN(RN_AB)}
         `;
 
         if (has_emp) {
-          // For empirical: same EJ target, but IcRN_emp = f * IcRN_AB
-          // RN_emp = IcRN_emp / Ic = f * RN_AB
-          const RN_emp = emp_f * RN_AB;
+          const RN_emp = emp_K_JOhm / EJ_J;
           resultHTML += `
-            <span class="section-label">Empirical result — R<sub>N</sub> &nbsp;<span style="font-weight:normal;color:#555;">(f = ${emp_f})</span></span>
-            I<sub>c</sub>R<sub>N</sub> (empirical): ${(emp_f * IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+            <span class="section-label">Empirical result — R<sub>N</sub> &nbsp;<span style="font-weight:normal;color:#555;">(K = ${emp_K_raw} ${emp_K_unit.replace('_','&middot;').replace('kOhm','k&Omega;').replace('Ohm','&Omega;')})</span></span>
+            K<sub>emp</sub> = E<sub>J</sub>&thinsp;&times;&thinsp;R<sub>N</sub>: ${fmtK(emp_K_JOhm)}<br>
             ${fmtRN(RN_emp)}
-            <span style="color:#555; font-size:0.93em;">Empirical / AB = ${emp_f.toFixed(4)} &nbsp;&nbsp; R<sub>N</sub> deviation: ${((emp_f - 1)*100).toFixed(2)}%</span><br>
+            <span style="color:#555; font-size:0.93em;">K<sub>emp</sub> / K<sub>AB</sub> = ${(emp_K_JOhm/K_AB_JOhm).toFixed(4)} &nbsp;&nbsp; R<sub>N</sub> deviation: ${((emp_K_JOhm/K_AB_JOhm - 1)*100).toFixed(2)}%</span><br>
           `;
         }
       }
