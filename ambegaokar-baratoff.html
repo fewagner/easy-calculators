@@ -161,6 +161,9 @@
       </div>
     </div>
 
+    <label for="emp_factor">Empirical I<sub>c</sub>R<sub>N</sub> factor <i>f</i> (optional): your lab's I<sub>c</sub>R<sub>N</sub> / AB I<sub>c</sub>R<sub>N</sub></label>
+    <input type="number" id="emp_factor" step="any" placeholder="e.g. 0.85 (leave blank to skip)">
+
     <button onclick="calculate()">Calculate</button>
 
     <div class="result" id="output"></div>
@@ -191,6 +194,12 @@
       <tr>
         <td>Josephson energy</td>
         <td>E<sub>J</sub> = &Phi;<sub>0</sub> I<sub>c</sub> / (2&pi;) = &hbar; I<sub>c</sub> / (2e)</td>
+      </tr>
+      <tr>
+        <td>Empirical factor <i>f</i></td>
+        <td>E<sub>J</sub><sup>emp</sup> = <i>f</i> &times; E<sub>J</sub><sup>AB</sup> &nbsp;(R<sub>N</sub> fixed) &nbsp;&nbsp;
+            R<sub>N</sub><sup>emp</sup> = <i>f</i> &times; R<sub>N</sub><sup>AB</sup> &nbsp;(E<sub>J</sub> fixed) &nbsp;&nbsp;
+            equivalent to I<sub>c</sub>R<sub>N</sub><sup>emp</sup> = <i>f</i> &times; I<sub>c</sub>R<sub>N</sub><sup>AB</sup></td>
       </tr>
     </table>
   </div>
@@ -277,6 +286,13 @@
         tanh(&Delta;(T)/(2k<sub>B</sub>T)): ${tanh_factor.toFixed(6)}<br>
       `;
 
+      const emp_f_raw = parseFloat(document.getElementById('emp_factor').value);
+      const has_emp   = !isNaN(emp_f_raw) && emp_f_raw > 0;
+      const emp_f     = has_emp ? emp_f_raw : null;
+
+      // AB IcRN product at this temperature
+      const IcRN_AB = (Math.PI * deltaT_J * tanh_factor) / (2 * e);  // in V
+
       if (dir === 'EJ_from_RN') {
         const RN_val  = parseFloat(document.getElementById('RN_val').value);
         const RN_unit = document.getElementById('RN_unit').value;
@@ -289,22 +305,35 @@
         else if (RN_unit === 'kOhm') RN = RN_val * 1e3;
         else if (RN_unit === 'MOhm') RN = RN_val * 1e6;
 
-        const Ic   = (Math.PI * deltaT_J * tanh_factor) / (2 * e * RN);
-        const EJ_J = hbar * Ic / (2 * e);
-        const EJ_GHz = EJ_J / (h * 1e9);
-        const EJ_ueV = EJ_J / (e * 1e-6);
-        const EJ_K   = EJ_J / kB;
+        const Ic_AB   = IcRN_AB / RN;
+        const EJ_AB_J = hbar * Ic_AB / (2 * e);
+        const RN_label = `${RN_val} ${RN_unit === 'Ohm' ? '&Omega;' : RN_unit === 'kOhm' ? 'k&Omega;' : 'M&Omega;'} = ${RN.toExponential(4)} &Omega;`;
+
+        const fmtEJ = (EJ_J) => `
+          <strong>E<sub>J</sub>: ${(EJ_J/(h*1e9)).toExponential(6)} GHz</strong><br>
+          E<sub>J</sub>: ${(EJ_J/(e*1e-6)).toExponential(6)} &mu;eV &nbsp;|&nbsp;
+          ${(EJ_J/kB).toExponential(6)} K &nbsp;|&nbsp;
+          ${EJ_J.toExponential(6)} J<br>`;
 
         resultHTML += `
-          <span class="section-label">Result — E<sub>J</sub></span>
-          R<sub>N</sub>: ${RN_val} ${RN_unit === 'Ohm' ? '&Omega;' : RN_unit === 'kOhm' ? 'k&Omega;' : 'M&Omega;'} = ${RN.toExponential(4)} &Omega;<br>
-          Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
-          <strong>E<sub>J</sub>: ${EJ_GHz.toExponential(6)} GHz</strong><br>
-          E<sub>J</sub>: ${EJ_ueV.toExponential(6)} &mu;eV<br>
-          E<sub>J</sub>: ${EJ_K.toExponential(6)} K<br>
-          E<sub>J</sub>: ${EJ_J.toExponential(6)} J<br>
-          I<sub>c</sub>R<sub>N</sub> product: ${(Ic * RN * 1e6).toFixed(4)} &mu;V<br>
+          <span class="section-label">AB result — E<sub>J</sub></span>
+          R<sub>N</sub>: ${RN_label}<br>
+          I<sub>c</sub>R<sub>N</sub> (AB): ${(IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+          I<sub>c</sub> (AB): ${Ic_AB.toExponential(6)} A<br>
+          ${fmtEJ(EJ_AB_J)}
         `;
+
+        if (has_emp) {
+          const EJ_emp_J = emp_f * EJ_AB_J;
+          const Ic_emp   = emp_f * Ic_AB;
+          resultHTML += `
+            <span class="section-label">Empirical result — E<sub>J</sub> &nbsp;<span style="font-weight:normal;color:#555;">(f = ${emp_f})</span></span>
+            I<sub>c</sub>R<sub>N</sub> (empirical): ${(emp_f * IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+            I<sub>c</sub> (empirical): ${Ic_emp.toExponential(6)} A<br>
+            ${fmtEJ(EJ_emp_J)}
+            <span style="color:#555; font-size:0.93em;">Empirical / AB = ${emp_f.toFixed(4)} &nbsp;&nbsp; E<sub>J</sub> deviation: ${((emp_f - 1)*100).toFixed(2)}%</span><br>
+          `;
+        }
       } else {
         // RN from EJ
         const EJ_val  = parseFloat(document.getElementById('EJ_val').value);
@@ -320,18 +349,33 @@
         else if (EJ_unit === 'K')   EJ_J = EJ_val * kB;
         else if (EJ_unit === 'J')   EJ_J = EJ_val;
 
-        const Ic = 2 * e * EJ_J / hbar;
-        // Ic = (π ΔT tanh) / (2e RN)  →  RN = (π ΔT tanh) / (2e Ic)
-        const RN = (Math.PI * deltaT_J * tanh_factor) / (2 * e * Ic);
+        const Ic_AB = 2 * e * EJ_J / hbar;
+        // RN_AB: AB formula for the given EJ (f=1 baseline)
+        const RN_AB = IcRN_AB / Ic_AB;
+
+        const fmtRN = (RN) => `
+          <strong>R<sub>N</sub>: ${RN.toExponential(6)} &Omega;</strong><br>
+          R<sub>N</sub>: ${(RN/1e3).toExponential(6)} k&Omega;<br>`;
 
         resultHTML += `
-          <span class="section-label">Result — R<sub>N</sub></span>
+          <span class="section-label">AB result — R<sub>N</sub></span>
           E<sub>J</sub>: ${(EJ_J/(h*1e9)).toExponential(6)} GHz &nbsp;|&nbsp; ${(EJ_J/(e*1e-6)).toExponential(6)} &mu;eV<br>
-          Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
-          <strong>R<sub>N</sub>: ${RN.toExponential(6)} &Omega;</strong><br>
-          R<sub>N</sub>: ${(RN/1e3).toExponential(6)} k&Omega;<br>
-          I<sub>c</sub>R<sub>N</sub> product: ${(Ic * RN * 1e6).toFixed(4)} &mu;V<br>
+          I<sub>c</sub>: ${Ic_AB.toExponential(6)} A<br>
+          I<sub>c</sub>R<sub>N</sub> (AB): ${(IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+          ${fmtRN(RN_AB)}
         `;
+
+        if (has_emp) {
+          // For empirical: same EJ target, but IcRN_emp = f * IcRN_AB
+          // RN_emp = IcRN_emp / Ic = f * RN_AB
+          const RN_emp = emp_f * RN_AB;
+          resultHTML += `
+            <span class="section-label">Empirical result — R<sub>N</sub> &nbsp;<span style="font-weight:normal;color:#555;">(f = ${emp_f})</span></span>
+            I<sub>c</sub>R<sub>N</sub> (empirical): ${(emp_f * IcRN_AB * 1e6).toFixed(4)} &mu;V<br>
+            ${fmtRN(RN_emp)}
+            <span style="color:#555; font-size:0.93em;">Empirical / AB = ${emp_f.toFixed(4)} &nbsp;&nbsp; R<sub>N</sub> deviation: ${((emp_f - 1)*100).toFixed(2)}%</span><br>
+          `;
+        }
       }
 
       outDiv.innerHTML = resultHTML;
