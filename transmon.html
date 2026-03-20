@@ -109,6 +109,9 @@
     <label for="kappa">Resonator linewidth &kappa; [MHz] (optional):</label>
     <input type="number" id="kappa" step="any">
 
+    <label for="Cg">Capacitance to charge line C<sub>g</sub> [fF] (optional, for T<sub>1</sub> limit):</label>
+    <input type="number" id="Cg" step="any" placeholder="e.g. 1">
+
     <button onclick="calculate()">Calculate</button>
 
     <div class="result" id="output"></div>
@@ -126,6 +129,8 @@
       <tr><td>Josephson inductance L<sub>J</sub></td><td>&Phi;<sub>0</sub> / (2&pi;I<sub>c</sub>) = &hbar; / (2eI<sub>c</sub>)</td></tr>
       <tr><td>Lamb shift</td><td>&delta;<sub>L</sub> &approx; g&sup2; / (f&#x2080;&#x2081; &minus; f<sub>r</sub>)</td></tr>
       <tr><td>Dispersive shift &chi;</td><td>g&sup2;&alpha; / ((f&#x2080;&#x2081;&minus;f<sub>r</sub>)(&alpha;+f&#x2080;&#x2081;&minus;f<sub>r</sub>))</td></tr>
+      <tr><td>Purcell T<sub>1</sub></td><td>1/T<sub>1</sub><sup>Purcell</sup> = &kappa;<sub>r</sub>(g/&Delta;)&sup2;, &Delta; = &omega;&#x2080;&#x2081; &minus; &omega;<sub>r</sub> (all angular frequencies)</td></tr>
+      <tr><td>Charge-line T<sub>1</sub></td><td>1/T<sub>1</sub><sup>gate</sup> = &omega;<sub>01</sub>&sup2; C<sub>g</sub>&sup2; Z<sub>0</sub> / C<sub>&Sigma;</sub>, C<sub>&Sigma;</sub> = e&sup2;/(2E<sub>C</sub>), Z<sub>0</sub> = 50 &Omega;</td></tr>
     </table>
   </div>
 
@@ -213,20 +218,47 @@
           chi = gGHz ** 2 * alpha / (deltaF * (alpha + deltaF));
 
         let kappaLine = '';
+        let purcellLine = '';
         if (!isNaN(kappaMHz) && kappaMHz > 0) {
+          const kGHz = kappaMHz / 1000;
           const chiMHz = Math.abs(chi) * 1000;
           const r = chiMHz / kappaMHz;
           const regime = r > 1
             ? `<span style="color:#2e7d32">strong dispersive ✓ (|&chi;|/&kappa; = ${r.toFixed(2)})</span>`
             : `<span style="color:#c62828">weak dispersive (|&chi;|/&kappa; = ${r.toFixed(2)})</span>`;
           kappaLine = `&kappa;: ${kappaMHz} MHz &nbsp;&nbsp; ${regime}<br>`;
+
+          if (Math.abs(deltaF) > 1e-6) {
+            const purcellRateRad = 2 * Math.PI * kGHz * 1e9 * (gGHz / deltaF) ** 2;
+            const T1_purcell_us = 1e6 / purcellRateRad;
+            purcellLine = `T<sub>1</sub><sup>Purcell</sup>: ${T1_purcell_us.toExponential(4)} &mu;s<br>`;
+          } else {
+            purcellLine = `T<sub>1</sub><sup>Purcell</sup>: qubit near-resonant with resonator &mdash; Purcell rate undefined<br>`;
+          }
         }
 
         couplingHTML = `
           <span class="section-label">Coupling / Dispersive (using exact f&#x2080;&#x2081;, &alpha;)</span>
           Lamb shift &delta;<sub>L</sub>: ${lamb.toExponential(4)} GHz<br>
           Dispersive shift &chi;: ${chi.toExponential(4)} GHz &nbsp;(${(chi * 1000).toExponential(4)} MHz)<br>
-          ${kappaLine}
+          ${kappaLine}${purcellLine}
+        `;
+      }
+
+      // ── Charge-line T₁ (optional) ───────────────────────────────────────
+      let chargeLineHTML = '';
+      const Cg_fF = parseFloat(document.getElementById('Cg').value);
+      if (!isNaN(Cg_fF) && Cg_fF > 0) {
+        const Cg = Cg_fF * 1e-15;
+        const Csigma = (e * e) / (2 * Ec * GHz_to_J);
+        const omega01 = 2 * Math.PI * f01 * 1e9;
+        const Z0 = 50;
+        const Gamma_gate = omega01 ** 2 * Cg ** 2 * Z0 / Csigma;
+        const T1_gate_us = 1e6 / Gamma_gate;
+        chargeLineHTML = `
+          <span class="section-label">T<sub>1</sub> limit &mdash; charge line (using exact f&#x2080;&#x2081;)</span>
+          C<sub>g</sub> (qubit&ndash;charge-line capacitance): ${Cg_fF} fF<br>
+          T<sub>1</sub><sup>gate</sup>: ${T1_gate_us.toExponential(4)} &mu;s<br>
         `;
       }
 
@@ -247,7 +279,7 @@
         Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
         Capacitance C: ${C.toExponential(6)} F<br>
         Josephson inductance L<sub>J</sub>: ${Lj.toExponential(6)} H<br>
-        ${couplingHTML}
+        ${couplingHTML}${chargeLineHTML}
       `;
 
       plotBandStructure(Ec, Ej);
