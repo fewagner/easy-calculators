@@ -1,596 +1,581 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Qubit–Feedline T1 Estimator</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      padding: 2em;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .container {
-      background: white;
-      padding: 2em;
-      max-width: 700px;
-      width: 100%;
-      margin: auto;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h2 { margin-bottom: 0.2em; }
-    p.subtitle {
-      color: #555;
-      font-size: 0.92em;
-      margin-bottom: 1.5em;
-      line-height: 1.6;
-    }
-    h3 { margin-top: 1.8em; margin-bottom: 0.5em; border-bottom: 1px solid #ddd; padding-bottom: 0.3em; }
-    h4 { margin: 1.2em 0 0.4em; color: #333; }
-    /* parameter grid */
-    .pgrid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 14px;
-      margin-bottom: 1.5em;
-    }
-    .param label { display: block; font-size: 0.82em; color: #555; margin-bottom: 2px; }
-    .param input[type=range] { width: 100%; accent-color: #4CAF50; cursor: pointer; }
-    .param .val { font-size: 0.88em; font-weight: bold; color: #222; }
-    /* result boxes */
-    .rgrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin: 1em 0;
-    }
-    @media (max-width: 480px) { .rgrid { grid-template-columns: 1fr; } }
-    .rbox {
-      background: #f9f9f9;
-      border-radius: 6px;
-      padding: 10px 13px;
-      border: 1px solid #e0e0e0;
-    }
-    .rbox.model-a { border-left: 4px solid #c8860a; }
-    .rbox.model-b { border-left: 4px solid #3a7d0a; }
-    .rbox.compare { border-left: 4px solid #1565c0; }
-    .rbox .rl { font-size: 0.78em; color: #777; margin-bottom: 3px; }
-    .rbox .rv { font-size: 1.12em; font-weight: bold; color: #222; }
-    .rv.a { color: #c8860a; }
-    .rv.g { color: #3a7d0a; }
-    .rv.b { color: #1565c0; }
-    /* step list */
-    .step { font-size: 0.83em; color: #444; margin: 3px 0; line-height: 1.7; }
-    .step b { color: #111; }
-    .step code {
-      font-family: "Courier New", monospace;
-      font-size: 0.9em;
-      background: #f0f0ee;
-      padding: 1px 4px;
-      border-radius: 3px;
-    }
-    /* validity box */
-    .vbox {
-      font-size: 0.83em;
-      padding: 7px 11px;
-      border-radius: 5px;
-      margin-top: 8px;
-      line-height: 1.6;
-    }
-    .vbox.good { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-    .vbox.marg { background: #fff8e1; color: #e65100; border: 1px solid #ffe082; }
-    .vbox.bad  { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-    /* section header */
-    .sh {
-      font-size: 0.78em;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #888;
-      margin-bottom: 10px;
-    }
-    hr.sep { border: none; border-top: 1px solid #e8e8e8; margin: 12px 0; }
-    /* canvas chart */
-    canvas { display: block; width: 100%; }
-    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
-    .leg { display: flex; align-items: center; gap: 6px; font-size: 0.82em; color: #555; }
-    .ls { width: 22px; height: 0; }
-    /* formula block */
-    .formula {
-      font-family: "Courier New", monospace;
-      font-size: 0.82em;
-      background: #f4f4f2;
-      color: #111;
-      padding: 10px 14px;
-      border-radius: 5px;
-      margin: 8px 0;
-      line-height: 1.9;
-      white-space: pre-wrap;
-      overflow-x: auto;
-    }
-    /* tables */
-    table { margin-top: 0.8em; width: 100%; border-collapse: collapse; font-size: 0.88em; }
-    table, th, td { border: 1px solid #ddd; }
-    th, td { padding: 0.45em 0.6em; text-align: left; vertical-align: top; }
-    th { background: #f0f0f0; }
-    .badge {
-      display: inline-block;
-      font-size: 0.72em;
-      font-weight: bold;
-      padding: 1px 6px;
-      border-radius: 4px;
-      margin-right: 3px;
-      vertical-align: middle;
-    }
-    .ba  { background: #fff3cd; color: #856404; }
-    .bb  { background: #d4edda; color: #155724; }
-    .bab { background: #d1ecf1; color: #0c5460; }
-    /* back card */
-    .card {
-      background: white;
-      padding: 1.5em;
-      margin: 1em;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 700px;
-      text-align: center;
-    }
-    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
-    .card a:hover { text-decoration: underline; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qubit–Feedline T1 Estimator</title>
+<style>
+:root {
+  --bg:#f0f4f8; --card:#ffffff; --inner:#f6f6f4;
+  --t1:#1a1a18; --t2:#555552; --t3:#888880;
+  --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.20);
+  --blue:#0077cc; --blue-bg:#e6f0fa; --blue-t:#004e99;
+  --green:#2d7a2d; --green-bg:#e8f5e8; --green-t:#1a4d1a;
+  --amber:#b06000; --amber-bg:#fff3e0; --amber-t:#7a4000;
+  --red:#aa2222; --red-bg:#fdecea; --red-t:#7a1414;
+  --code-bg:#e8e6e0;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#161614; --card:#242420; --inner:#1c1c1a;
+    --t1:#e8e6e0; --t2:#b0aea8; --t3:#6e6c66;
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.20);
+    --blue:#85b7eb; --blue-bg:#042c53; --blue-t:#b5d4f4;
+    --green:#8dc88d; --green-bg:#173417; --green-t:#c0e0c0;
+    --amber:#f0a040; --amber-bg:#3a2000; --amber-t:#fac870;
+    --red:#f09090; --red-bg:#3a1010; --red-t:#f7c0c0;
+    --code-bg:#2e2c28;
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--t1);padding:24px 16px 60px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:22px;font-weight:600;margin-bottom:4px}
+.sub{font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.65}
+.card{background:var(--card);border-radius:10px;padding:18px 20px;margin-bottom:14px;border:.5px solid var(--border)}
+.sh{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:12px}
+.sep{border:none;border-top:.5px solid var(--border);margin:12px 0}
+/* tabs */
+.tabbar{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tbtn{padding:7px 18px;border:.5px solid var(--border2);border-radius:6px;background:var(--card);color:var(--t2);font-size:13px;cursor:pointer}
+.tbtn.on{background:var(--blue-bg);color:var(--blue);border-color:var(--blue);font-weight:700}
+.tab{display:none}.tab.on{display:block}
+/* sliders */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:13px}
+.param label{display:block;font-size:11px;color:var(--t2);margin-bottom:3px}
+.param input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;margin-bottom:2px}
+.param .val{font-size:13px;font-weight:600;color:var(--t1)}
+/* result boxes */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:12px}
+.rbox{background:var(--inner);border-radius:7px;padding:10px 13px;border:.5px solid var(--border)}
+.rbox.bl{border-left:3px solid var(--blue)}.rbox.gr{border-left:3px solid var(--green)}.rbox.am{border-left:3px solid var(--amber)}
+.rl{font-size:11px;color:var(--t3);margin-bottom:2px}
+.rv{font-size:17px;font-weight:600}
+.rv.bl{color:var(--blue)}.rv.gr{color:var(--green)}.rv.am{color:var(--amber)}
+/* steps */
+.step{font-size:12px;color:var(--t2);margin:4px 0;line-height:1.7}
+.step b{color:var(--t1)}
+.step code{font-family:monospace;font-size:11px;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+/* validity */
+.vbadge{font-size:12px;padding:7px 12px;border-radius:7px;margin-bottom:12px;line-height:1.5}
+.vbadge.ok{background:var(--green-bg);color:var(--green-t)}
+.vbadge.warn{background:var(--amber-bg);color:var(--amber-t)}
+.vbadge.bad{background:var(--red-bg);color:var(--red-t)}
+/* charts */
+canvas{display:block;width:100%}
+.ctitle{font-size:12px;font-weight:600;color:var(--t2);text-align:center;margin-bottom:5px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2)}
+/* derivation */
+.formula{font-family:monospace;font-size:12px;background:var(--code-bg);color:var(--t1);padding:10px 14px;border-radius:7px;margin:8px 0;line-height:1.9;white-space:pre-wrap;overflow-x:auto}
+.prose{font-size:13px;color:var(--t2);line-height:1.7;margin:8px 0}
+.prose strong{color:var(--t1)}
+.stitle{font-size:15px;font-weight:600;color:var(--blue);margin:18px 0 8px}
+/* assumptions table */
+.atable{width:100%;border-collapse:collapse;font-size:12px}
+.atable th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--t3);padding:0 8px 8px 0;border-bottom:1px solid var(--border2)}
+.atable td{padding:6px 8px 6px 0;border-bottom:.5px solid var(--border);color:var(--t2);vertical-align:top;line-height:1.5}
+.atable td:first-child{color:var(--t3);font-weight:700;white-space:nowrap;width:24px}
+.atable td:nth-child(2){color:var(--t1);min-width:220px}
+</style>
 </head>
 <body>
-<div class="container">
-  <h2>Qubit–Feedline T1 Estimator</h2>
-  <p class="subtitle">
-    Analytic estimate of the T1 relaxation time of a circular transmon qubit island due to
-    capacitive coupling to a nearby CPW feedline — comparing two models:
-    <strong style="color:#c8860a">Model A</strong> (no ground plane, monopole coupling) and
-    <strong style="color:#3a7d0a">Model B</strong> (coplanar ground plane, dipole-screened coupling).
-    For design guidance only — always verify with EM simulation (Sonnet, HFSS, Palace).
-  </p>
+<div class="wrap">
+<h1>Qubit–Feedline T₁ Estimator</h1>
+<p class="sub">Analytic estimate of the T₁ relaxation time of a circular transmon qubit island due to
+capacitive coupling to a CPW feedline, using a view-factor integral over effective geometric parameters.
+Geometry: fully planar chip with a continuous ground plane and etched cutouts around the island and feedline.
+Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or Palace.</p>
 
-  <!-- ── Parameters ── -->
-  <h3>Geometry &amp; Circuit Parameters</h3>
+<div class="tabbar">
+  <button class="tbtn on"  onclick="showTab('calc',this)">Calculator</button>
+  <button class="tbtn"     onclick="showTab('deriv',this)">Derivation</button>
+  <button class="tbtn"     onclick="showTab('assump',this)">Assumptions</button>
+</div>
+
+<!-- ═══════════════════════ TAB 1: CALCULATOR ═══════════════════════ -->
+<div id="tab-calc" class="tab on">
+
+<div class="card">
+  <div class="sh">Geometry &amp; circuit parameters</div>
   <div class="pgrid">
-    <div class="param">
-      <label>Island diameter (µm)</label>
-      <input type="range" id="diam" min="20" max="300" value="125" oninput="go()">
-      <span class="val" id="v-diam">125 µm</span>
-    </div>
-    <div class="param">
-      <label>Gap d — edge to edge (µm)</label>
-      <input type="range" id="gap" min="50" max="1000" value="250" oninput="go()">
-      <span class="val" id="v-gap">250 µm</span>
-    </div>
-    <div class="param">
-      <label>Feedline width w (µm)</label>
-      <input type="range" id="fw" min="5" max="100" value="20" oninput="go()">
-      <span class="val" id="v-fw">20 µm</span>
-    </div>
-    <div class="param">
-      <label>Effective permittivity &epsilon;<sub>eff</sub></label>
-      <input type="range" id="eps" min="1" max="12" step="0.05" value="6.35" oninput="go()">
-      <span class="val" id="v-eps">6.35</span>
-    </div>
-    <div class="param">
-      <label>Total qubit cap C<sub>&Sigma;</sub> (fF)</label>
-      <input type="range" id="csig" min="20" max="200" value="80" oninput="go()">
-      <span class="val" id="v-csig">80 fF</span>
-    </div>
-    <div class="param">
-      <label>Qubit frequency f<sub>q</sub> (GHz)</label>
-      <input type="range" id="fq" min="3" max="8" step="0.1" value="5" oninput="go()">
-      <span class="val" id="v-fq">5.0 GHz</span>
-    </div>
-    <div class="param">
-      <label>Feedline impedance Z<sub>0</sub> (&Omega;)</label>
-      <input type="range" id="z0" min="20" max="100" value="50" oninput="go()">
-      <span class="val" id="v-z0">50 &Omega;</span>
-    </div>
-    <div class="param">
-      <label>Ground plane gap s (µm) — Model B only</label>
-      <input type="range" id="s" min="2" max="50" value="10" oninput="go()">
-      <span class="val" id="v-s">10 µm</span>
-    </div>
+    <div class="param"><label>Island diameter d (µm)</label>
+      <input type="range" id="sl-d"    min="20"  max="300"  value="125"  oninput="go()">
+      <span class="val" id="vl-d">125 µm</span></div>
+    <div class="param"><label>Island ground-plane gap s (µm)</label>
+      <input type="range" id="sl-s"    min="2"   max="50"   value="10"   oninput="go()">
+      <span class="val" id="vl-s">10 µm</span></div>
+    <div class="param"><label>Feedline width w (µm)</label>
+      <input type="range" id="sl-w"    min="5"   max="100"  value="20"   oninput="go()">
+      <span class="val" id="vl-w">20 µm</span></div>
+    <div class="param"><label>Feedline CPW gap a (µm)</label>
+      <input type="range" id="sl-a"    min="2"   max="50"   value="10"   oninput="go()">
+      <span class="val" id="vl-a">10 µm</span></div>
+    <div class="param"><label>Edge-to-edge gap (µm)</label>
+      <input type="range" id="sl-gap"  min="10"  max="1000" value="250"  oninput="go()">
+      <span class="val" id="vl-gap">250 µm</span></div>
+    <div class="param"><label>Effective permittivity ε_eff</label>
+      <input type="range" id="sl-eps"  min="1"   max="12"   value="6.35" step="0.05" oninput="go()">
+      <span class="val" id="vl-eps">6.35</span></div>
+    <div class="param"><label>Total qubit cap C_Σ (fF)</label>
+      <input type="range" id="sl-csig" min="20"  max="150"  value="80"   oninput="go()">
+      <span class="val" id="vl-csig">80 fF</span></div>
+    <div class="param"><label>Qubit frequency f_q (GHz)</label>
+      <input type="range" id="sl-fq"   min="3"   max="8"    value="5.0"  step="0.1" oninput="go()">
+      <span class="val" id="vl-fq">5.0 GHz</span></div>
+    <div class="param"><label>Feedline impedance Z₀ (Ω)</label>
+      <input type="range" id="sl-z0"   min="20"  max="100"  value="50"   oninput="go()">
+      <span class="val" id="vl-z0">50 Ω</span></div>
   </div>
-
-  <!-- ── Model A ── -->
-  <h3 style="color:#c8860a">Model A — No Ground Plane &nbsp;·&nbsp; Monopole / Solid-Angle</h3>
-  <div id="steps-a"></div>
-  <hr class="sep">
-  <div class="rgrid">
-    <div class="rbox model-a">
-      <div class="rl">Island self-capacitance C<sub>self</sub></div>
-      <div class="rv a" id="ra-cself">—</div>
-    </div>
-    <div class="rbox model-a">
-      <div class="rl">Solid-angle fraction &eta;</div>
-      <div class="rv a" id="ra-eta">—</div>
-    </div>
-    <div class="rbox model-a">
-      <div class="rl">Coupling capacitance C<sub>qf</sub></div>
-      <div class="rv a" id="ra-cqf">—</div>
-    </div>
-    <div class="rbox model-a">
-      <div class="rl">T1 limit — no ground plane</div>
-      <div class="rv a" id="ra-t1">—</div>
-    </div>
-  </div>
-  <div id="valid-a"></div>
-
-  <!-- ── Model B ── -->
-  <h3 style="color:#3a7d0a">Model B — Coplanar Ground Plane &nbsp;·&nbsp; Dipole / Screened</h3>
-  <div id="steps-b"></div>
-  <hr class="sep">
-  <div class="rgrid">
-    <div class="rbox model-b">
-      <div class="rl">Coupling capacitance C<sub>qf,screened</sub></div>
-      <div class="rv g" id="rb-cqf">—</div>
-    </div>
-    <div class="rbox model-b">
-      <div class="rl">T1 limit — with ground plane</div>
-      <div class="rv g" id="rb-t1">—</div>
-    </div>
-    <div class="rbox compare">
-      <div class="rl">C<sub>qf</sub> suppression (B vs A)</div>
-      <div class="rv b" id="rb-sup">—</div>
-    </div>
-    <div class="rbox compare">
-      <div class="rl">T1 improvement (B vs A)</div>
-      <div class="rv b" id="rb-gain">—</div>
-    </div>
-  </div>
-  <div id="valid-b"></div>
-
-  <!-- ── Chart ── -->
-  <h3>T1 Feedline Limit vs Gap Distance</h3>
-  <canvas id="cv" height="300"></canvas>
-  <div class="legend">
-    <div class="leg"><div class="ls" style="border-top:2.5px solid #c8860a"></div>Model A — no ground plane</div>
-    <div class="leg"><div class="ls" style="border-top:2.5px solid #3a7d0a"></div>Model B — with ground plane (current s)</div>
-    <div class="leg"><div class="ls" style="border-top:1.5px dashed #c62828"></div>T1 = 200 µs target</div>
-    <div class="leg"><div class="ls" style="border-top:1px dashed #1565c0"></div>Current gap d</div>
-  </div>
-  <p style="font-size:0.78em;color:#888;margin-top:8px;line-height:1.6;">
-    Horizontal axis: edge-to-edge gap d swept from 50 µm to 1000 µm.
-    Model B uses the ground plane gap s set by the slider above.
-    Both curves use the same C<sub>&Sigma;</sub>, f<sub>q</sub>, and Z<sub>0</sub>.
-  </p>
-
-  <!-- ── Formulas ── -->
-  <h3>Formulas Used</h3>
-
-  <h4>Shared Definitions</h4>
-  <div class="formula">&#949;_eff = (1 + &#949;_Si) / 2              [effective medium: vacuum above, silicon below]
-D     = r + d + w/2                [center-to-center distance, m]
-&#969;     = 2&#960; &middot; f_q                   [qubit angular frequency, rad/s]</div>
-
-  <h4 style="color:#c8860a">Model A — No Ground Plane (monopole / flux-interception)</h4>
-  <div class="formula">C_self = 8 &middot; &#949;_eff &middot; &#949;&#8320; &middot; r            [exact result for conducting disk in uniform medium;
-                               Jackson, Classical Electrodynamics, 3rd ed., prob. 3.3]
-
-&#951;      = arctan(w / (2D)) / &#960;        [solid-angle fraction subtended by infinite strip;
-                               from van Oosterom &amp; Strackee rect. formula, limit length&#8594;&#8734;]
-
-C_qf   = C_self &middot; &#951;                  [flux interception; requires d/r &#8811; 1]
-
-&#954;      = 2 &middot; &#969;&#178; &middot; C_qf&#178; &middot; Z&#8320; / C_&#931;  [decay rate; factor 2 = both feedline ports;
-                               valid when &#969;&middot;C_qf&middot;Z&#8320; &#8810; 1]
-
-T1     = 1/&#954; = C_&#931; / (2&middot;&#969;&#178;&middot;C_qf&#178;&middot;Z&#8320;)
-                               [Blais et al., Rev. Mod. Phys. 93, 025005 (2021);
-                                Koch et al., Phys. Rev. A 76, 042319 (2007)]</div>
-
-  <h4 style="color:#3a7d0a">Model B — Coplanar Ground Plane (dipole / screened)</h4>
-  <div class="formula">Physical picture:
-  Ground plane carries induced charge -Q on its inner face.
-  Net charge of (island + ground) = 0  &#8594;  looks like a dipole (p ~ Q&middot;s) from far away.
-  Far field &#8733; 1/r&#179; instead of 1/r&#178;  &#8594;  coupling to feedline is strongly suppressed.
-
-C_qf,scr = &#949;_eff &middot; &#949;&#8320; &middot; s_island &middot; s_feedline / D   [general form]
-         = &#949;_eff &middot; &#949;&#8320; &middot; s&#178; / D                        [if both CPW gaps equal s]
-                                                        [requires s &#8810; D]
-                               [Jackson, Classical Electrodynamics, &sect;2.9]
-
-T1,scr   = C_&#931; / (2&middot;&#969;&#178;&middot;C_qf,scr&#178;&middot;Z&#8320;)
-
-Improvement factor = T1,scr / T1,A  =  (C_qf,A / C_qf,scr)&#178;</div>
-
-  <table>
-    <tr><th>Quantity</th><th>Formula / Method</th></tr>
-    <tr><td>Island self-capacitance C<sub>self</sub></td>
-        <td>8 &middot; &epsilon;<sub>eff</sub> &middot; &epsilon;<sub>0</sub> &middot; r &nbsp;(exact: conducting disk)</td></tr>
-    <tr><td>Center-to-center distance D</td>
-        <td>r + d + w/2</td></tr>
-    <tr><td>Solid-angle fraction &eta; (Model A)</td>
-        <td>arctan(w / 2D) / &pi; &nbsp;[infinite strip limit]</td></tr>
-    <tr><td>Coupling capacitance C<sub>qf</sub> (Model A)</td>
-        <td>C<sub>self</sub> &middot; &eta;</td></tr>
-    <tr><td>Screened capacitance C<sub>qf,scr</sub> (Model B)</td>
-        <td>&epsilon;<sub>eff</sub> &middot; &epsilon;<sub>0</sub> &middot; s&sup2; / D</td></tr>
-    <tr><td>Decay rate &kappa;</td>
-        <td>2 &middot; &omega;&sup2; &middot; C<sub>qf</sub>&sup2; &middot; Z<sub>0</sub> / C<sub>&Sigma;</sub></td></tr>
-    <tr><td>T1 limit</td>
-        <td>1/&kappa; = C<sub>&Sigma;</sub> / (2 &middot; &omega;&sup2; &middot; C<sub>qf</sub>&sup2; &middot; Z<sub>0</sub>)</td></tr>
-    <tr><td>Effective permittivity &epsilon;<sub>eff</sub></td>
-        <td>(1 + &epsilon;<sub>Si</sub>) / 2 &asymp; 6.35 &nbsp;(vacuum above, silicon below)</td></tr>
-  </table>
-
-  <!-- ── Assumptions ── -->
-  <h3>Assumptions &amp; Limitations</h3>
-  <p style="font-size:0.85em;color:#555;margin-bottom:0.8em;line-height:1.6;">
-    <span class="badge bab">A+B</span> both models &nbsp;
-    <span class="badge ba">A</span> Model A only &nbsp;
-    <span class="badge bb">B</span> Model B only
-  </p>
-  <table>
-    <thead>
-      <tr>
-        <th>Assumption</th>
-        <th>When it breaks down</th>
-        <th>Expected error</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><span class="badge ba">A</span> d/r &Gt; 1<br>
-            <small style="color:#777">Island = point monopole</small></td>
-        <td>d/r &lt; 5; default geometry has d/r &asymp; 4</td>
-        <td>20–40% overestimate of C<sub>qf</sub> at d/r &asymp; 4. Unreliable below d/r = 2.</td>
-      </tr>
-      <tr>
-        <td><span class="badge bb">B</span> s &Lt; D<br>
-            <small style="color:#777">Dipole approximation</small></td>
-        <td>s/D &gt; 0.10; quadrupole terms grow</td>
-        <td>Model overestimates T1 when s is not small vs D. Use EM simulation for large s.</td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> &epsilon;<sub>eff</sub> = (1 + &epsilon;<sub>Si</sub>)/2</td>
-        <td>Thick substrate, surface effects, crystal anisotropy</td>
-        <td>~5–10% error on all capacitances</td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> Perfect circular disk</td>
-        <td>Non-circular pads, dumbbell or cross shapes</td>
-        <td>~10–20% deviation in C<sub>self</sub></td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> Feedline matched at Z<sub>0</sub>, no resonance</td>
-        <td>Impedance mismatch or standing wave near f<sub>q</sub></td>
-        <td>Can increase effective coupling by orders of magnitude — not captured here</td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> No Purcell filter</td>
-        <td>A Purcell filter is present in the readout chain</td>
-        <td>T1 enhanced by (&Delta;/g)&sup2;, typically 100–1000&times;. This tool gives the worst-case unfiltered estimate.</td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> No readout resonator</td>
-        <td>Qubit dispersively coupled to a resonator</td>
-        <td>Adds a separate Purcell decay channel; estimate independently.</td>
-      </tr>
-      <tr>
-        <td><span class="badge bb">B</span> s<sub>island</sub> = s<sub>feedline</sub> = s</td>
-        <td>Different CPW gaps around island vs feedline</td>
-        <td>Replace s&sup2; with s<sub>island</sub> &middot; s<sub>feedline</sub> in the formula.</td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> Factor of 2 (both ports)</td>
-        <td>Feedline terminated or one-sided</td>
-        <td>Use factor 1 for a one-sided feedline.</td>
-      </tr>
-      <tr>
-        <td><span class="badge bab">A+B</span> Overall analytic accuracy</td>
-        <td>All regimes</td>
-        <td>Factor ~2–3 on C<sub>qf</sub> vs. full EM simulation. Always verify critical designs with Sonnet, HFSS, or Palace/ElmerFEM.</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <p style="font-size:0.82em;color:#555;margin-top:1.2em;line-height:1.7;background:#f9f9f9;padding:0.8em;border-radius:5px;border:1px solid #e0e0e0;">
-    <strong>Recommended workflow:</strong><br>
-    1. Use this tool to check that the geometry is not obviously wrong.<br>
-    2. If the estimated T1 is within a factor of 5 of the target, run a full EM simulation.<br>
-    3. Extract C<sub>qf</sub> from the simulation and use the same T1 formula for a reliable number.
-  </p>
 </div>
 
 <div class="card">
-  <a href="index.html">Back</a>
+  <div class="sh">Step-by-step calculation</div>
+  <div id="steps"></div>
 </div>
 
-<script>
-const EPS0 = 8.854e-12;
+<div class="card">
+  <div class="sh">Results</div>
+  <div id="vbadge" class="vbadge ok">✓ Validity condition met</div>
+  <div class="rgrid" id="rboxes"></div>
+</div>
 
+<div class="card">
+  <div class="sh">Mutual capacitance vs gap</div>
+  <div class="ctitle">C_mf (aF) — log scale — current operating point marked</div>
+  <canvas id="ch1" height="230"></canvas>
+</div>
+
+<div class="card">
+  <div class="sh">T₁ feedline limit vs gap</div>
+  <div class="ctitle">T₁ (µs) — log scale — current operating point marked</div>
+  <canvas id="ch2" height="230"></canvas>
+</div>
+
+<div class="card">
+  <div class="sh">T₁ vs gap for different island gaps s</div>
+  <div class="ctitle">T₁ (µs) — log scale — active s value shown bold</div>
+  <canvas id="ch3" height="250"></canvas>
+  <div class="legend" id="leg3"></div>
+</div>
+
+</div><!-- /tab-calc -->
+
+<!-- ═══════════════════════ TAB 2: DERIVATION ═══════════════════════ -->
+<div id="tab-deriv" class="tab">
+
+<div class="card">
+  <div class="stitle">1. Geometry and notation</div>
+
+  <!-- SVG recreation of Figure 1 from the report -->
+  <svg viewBox="0 0 620 345" xmlns="http://www.w3.org/2000/svg"
+       style="width:100%;max-width:620px;display:block;margin:8px auto;border-radius:6px">
+    <defs>
+      <marker id="ah"  markerWidth="7" markerHeight="7" refX="6"   refY="3.5" orient="auto">
+        <polygon points="0 0,7 3.5,0 7" fill="#444"/></marker>
+      <marker id="aht" markerWidth="7" markerHeight="7" refX="1"   refY="3.5" orient="auto">
+        <polygon points="7 0,0 3.5,7 7" fill="#444"/></marker>
+    </defs>
+    <!-- ground plane background -->
+    <rect x="0" y="0" width="620" height="345" fill="#c9c6be" rx="6"/>
+    <text x="22" y="28" font-family="Arial" font-size="12" fill="#666">Ground plane</text>
+    <!-- feedline: gap a top (y 44-61), center w (y 61-93), gap a bottom (y 93-110) -->
+    <rect x="20" y="44"  width="562" height="17" fill="#dbd8d0"/>
+    <rect x="20" y="61"  width="562" height="32" fill="#3a6eaa"/>
+    <rect x="20" y="93"  width="562" height="17" fill="#dbd8d0"/>
+    <text x="200" y="82" font-family="Arial" font-size="13" font-weight="bold" fill="white" text-anchor="middle">CPW feedline</text>
+    <!-- dimension lines on right -->
+    <line x1="594" y1="44"  x2="594" y2="61"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="44"  x2="599" y2="44"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
+    <text x="612" y="56"  font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
+    <line x1="594" y1="61"  x2="594" y2="93"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
+    <text x="612" y="81"  font-family="Arial" font-size="12" fill="#333" text-anchor="middle">w</text>
+    <line x1="594" y1="93"  x2="594" y2="110" stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="110" x2="599" y2="110" stroke="#333" stroke-width="1"/>
+    <text x="612" y="105" font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
+    <!-- qubit island: center (300,258), island r=56, gap ring r=72 -->
+    <circle cx="300" cy="258" r="72" fill="#dbd8d0"/>
+    <circle cx="300" cy="258" r="56" fill="#d4700a"/>
+    <text x="300" y="254" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Qubit</text>
+    <text x="300" y="270" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">island</text>
+    <!-- s label pointing to the gap ring -->
+    <line x1="352" y1="220" x2="370" y2="207" stroke="#555" stroke-width="1"/>
+    <text x="376" y="204" font-family="Arial" font-size="12" fill="#555">s</text>
+    <!-- D arrow: feedline center y=77, island center y=258 -->
+    <line x1="300" y1="77" x2="300" y2="202"
+          stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="315" y="148" font-family="Arial" font-size="13" font-weight="bold" fill="#222">D</text>
+    <!-- gap bracket: feedline bottom y=110, island top y=202, x=195 -->
+    <line x1="195" y1="110" x2="195" y2="202"
+          stroke="#666" stroke-width="1" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="177" y="161" font-family="Arial" font-size="11" fill="#555" text-anchor="middle">gap</text>
+    <!-- d arrow: island diameter at y=325 -->
+    <line x1="244" y1="325" x2="356" y2="325"
+          stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="300" y="340" font-family="Arial" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">d</text>
+    <!-- caption -->
+    <text x="310" y="16" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">
+      Figure 1. Chip top-view (not to scale). Ground plane covers entire chip; cutouts etched around island and feedline.
+    </text>
+  </svg>
+
+  <div class="sep"></div>
+  <table class="atable">
+    <tr><th>#</th><th>Symbol</th><th>Meaning</th><th>Nominal</th></tr>
+    <tr><td>1</td><td><b>d</b></td><td>Qubit island diameter</td><td>125 µm</td></tr>
+    <tr><td>2</td><td><b>s</b></td><td>Gap: island edge → ground cutout edge</td><td>10 µm</td></tr>
+    <tr><td>3</td><td><b>w</b></td><td>CPW feedline center-conductor width</td><td>20 µm</td></tr>
+    <tr><td>4</td><td><b>a</b></td><td>CPW feedline gap (each side, center → ground)</td><td>10 µm</td></tr>
+    <tr><td>5</td><td><b>gap</b></td><td>Edge-to-edge: island perimeter → feedline edge</td><td>250 µm</td></tr>
+    <tr><td>6</td><td><b>D</b></td><td>Center-to-center = d/2 + gap + w/2</td><td>322.5 µm</td></tr>
+    <tr><td>7</td><td><b>ε_eff</b></td><td>Effective dielectric = (1 + ε_Si)/2</td><td>6.35</td></tr>
+    <tr><td>8</td><td><b>C_Σ</b></td><td>Total qubit capacitance (self + junction + shunt)</td><td>80 fF</td></tr>
+    <tr><td>9</td><td><b>f_q</b></td><td>Qubit transition frequency</td><td>5 GHz</td></tr>
+    <tr><td>10</td><td><b>Z₀</b></td><td>Feedline characteristic impedance</td><td>50 Ω</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="stitle">2. Derivation of the mutual capacitance</div>
+
+  <p class="prose"><strong>2.1 Strategy.</strong> No closed-form exact solution exists for the mutual capacitance between a circular island and a CPW strip with surrounding ground plane. The formula below is a geometric view-factor approximation that integrates an angle-dependent coupling kernel over the effective feedline width. It captures all correct parametric trends and is accurate to a factor of 2–3 versus full EM simulation.</p>
+
+  <p class="prose"><strong>2.2 Effective parameters.</strong> Charge in a CPW structure distributes across the gap, not only at the conductor edge. Each conductor+gap pair is replaced by an effective size at the midpoint between the conductor edge and the gap edge:</p>
+  <div class="formula">R_eff = d/2 + s/4      (effective radius: island + half the island gap)
+W_eff = w/2 + a/4      (effective half-width: feedline + half the CPW gap)
+D     = d/2 + gap + w/2  (center-to-center distance)</div>
+
+  <p class="prose"><strong>2.3 View-factor integral.</strong> Consider a point at distance x from the island center along the feedline axis. The half-angle subtended by the effective island circle from that point is θ(x) = arcsin(R_eff/x). We use the coupling kernel sec θ − 1 = x/√(x²−R_eff²) − 1, which vanishes as x→∞ and diverges as x→R_eff (contact). Integrating across the effective feedline width [D−W_eff, D+W_eff]:</p>
+  <div class="formula">C_mf = 4 ε_eff ε₀ · ∫[D−W_eff to D+W_eff]  [ x/√(x²−R_eff²) − 1 ]  dx</div>
+
+  <p class="prose"><strong>2.4 Closed-form result.</strong> Using the antiderivative ∫[x/√(x²−R²) − 1] dx = √(x²−R²) − x + const:</p>
+  <div class="formula">C_mf ≈ 4 ε_eff ε₀ · [ √((D+W_eff)²−R_eff²)  −  √((D−W_eff)²−R_eff²)  −  2 W_eff ]
+
+Validity condition:  D − W_eff > R_eff   ⟺   gap > s/4 + a/4   (typically a few µm)</div>
+
+  <p class="prose"><strong>2.5 Large-distance limit.</strong> Expanding for D ≫ W_eff, R_eff:</p>
+  <div class="formula">C_mf  →  4 ε_eff ε₀ R_eff² W_eff / D²   (1/D² dipole-like decay)
+
+At nominal geometry D/R_eff ≈ 5, so the full formula is needed —
+the island body contributes significantly and cannot be treated as a point dipole.</div>
+</div>
+
+<div class="card">
+  <div class="stitle">3. From C_mf to T₁</div>
+  <p class="prose">Modelling the qubit as an LC oscillator with total capacitance C_Σ, the admittance seen through C_mf into a matched feedline (impedance Z₀) is Y(ω) = jωC_mf / (1 + jωC_mf Z₀). Since ωC_mf Z₀ ~ 10⁻⁴ ≪ 1:</p>
+  <div class="formula">Re[Y(ω)] ≈ ω² C_mf² Z₀</div>
+  <p class="prose">An infinite feedline has two ports — the factor of 2 below is essential and often omitted in the literature:</p>
+  <div class="formula">κ  =  2 ω² C_mf² Z₀ / C_Σ
+T₁ =  C_Σ / (2 ω² C_mf² Z₀)</div>
+  <p class="prose">This follows from input-output theory (Blais et al., <em>Rev. Mod. Phys.</em> 93, 025005, 2021; Koch et al., <em>Phys. Rev. A</em> 76, 042319, 2007). C_mf is the mutual capacitance computed above. C_Σ is the total qubit self-capacitance, estimated separately — typically 40–100 fF for a 125 µm transmon island.</p>
+</div>
+
+</div><!-- /tab-deriv -->
+
+<!-- ═══════════════════════ TAB 3: ASSUMPTIONS ═══════════════════════ -->
+<div id="tab-assump" class="tab">
+<div class="card">
+  <div class="sh">Assumptions &amp; limitations</div>
+  <table class="atable">
+    <tr><th>#</th><th>Assumption / Limitation</th><th>Expected impact</th></tr>
+    <tr><td>1</td><td>Planar 2D geometry. All conductors coplanar on one metal layer.</td><td>Appropriate for planar CPW chips. Small error (&lt;10%).</td></tr>
+    <tr><td>2</td><td>Uniform ε_eff = (1+ε_Si)/2 = 6.35. Treats the Si/vacuum interface as a uniform effective medium.</td><td>5–10% on all capacitances. Depends on substrate thickness and conductor width.</td></tr>
+    <tr><td>3</td><td>Coupling kernel sec θ − 1 is a geometric approximation, not a rigorous EM solution.</td><td>Factor 2–3 vs. full EM simulation (Sonnet, HFSS). Best available closed form.</td></tr>
+    <tr><td>4</td><td>Effective parameters R_eff = d/2 + s/4 and W_eff = w/2 + a/4 place the effective boundary at the midpoint between conductor edge and gap edge.</td><td>~20% on C_mf. Other weightings are plausible; midpoint minimises known error.</td></tr>
+    <tr><td>5</td><td>Formula is specific to the with-ground-plane geometry.</td><td>Does not apply to geometries without a coplanar ground plane.</td></tr>
+    <tr><td>6</td><td>Feedline is infinite and perfectly impedance-matched at Z₀.</td><td>Negligible if terminated properly. A resonance near f_q can dramatically increase coupling.</td></tr>
+    <tr><td>7</td><td>Both feedline ports counted (factor of 2 in κ). For a one-sided feedline, remove the factor of 2.</td><td>Factor of 2 error in κ and T₁ if wrong.</td></tr>
+    <tr><td>8</td><td>No Purcell filter or coupling resonator. This is the direct radiation T₁ limit.</td><td>With a Purcell filter, T₁ improves by (Δ/g)², typically 100–1000×.</td></tr>
+    <tr><td>9</td><td>C_Σ (total qubit capacitance) is a free parameter, not computed from geometry.</td><td>Uncertainty in C_Σ propagates linearly to T₁.</td></tr>
+    <tr><td>10</td><td>JJ leads not modelled. If leads point toward the feedline, C_mf increases locally.</td><td>Check layout — JJ leads should point away from the feedline.</td></tr>
+    <tr><td>11</td><td>Only feedline coupling modelled. TLS dielectric loss, quasiparticle loss, and coupling to other transmission lines are not included.</td><td>Can be significant — this calculator gives only the feedline T₁ limit.</td></tr>
+  </table>
+</div>
+</div><!-- /tab-assump -->
+
+</div><!-- /wrap -->
+<script>
+// ─── Physics ───────────────────────────────────────────────────────────────
+const EPS0 = 8.854e-12; // F/m
+
+function calcCmf(gap_m, d, s, w, a, eps) {
+  const Re = d/2 + s/4;
+  const We = w/2 + a/4;
+  const D  = d/2 + gap_m + w/2;
+  const Dp = D + We, Dm = D - We;
+  if (Dm <= Re) return NaN;
+  return 4*eps*EPS0*(Math.sqrt(Dp*Dp - Re*Re) - Math.sqrt(Dm*Dm - Re*Re) - 2*We);
+}
+
+function calcT1(cmf, fq, csig, z0) {
+  const om = 2*Math.PI*fq;
+  return csig / (2*om*om*cmf*cmf*z0);
+}
+
+// ─── Formatting ────────────────────────────────────────────────────────────
 function fmtC(v) {
-  if (v >= 1e-12) return (v * 1e12).toFixed(3) + ' pF';
-  if (v >= 1e-15) return (v * 1e15).toFixed(3) + ' fF';
-  return (v * 1e18).toFixed(3) + ' aF';
+  if (!isFinite(v)||isNaN(v)) return '—';
+  const aF = v*1e18;
+  if (aF>=1e3) return (aF/1e3).toFixed(2)+' fF';
+  if (aF>=1)   return aF.toFixed(1)+' aF';
+  return (aF*1e3).toFixed(1)+' zaF';
 }
-function fmtT1(v) {
-  if (!isFinite(v) || v > 1e6) return '>1 Ms';
-  if (v >= 1)     return v.toFixed(2) + ' s';
-  if (v >= 1e-3)  return (v * 1e3).toFixed(2) + ' ms';
-  if (v >= 1e-6)  return (v * 1e6).toFixed(2) + ' µs';
-  return (v * 1e9).toFixed(2) + ' ns';
+function fmtT(v) {
+  if (!isFinite(v)||isNaN(v)||v<=0) return '—';
+  if (v>=1)    return v.toFixed(2)+' s';
+  if (v>=1e-3) return (v*1e3).toFixed(2)+' ms';
+  if (v>=1e-6) return (v*1e6).toFixed(1)+' µs';
+  if (v>=1e-9) return (v*1e9).toFixed(1)+' ns';
+  return (v*1e12).toFixed(1)+' ps';
 }
-function calcT1(Cqf, omega, Csig, z0) {
-  return Csig / (2 * omega * omega * Cqf * Cqf * z0);
+function fmtU(m)  { return (m*1e6).toFixed(2)+' µm'; }
+function fmtHz(f) {
+  if (!isFinite(f)||f<=0) return '—';
+  if (f>=1e6) return (f/1e6).toFixed(2)+' MHz';
+  if (f>=1e3) return (f/1e3).toFixed(2)+' kHz';
+  return f.toFixed(0)+' Hz';
 }
-function mA(r, gap, fw, eps, Csig, fq, z0) {
-  const omega = 2 * Math.PI * fq;
-  const D     = r + gap + fw / 2;
-  const Cs    = 8 * eps * EPS0 * r;
-  const eta   = Math.atan(fw / 2 / D) / Math.PI;
-  const Cqf   = Cs * eta;
-  return { omega, D, Cs, eta, Cqf, T1: calcT1(Cqf, omega, Csig, z0), dOverR: gap / r };
-}
-function mB(r, gap, fw, eps, Csig, fq, z0, s) {
-  const omega = 2 * Math.PI * fq;
-  const D     = r + gap + fw / 2;
-  const Cqf   = eps * EPS0 * s * s / D;
-  return { omega, D, Cqf, T1: calcT1(Cqf, omega, Csig, z0), sOverD: s / D };
-}
-function prm() {
+
+// ─── Main update ───────────────────────────────────────────────────────────
+function getP() {
   return {
-    r:    parseFloat(document.getElementById('diam').value) * 0.5e-6,
-    gap:  parseFloat(document.getElementById('gap').value)  * 1e-6,
-    fw:   parseFloat(document.getElementById('fw').value)   * 1e-6,
-    eps:  parseFloat(document.getElementById('eps').value),
-    Csig: parseFloat(document.getElementById('csig').value) * 1e-15,
-    fq:   parseFloat(document.getElementById('fq').value)   * 1e9,
-    z0:   parseFloat(document.getElementById('z0').value),
-    s:    parseFloat(document.getElementById('s').value)    * 1e-6,
+    d:    +document.getElementById('sl-d').value    * 1e-6,
+    s:    +document.getElementById('sl-s').value    * 1e-6,
+    w:    +document.getElementById('sl-w').value    * 1e-6,
+    a:    +document.getElementById('sl-a').value    * 1e-6,
+    gap:  +document.getElementById('sl-gap').value  * 1e-6,
+    eps:  +document.getElementById('sl-eps').value,
+    csig: +document.getElementById('sl-csig').value * 1e-15,
+    fq:   +document.getElementById('sl-fq').value   * 1e9,
+    z0:   +document.getElementById('sl-z0').value,
   };
 }
 
 function go() {
-  const p = prm();
-  document.getElementById('v-diam').textContent = (p.r * 2e6).toFixed(0) + ' µm';
-  document.getElementById('v-gap').textContent  = (p.gap * 1e6).toFixed(0) + ' µm';
-  document.getElementById('v-fw').textContent   = (p.fw * 1e6).toFixed(0) + ' µm';
-  document.getElementById('v-eps').textContent  = p.eps.toFixed(2);
-  document.getElementById('v-csig').textContent = (p.Csig * 1e15).toFixed(0) + ' fF';
-  document.getElementById('v-fq').textContent   = (p.fq / 1e9).toFixed(1) + ' GHz';
-  document.getElementById('v-z0').textContent   = p.z0 + ' Ω';
-  document.getElementById('v-s').textContent    = (p.s * 1e6).toFixed(0) + ' µm';
+  const p = getP();
+  document.getElementById('vl-d').textContent    = (p.d*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-s').textContent    = (p.s*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-w').textContent    = (p.w*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-a').textContent    = (p.a*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-gap').textContent  = (p.gap*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-eps').textContent  = p.eps.toFixed(2);
+  document.getElementById('vl-csig').textContent = (p.csig*1e15).toFixed(0)+' fF';
+  document.getElementById('vl-fq').textContent   = (p.fq*1e-9).toFixed(1)+' GHz';
+  document.getElementById('vl-z0').textContent   = p.z0.toFixed(0)+' Ω';
 
-  const A = mA(p.r, p.gap, p.fw, p.eps, p.Csig, p.fq, p.z0);
-  document.getElementById('ra-cself').textContent = fmtC(A.Cs);
-  document.getElementById('ra-eta').textContent   = (A.eta * 1e3).toFixed(3) + ' × 10⁻³';
-  document.getElementById('ra-cqf').textContent   = fmtC(A.Cqf);
-  document.getElementById('ra-t1').textContent    = fmtT1(A.T1);
-  document.getElementById('steps-a').innerHTML =
-    `<div class="step">1. <code>C_self = 8·ε_eff·ε₀·r</code> = <b>${fmtC(A.Cs)}</b></div>
-     <div class="step">2. <code>D = r + d + w/2</code> = <b>${(A.D * 1e6).toFixed(1)} µm</b></div>
-     <div class="step">3. <code>η = arctan(w/2 / D) / π</code> = <b>${(A.eta * 1e3).toFixed(3)} × 10⁻³</b> <span style="font-size:0.88em;color:#888">[solid-angle fraction of infinite strip]</span></div>
-     <div class="step">4. <code>C_qf = C_self · η</code> = <b>${fmtC(A.Cqf)}</b></div>
-     <div class="step">5. <code>T1 = C_Σ / (2·ω²·C_qf²·Z₀)</code> = <b>${fmtT1(A.T1)}</b> <span style="font-size:0.88em;color:#888">[ω·C_qf·Z₀ = ${(A.omega * A.Cqf * p.z0).toExponential(1)} ≪ 1 ✓]</span></div>`;
+  const Re   = p.d/2 + p.s/4;
+  const We   = p.w/2 + p.a/4;
+  const D    = p.d/2 + p.gap + p.w/2;
+  const Dm   = D - We;
+  const valid   = Dm > Re;
+  const nearfld = p.gap < 2*Re;
+  const cmf  = calcCmf(p.gap, p.d, p.s, p.w, p.a, p.eps);
+  const t1   = valid ? calcT1(cmf, p.fq, p.csig, p.z0) : NaN;
+  const kap2pi = valid ? (2*(2*Math.PI*p.fq)**2*cmf**2*p.z0/p.csig)/(2*Math.PI) : NaN;
 
-  const dr = A.dOverR;
-  let vc, vm;
-  if      (dr >= 5)   { vc = 'good'; vm = `d/r = ${dr.toFixed(1)} — monopole approximation well-justified. Expected accuracy better than 15%.`; }
-  else if (dr >= 2.5) { vc = 'marg'; vm = `d/r = ${dr.toFixed(1)} — marginal. Higher multipole corrections matter; expect ~20–40% overestimate of C_qf.`; }
-  else                { vc = 'bad';  vm = `d/r = ${dr.toFixed(1)} — near-field regime; model unreliable. Run an EM simulation.`; }
-  document.getElementById('valid-a').innerHTML = `<div class="vbox ${vc}">${vm}</div>`;
+  // validity badge
+  const vb = document.getElementById('vbadge');
+  if (!valid) {
+    vb.className = 'vbadge bad';
+    vb.textContent = '✗ Invalid: D − W_eff ≤ R_eff — conductors overlap in effective-parameter space. Increase gap.';
+  } else if (nearfld) {
+    vb.className = 'vbadge warn';
+    vb.textContent = '⚠ Near-field regime (gap < 2 R_eff = '+fmtU(2*Re)+'): formula less accurate, treat result as order-of-magnitude only.';
+  } else {
+    vb.className = 'vbadge ok';
+    vb.textContent = '✓ Validity condition met (D − W_eff > R_eff, gap ≥ 2 R_eff).';
+  }
 
-  const B    = mB(p.r, p.gap, p.fw, p.eps, p.Csig, p.fq, p.z0, p.s);
-  const sup  = B.Cqf / A.Cqf;
-  const impr = B.T1  / A.T1;
-  document.getElementById('rb-cqf').textContent  = fmtC(B.Cqf);
-  document.getElementById('rb-t1').textContent   = fmtT1(B.T1);
-  document.getElementById('rb-sup').textContent  = sup.toFixed(4) + '×';
-  document.getElementById('rb-gain').textContent = impr.toFixed(0) + '×';
-  document.getElementById('steps-b').innerHTML =
-    `<div class="step">1. <code>D = r + d + w/2</code> = <b>${(B.D * 1e6).toFixed(1)} µm</b></div>
-     <div class="step">2. Ground plane carries induced charge −Q → net charge = 0 → island looks like a <b>dipole</b> (p ~ Q·s) from far away. Far field ∝ 1/r³ instead of 1/r².</div>
-     <div class="step">3. <code>C_qf,scr = ε_eff·ε₀·s²/D</code> = <b>${fmtC(B.Cqf)}</b> <span style="font-size:0.88em;color:#888">[s/D = ${B.sOverD.toFixed(3)}]</span></div>
-     <div class="step">4. <code>T1 = C_Σ / (2·ω²·C_qf,scr²·Z₀)</code> = <b>${fmtT1(B.T1)}</b></div>
-     <div class="step">5. Suppression: <b>${sup.toFixed(4)}×</b> → T1 improvement: <b>${impr.toFixed(0)}×</b></div>`;
+  // steps
+  document.getElementById('steps').innerHTML = `
+    <div class="step">R_eff = d/2 + s/4 = <b>${fmtU(p.d/2)}</b> + <b>${fmtU(p.s/4)}</b> = <code>${fmtU(Re)}</code></div>
+    <div class="step">W_eff = w/2 + a/4 = <b>${fmtU(p.w/2)}</b> + <b>${fmtU(p.a/4)}</b> = <code>${fmtU(We)}</code></div>
+    <div class="step">D = d/2 + gap + w/2 = <b>${fmtU(p.d/2)}</b> + <b>${fmtU(p.gap)}</b> + <b>${fmtU(p.w/2)}</b> = <code>${fmtU(D)}</code>&nbsp; (D/R_eff = ${(D/Re).toFixed(2)})</div>
+    <div class="step">Validity: D − W_eff = <b>${fmtU(Dm)}</b> ${valid?'>':'≤'} R_eff = <b>${fmtU(Re)}</b> → ${valid?'✓ valid':'✗ invalid'}</div>
+    <div class="step">C_mf = 4 ε_eff ε₀ [√((D+W_eff)²−R_eff²) − √((D−W_eff)²−R_eff²) − 2W_eff] = <code>${fmtC(cmf)}</code></div>
+    <div class="step">ω = 2π × ${(p.fq/1e9).toFixed(2)} GHz</div>
+    <div class="step">κ/2π = ω² C_mf² Z₀ / (π C_Σ) = <code>${fmtHz(kap2pi)}</code></div>
+    <div class="step">T₁ = C_Σ / (2 ω² C_mf² Z₀) = <code>${fmtT(t1)}</code></div>`;
 
-  const sd = B.sOverD;
-  let vc2, vm2;
-  if      (sd < 0.05) { vc2 = 'good'; vm2 = `s/D = ${sd.toFixed(3)} — dipole model well-justified (s ≪ D). Expected accuracy better than 20%.`; }
-  else if (sd < 0.15) { vc2 = 'marg'; vm2 = `s/D = ${sd.toFixed(3)} — marginal. Quadrupole corrections are growing; consider EM simulation.`; }
-  else                { vc2 = 'bad';  vm2 = `s/D = ${sd.toFixed(3)} — s is not ≪ D; dipole approximation is breaking down. Use EM simulation.`; }
-  document.getElementById('valid-b').innerHTML = `<div class="vbox ${vc2}">${vm2}</div>`;
+  // result boxes
+  document.getElementById('rboxes').innerHTML = `
+    <div class="rbox bl"><div class="rl">R_eff (effective island radius)</div><div class="rv bl">${fmtU(Re)}</div></div>
+    <div class="rbox bl"><div class="rl">W_eff (effective feedline half-width)</div><div class="rv bl">${fmtU(We)}</div></div>
+    <div class="rbox bl"><div class="rl">D (center-to-center)</div><div class="rv bl">${fmtU(D)}</div></div>
+    <div class="rbox am"><div class="rl">C_mf (mutual capacitance)</div><div class="rv am">${fmtC(cmf)}</div></div>
+    <div class="rbox am"><div class="rl">κ/2π (decay rate)</div><div class="rv am">${fmtHz(kap2pi)}</div></div>
+    <div class="rbox gr"><div class="rl">T₁ feedline limit</div><div class="rv gr">${fmtT(t1)}</div></div>`;
 
-  drawChart(p);
+  drawAll(p, cmf, t1);
 }
 
-function drawChart(p) {
-  const cv   = document.getElementById('cv');
-  const dpr  = window.devicePixelRatio || 1;
-  const Wcss = cv.offsetWidth, Hcss = 300;
-  cv.width  = Wcss * dpr;
-  cv.height = Hcss * dpr;
-  const ctx = cv.getContext('2d');
+// ─── Chart engine ──────────────────────────────────────────────────────────
+function setupCanvas(id) {
+  const c   = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const W   = c.offsetWidth || 820;
+  const H   = +c.getAttribute('height');
+  c.width   = W * dpr;
+  c.height  = H * dpr;
+  const ctx = c.getContext('2d');
   ctx.scale(dpr, dpr);
-  const W = Wcss, H = Hcss;
-  const ml = 58, mr = 18, mt = 18, mb = 40;
-  const pw = W - ml - mr, ph = H - mt - mb;
-  const gMin = 50e-6, gMax = 1000e-6;
-  const t1Lo = 1e-8,  t1Hi = 1e4;
-  const llo = Math.log10(t1Lo), lhi = Math.log10(t1Hi);
-  const gx = g   => ml + (g - gMin) / (gMax - gMin) * pw;
-  const gy = t1  => mt + ph - (Math.log10(Math.min(Math.max(t1, t1Lo * 0.5), t1Hi * 2)) - llo) / (lhi - llo) * ph;
-
-  /* grid */
-  ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.5;
-  [1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 0.01, 0.1, 1, 10, 100, 1000].forEach(v => {
-    const y = gy(v); if (y < mt - 2 || y > mt + ph + 2) return;
-    ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(ml + pw, y); ctx.stroke();
-  });
-  [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].forEach(g => {
-    const x = gx(g * 1e-6);
-    ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, mt + ph); ctx.stroke();
-  });
-
-  /* 200 µs target line */
-  ctx.strokeStyle = '#c62828'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
-  ctx.beginPath(); ctx.moveTo(ml, gy(200e-6)); ctx.lineTo(ml + pw, gy(200e-6)); ctx.stroke();
-  ctx.setLineDash([]);
-
-  /* current gap marker */
-  ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
-  ctx.beginPath(); ctx.moveTo(gx(p.gap), mt); ctx.lineTo(gx(p.gap), mt + ph); ctx.stroke();
-  ctx.setLineDash([]);
-
-  /* Model A curve */
-  ctx.strokeStyle = '#c8860a'; ctx.lineWidth = 2;
-  ctx.beginPath(); let fA = true;
-  for (let g = 50; g <= 1000; g += 4) {
-    const { T1 } = mA(p.r, g * 1e-6, p.fw, p.eps, p.Csig, p.fq, p.z0);
-    const x = gx(g * 1e-6), y = gy(T1);
-    if (fA) { ctx.moveTo(x, y); fA = false; } else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-
-  /* Model B curve */
-  ctx.strokeStyle = '#3a7d0a'; ctx.lineWidth = 2;
-  ctx.beginPath(); let fB = true;
-  for (let g = 50; g <= 1000; g += 4) {
-    const { T1 } = mB(p.r, g * 1e-6, p.fw, p.eps, p.Csig, p.fq, p.z0, p.s);
-    const x = gx(g * 1e-6), y = gy(T1);
-    if (fB) { ctx.moveTo(x, y); fB = false; } else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-
-  /* dots at current gap */
-  [[mA(p.r, p.gap, p.fw, p.eps, p.Csig, p.fq, p.z0).T1,    '#c8860a'],
-   [mB(p.r, p.gap, p.fw, p.eps, p.Csig, p.fq, p.z0, p.s).T1, '#3a7d0a']
-  ].forEach(([t1, col]) => {
-    ctx.fillStyle = col; ctx.beginPath();
-    ctx.arc(gx(p.gap), gy(t1), 5, 0, 2 * Math.PI); ctx.fill();
-  });
-
-  /* axes */
-  ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(ml, mt); ctx.lineTo(ml, mt + ph); ctx.lineTo(ml + pw, mt + ph); ctx.stroke();
-
-  /* labels */
-  ctx.fillStyle = '#888'; ctx.font = '11px Arial, sans-serif';
-  ctx.textAlign = 'right';
-  [{ v: 1e-6, l: '1 µs' }, { v: 10e-6, l: '10 µs' }, { v: 100e-6, l: '100 µs' },
-   { v: 1e-3, l: '1 ms' }, { v: 10e-3, l: '10 ms' }, { v: 0.1, l: '0.1 s' }, { v: 1, l: '1 s' }, { v: 100, l: '100 s' }
-  ].forEach(({ v, l }) => {
-    const y = gy(v); if (y >= mt && y <= mt + ph) ctx.fillText(l, ml - 4, y + 4);
-  });
-  ctx.textAlign = 'center';
-  [100, 300, 500, 700, 900].forEach(g => { ctx.fillText(g + '', gx(g * 1e-6), mt + ph + 14); });
-  ctx.fillText('Edge-to-edge gap d (µm)', ml + pw / 2, H - 4);
-  ctx.save(); ctx.translate(13, mt + ph / 2); ctx.rotate(-Math.PI / 2);
-  ctx.fillText('T1 feedline limit', 0, 0); ctx.restore();
+  return {ctx, W, H};
 }
+
+function drawLogChart(id, xArr, datasets, opts) {
+  const {ctx, W, H} = setupCanvas(id);
+  const pl=62, pr=18, pt=16, pb=42;
+  const cw=W-pl-pr, ch=H-pt-pb;
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const tc = dark?'#b0aea8':'#555';
+  const gc = dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
+  const gc2= dark?'rgba(255,255,255,0.14)':'rgba(0,0,0,0.14)';
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = dark?'#242420':'#fff';
+  ctx.fillRect(0,0,W,H);
+
+  // y range
+  let yMin=Infinity, yMax=-Infinity;
+  datasets.forEach(ds => ds.y.forEach(y=>{if(y>0&&isFinite(y)){yMin=Math.min(yMin,y);yMax=Math.max(yMax,y);}}));
+  if(!isFinite(yMin)) return;
+  const yMinL = Math.floor(Math.log10(yMin));
+  const yMaxL = Math.ceil(Math.log10(yMax));
+  const xMin=xArr[0], xMax=xArr[xArr.length-1];
+
+  const PX = x  => pl + (x-xMin)/(xMax-xMin)*cw;
+  const PY = y  => (!isFinite(y)||y<=0) ? pt+ch : pt + (yMaxL-Math.log10(y))/(yMaxL-yMinL)*ch;
+
+  // horizontal grid
+  for(let e=yMinL; e<=yMaxL; e++){
+    for(let m=1; m<=9; m++){
+      const yy=PY(m*Math.pow(10,e));
+      if(yy<pt-1||yy>pt+ch+1) continue;
+      ctx.beginPath(); ctx.strokeStyle=m===1?gc2:gc; ctx.lineWidth=m===1?0.7:0.3;
+      ctx.moveTo(pl,yy); ctx.lineTo(pl+cw,yy); ctx.stroke();
+    }
+  }
+  // vertical grid
+  for(let i=0;i<=5;i++){
+    const xx=PX(xMin+i*(xMax-xMin)/5);
+    ctx.beginPath(); ctx.strokeStyle=gc; ctx.lineWidth=0.4;
+    ctx.moveTo(xx,pt); ctx.lineTo(xx,pt+ch); ctx.stroke();
+  }
+
+  // current-x dashed line
+  if(opts.curX!==undefined){
+    const xx=PX(opts.curX);
+    ctx.beginPath(); ctx.strokeStyle=dark?'rgba(255,255,255,0.20)':'rgba(0,0,0,0.16)';
+    ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.moveTo(xx,pt); ctx.lineTo(xx,pt+ch); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // data lines
+  datasets.forEach(ds=>{
+    ctx.beginPath(); ctx.strokeStyle=ds.color; ctx.lineWidth=ds.lw||2;
+    let first=true;
+    xArr.forEach((x,i)=>{
+      const y=ds.y[i];
+      if(!isFinite(y)||y<=0){first=true;return;}
+      first?(ctx.moveTo(PX(x),PY(y)),first=false):ctx.lineTo(PX(x),PY(y));
+    });
+    ctx.stroke();
+    // dot at current point
+    if(opts.curX!==undefined && ds.curY>0 && isFinite(ds.curY)){
+      ctx.beginPath(); ctx.fillStyle=ds.color;
+      ctx.arc(PX(opts.curX), PY(ds.curY), 4.5, 0, 2*Math.PI); ctx.fill();
+    }
+  });
+
+  // border
+  ctx.beginPath(); ctx.strokeStyle=dark?'#555':'#ccc'; ctx.lineWidth=0.8;
+  ctx.rect(pl,pt,cw,ch); ctx.stroke();
+
+  // y axis labels (decades)
+  ctx.fillStyle=tc; ctx.font='11px Arial'; ctx.textAlign='right';
+  for(let e=yMinL; e<=yMaxL; e++){
+    const yy=PY(Math.pow(10,e));
+    if(yy<pt-4||yy>pt+ch+4) continue;
+    const lbl = e<0 ? '0.'+'0'.repeat(-e-1)+'1' : e===0?'1':e===1?'10':'10^'+e;
+    ctx.fillText(lbl, pl-5, yy+4);
+  }
+  // x axis labels
+  ctx.textAlign='center';
+  for(let i=0;i<=5;i++){
+    ctx.fillText(Math.round(xMin+i*(xMax-xMin)/5), PX(xMin+i*(xMax-xMin)/5), pt+ch+15);
+  }
+  // axis titles
+  ctx.fillStyle=tc; ctx.font='11px Arial'; ctx.textAlign='center';
+  ctx.fillText(opts.xLbl||'', pl+cw/2, H-3);
+  ctx.save(); ctx.translate(13,pt+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(opts.yLbl||'', 0, 0); ctx.restore();
+}
+
+// ─── Draw all three charts ─────────────────────────────────────────────────
+function drawAll(p, curCmf, curT1) {
+  const N=250;
+  const gArr = Array.from({length:N},(_,i)=> 10 + i*(990/(N-1))); // 10..1000 µm
+
+  // Chart 1: C_mf vs gap
+  const cmfArr = gArr.map(g => {
+    const c = calcCmf(g*1e-6, p.d, p.s, p.w, p.a, p.eps);
+    return isNaN(c) ? NaN : c*1e18; // aF
+  });
+  drawLogChart('ch1', gArr,
+    [{y:cmfArr, color:'#0077cc', lw:2, curY:curCmf*1e18}],
+    {xLbl:'Gap edge-to-edge (µm)', yLbl:'C_mf (aF)', curX:p.gap*1e6});
+
+  // Chart 2: T1 vs gap
+  const t1Arr = gArr.map(g => {
+    const c = calcCmf(g*1e-6, p.d, p.s, p.w, p.a, p.eps);
+    return isNaN(c) ? NaN : calcT1(c, p.fq, p.csig, p.z0)*1e6; // µs
+  });
+  drawLogChart('ch2', gArr,
+    [{y:t1Arr, color:'#2d7a2d', lw:2, curY:curT1*1e6}],
+    {xLbl:'Gap edge-to-edge (µm)', yLbl:'T₁ (µs)', curX:p.gap*1e6});
+
+  // Chart 3: family of s values
+  const sVals  = [5,10,15,20,30];
+  const colors = ['#0055aa','#0099dd','#44bbcc','#22aa66','#88bb22'];
+  const curSu  = Math.round(p.s*1e6);
+  const ds3 = sVals.map((sv,i) => ({
+    color: colors[i],
+    lw:    sv===curSu ? 2.5 : 1.4,
+    y: gArr.map(g => {
+      const c = calcCmf(g*1e-6, p.d, sv*1e-6, p.w, p.a, p.eps);
+      return isNaN(c) ? NaN : calcT1(c, p.fq, p.csig, p.z0)*1e6;
+    }),
+  }));
+  drawLogChart('ch3', gArr, ds3,
+    {xLbl:'Gap edge-to-edge (µm)', yLbl:'T₁ (µs)', curX:p.gap*1e6});
+
+  // legend for chart 3
+  document.getElementById('leg3').innerHTML = sVals.map((sv,i)=>`
+    <span class="leg">
+      <svg width="22" height="12"><line x1="0" y1="6" x2="22" y2="6"
+        stroke="${colors[i]}" stroke-width="${sv===curSu?2.5:1.4}"/></svg>
+      s = ${sv} µm${sv===curSu?' ◀':''}
+    </span>`).join('');
+}
+
+// ─── Tab switching ─────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(el  => el.classList.remove('on'));
+  document.querySelectorAll('.tbtn').forEach(el => el.classList.remove('on'));
+  document.getElementById('tab-'+name).classList.add('on');
+  btn.classList.add('on');
+  if (name==='calc') setTimeout(go, 10);
+}
+
+window.addEventListener('resize', ()=>{
+  if (document.getElementById('tab-calc').classList.contains('on')) go();
+});
 
 go();
-window.addEventListener('resize', go);
 </script>
 </body>
 </html>
