@@ -292,6 +292,30 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
   This is <em>not</em> the gap midpoint \(d/2 + s/2\) — charge concentrates toward the conductor
   edge, so the effective radius is shifted inward.</p>
 
+  <p class="prose"><strong>Why the quarter-point?</strong>
+  There is no unique derivation that pins down the prefactor to exactly \(\tfrac{1}{4}\) — it is
+  an approximation for where the "effective centre of charge" of the CPW gap region sits.
+  The physical argument is:</p>
+  <ul class="prose" style="margin-left:1.4em;margin-top:4px">
+    <li>The surface charge density on a CPW conductor <em>peaks</em> at the inner edge (at
+        \(d/2\)) — it diverges weakly there due to the sharp corner, following a well-known
+        \((x-d/2)^{-1/2}\) singularity from conformal mapping.</li>
+    <li>The charge density is <em>zero</em> in the gap itself (no conductor, no free charge).</li>
+    <li>The ground plane at \(d/2 + s\) carries equal and opposite charge; its contribution
+        cancels in the monopole far field, leaving a dipole of moment \(\propto Q\cdot s\).</li>
+  </ul>
+  <p class="prose">
+  The centroid of the gap-field distribution therefore lies closer to the inner conductor edge
+  than to the gap midpoint. The \(s/4\) prescription places the effective radius at the midpoint
+  between the conductor edge and the gap centre — i.e., halfway between \(d/2\) and
+  \(d/2+s/2\). This is consistent with a first-order moment of the CPW charge distribution
+  near the edge.
+  In a full 2D conformal-mapping analysis of a CPW, the charge distribution in the gap region
+  is non-uniform and skewed toward the inner edge, and the true centroid is indeed between
+  \(d/2\) and \(d/2+s/2\). The factor \(\tfrac{1}{4}\) is a physically motivated estimate;
+  the exact value is geometry-dependent and is one of the sources of the ~2–3× overall
+  uncertainty of the formula.</p>
+
   <p class="prose"><strong>2.3 View-factor integral.</strong>
   Consider a radial distance \(x\) from the island centre, measured across the feedline
   (perpendicular to the feedline axis, in the chip plane). The half-angle subtended by the
