@@ -23,6 +23,30 @@
   }
   h2 { margin-top: 0; }
   h3 { margin-top: 1.5em; }
+
+  /* ── Description box ── */
+  .desc-box {
+    background: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.9em 1.1em;
+    margin-top: 0.6em;
+    font-size: 0.9em;
+    color: #444;
+    line-height: 1.55;
+  }
+  .desc-box p { margin: 0 0 0.4em 0; }
+  .desc-box p:last-child { margin-bottom: 0; }
+  .desc-kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.15em 0.8em;
+    margin-top: 0.5em;
+  }
+  .desc-kv dt { font-weight: bold; color: #555; white-space: nowrap; }
+  .desc-kv dd { margin: 0; }
+
+  /* ── Form elements ── */
   .section-label {
     display: block;
     font-weight: bold;
@@ -53,6 +77,8 @@
     border-radius: 4px;
     font-size: 1em;
   }
+
+  /* ── Result grid ── */
   .result-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -76,6 +102,8 @@
     color: #555;
     margin-top: 0.2em;
   }
+
+  /* ── Charts ── */
   .chart-wrap {
     display: flex;
     align-items: stretch;
@@ -91,14 +119,37 @@
     white-space: nowrap;
     align-self: center;
   }
-  .chart-inner { flex: 1; min-width: 0; }
-  canvas { display: block; width: 100%; border-radius: 4px; }
+  .chart-inner {
+    flex: 1;
+    min-width: 0;
+    position: relative;   /* needed for tooltip positioning */
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    border-radius: 4px;
+    cursor: crosshair;
+  }
   .x-label {
     font-size: 0.8em;
     color: #444;
     text-align: center;
     margin-top: 3px;
   }
+  .chart-tooltip {
+    position: absolute;
+    background: rgba(30,30,30,0.85);
+    color: #fff;
+    font-size: 0.78em;
+    padding: 0.3em 0.65em;
+    border-radius: 5px;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+    z-index: 10;
+  }
+
+  /* ── Warning / misc ── */
   .warn-box {
     color: #92400e;
     background: #fffbeb;
@@ -130,18 +181,21 @@
 <body>
 <div class="container">
   <h2>Qubit–Feedline T₁ Estimator</h2>
-  <p style="color:#555; margin-top:0; font-size:0.95em;">
-    The mutual capacitance C<sub>mf</sub> and the island-to-ground capacitance C<sub>gnd</sub>
-    are linearly interpolated from a lookup table computed with a boundary-element method (BEM).
-    Simulation parameters: half silicon / half vacuum substrate
-    (&epsilon;<sub>eff</sub>&nbsp;=&nbsp;(1&nbsp;+&nbsp;&epsilon;<sub>Si</sub>)/2&nbsp;&approx;&nbsp;6.2),
-    feedline length 1.98&nbsp;mm, boundary box 2&nbsp;mm&nbsp;&times;&nbsp;2&nbsp;mm,
-    feedline centre-conductor width 10&nbsp;&mu;m, gap to either side 5.5&nbsp;&mu;m.
-    The table covers R&nbsp;&isin;&nbsp;{50, 100, 200}&nbsp;&mu;m,
-    D&nbsp;&isin;&nbsp;{100, 200, 400}&nbsp;&mu;m,
-    s&nbsp;&isin;&nbsp;{5, 10, 20}&nbsp;&mu;m; values are linearly interpolated between grid points.
-    T₁ is then calculated using input-output theory.
-  </p>
+
+  <div class="desc-box">
+    <p>C<sub>mf</sub> and C<sub>gnd</sub> are read from a BEM lookup table and linearly
+       interpolated. T₁ is then calculated with input-output theory.</p>
+    <dl class="desc-kv">
+      <dt>Method</dt>       <dd>Boundary-element method (BEM), Maxwell capacitance matrix</dd>
+      <dt>Substrate</dt>    <dd>Half silicon / half vacuum &mdash; &epsilon;<sub>eff</sub> = (1 + &epsilon;<sub>Si</sub>)/2 = 6.35</dd>
+      <dt>Feedline</dt>     <dd>Length 1.98&nbsp;mm, centre-conductor width 10&nbsp;&mu;m, gap 5.5&nbsp;&mu;m each side</dd>
+      <dt>Boundary box</dt> <dd>2&nbsp;mm &times; 2&nbsp;mm</dd>
+      <dt>Table grid</dt>   <dd>R &isin; {50, 100, 200}&nbsp;&mu;m &nbsp;&middot;&nbsp;
+                                D &isin; {100, 200, 400}&nbsp;&mu;m &nbsp;&middot;&nbsp;
+                                s &isin; {5, 10, 20}&nbsp;&mu;m</dd>
+      <dt>Interpolation</dt><dd>Trilinear (linear in R, D, s independently)</dd>
+    </dl>
+  </div>
 
   <div id="warn-extrap" class="warn-box">
     &#9888; Parameter combination is outside or near the edge of the BEM grid &mdash; result involves extrapolation and may be less accurate.
@@ -207,8 +261,9 @@
   <!-- Chart: Cmf vs D -->
   <div class="chart-wrap">
     <div class="y-label">C<sub>mf</sub> (aF) &mdash; log</div>
-    <div class="chart-inner">
+    <div class="chart-inner" id="wrap-cmf">
       <canvas id="cv-cmf" width="560" height="230"></canvas>
+      <div class="chart-tooltip" id="tip-cmf"></div>
       <div class="x-label">Centre-to-centre distance D (&mu;m)</div>
     </div>
   </div>
@@ -216,8 +271,9 @@
   <!-- Chart: T1 vs D -->
   <div class="chart-wrap">
     <div class="y-label">T₁ (&mu;s) &mdash; log</div>
-    <div class="chart-inner">
+    <div class="chart-inner" id="wrap-t1">
       <canvas id="cv-t1" width="560" height="230"></canvas>
+      <div class="chart-tooltip" id="tip-t1"></div>
       <div class="x-label">Centre-to-centre distance D (&mu;m)</div>
     </div>
   </div>
@@ -228,7 +284,10 @@
     <tr><th>Quantity</th><th>Formula / Note</th></tr>
     <tr>
       <td>C<sub>mf</sub>, C<sub>gnd</sub>, C<sub>self</sub></td>
-      <td>Linearly interpolated from BEM table in (R, D, s). C<sub>mf</sub> = |C<sub>feedline,island</sub>|, C<sub>gnd</sub> = |C<sub>GND,island</sub>|, C<sub>self</sub> = C<sub>island,island</sub> (Maxwell matrix).</td>
+      <td>Linearly interpolated from BEM table in (R, D, s).
+          C<sub>mf</sub> = |C<sub>feedline,island</sub>|,
+          C<sub>gnd</sub> = |C<sub>GND,island</sub>|,
+          C<sub>self</sub> = C<sub>island,island</sub> (Maxwell matrix diagonal).</td>
     </tr>
     <tr>
       <td>Angular frequency</td>
@@ -244,7 +303,7 @@
     </tr>
     <tr>
       <td>Validity</td>
-      <td>&omega; C<sub>mf</sub> Z<sub>0</sub> &ll; 1 (weak coupling; typically ~10&sup2;)</td>
+      <td>&omega; C<sub>mf</sub> Z<sub>0</sub> &ll; 1 (weak coupling; typically ~10<sup>&minus;4</sup>)</td>
     </tr>
   </table>
 </div>
@@ -254,11 +313,11 @@
 </div>
 
 <script>
-// BEM lookup table
+// ── BEM lookup table ──────────────────────────────────────────────────────────
 // Columns: R (µm), D (µm), s (µm), C_mf (F), C_gnd (F), C_self (F)
-// C_mf  = |C_feedline_island_F| (off-diagonal Maxwell matrix, absolute value)
-// C_gnd = |C_GND_island_F|
-// C_self = C_island_island_F (diagonal)
+// C_mf  = |C_feedline_island| (off-diagonal Maxwell matrix, absolute value)
+// C_gnd = |C_GND_island|
+// C_self = C_island_island (diagonal = total cap of island node)
 const TABLE = [
   [ 50, 100,  5, 8.015e-16, 2.316e-14, 2.470e-14],
   [ 50, 100, 10, 8.769e-16, 2.217e-14, 2.386e-14],
@@ -284,13 +343,11 @@ const R_GRID = [50, 100, 200];
 const D_GRID = [100, 200, 400];
 const S_GRID = [5, 10, 20];
 
-// Return value at exact grid point, or NaN if not in table
 function exact(R, D, s, col) {
   const row = TABLE.find(r => r[0]===R && r[1]===D && r[2]===s);
   return row ? row[3 + col] : NaN;
 }
 
-// Find bracketing indices [lo, hi, t] for val in sorted array arr
 function brk(arr, val) {
   const v = Math.max(arr[0], Math.min(arr[arr.length-1], val));
   for (let i = 0; i < arr.length - 1; i++) {
@@ -302,7 +359,6 @@ function brk(arr, val) {
   return [arr.length-1, arr.length-1, 0];
 }
 
-// Lerp handling NaN by falling back to the other value (graceful extrapolation)
 function lp(a, b, t) {
   if (isNaN(a) && isNaN(b)) return NaN;
   if (isNaN(a)) return b;
@@ -310,19 +366,16 @@ function lp(a, b, t) {
   return a + t * (b - a);
 }
 
-// Trilinear interpolation. Returns NaN if no data is available at all.
 function interp(R, D, s, col) {
   const [Ri0, Ri1, tR] = brk(R_GRID, R);
   const [Di0, Di1, tD] = brk(D_GRID, D);
   const [Si0, Si1, tS] = brk(S_GRID, s);
-
   function atRDS(ri, di, si) { return exact(R_GRID[ri], D_GRID[di], S_GRID[si], col); }
   function atRD(ri, di)      { return lp(atRDS(ri,di,Si0), atRDS(ri,di,Si1), tS); }
   function atR(ri)           { return lp(atRD(ri,Di0), atRD(ri,Di1), tD); }
   return lp(atR(Ri0), atR(Ri1), tR);
 }
 
-// Check whether any of the 8 trilinear corners are missing
 function isExtrapolated(R, D, s) {
   const [Ri0, Ri1] = brk(R_GRID, R);
   const [Di0, Di1] = brk(D_GRID, D);
@@ -337,15 +390,18 @@ function isExtrapolated(R, D, s) {
 function calcT1(Cmf_F, fq_GHz, Csig_fF, Z0_Ohm) {
   const om = 2 * Math.PI * fq_GHz * 1e9;
   const C  = Csig_fF * 1e-15;
-  return C / (2 * om * om * Cmf_F * Cmf_F * Z0_Ohm); // seconds
+  return C / (2 * om * om * Cmf_F * Cmf_F * Z0_Ohm);
 }
 
-// ── Canvas chart ─────────────────────────────────────────────────────────────
+// ── Chart state (persisted for hover) ────────────────────────────────────────
+const CHARTS = {};   // id -> { xArr, yArr, yLo, yHi, color, baseImg }
+const PAD = { L: 42, R: 12, T: 12, B: 22 };
+
 function drawChart(id, xArr, yArr, curX, lineColor) {
   const canvas = document.getElementById(id);
   const ctx    = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const pL = 42, pR = 12, pT = 12, pB = 22;
+  const { L: pL, R: pR, T: pT, B: pB } = PAD;
   const pW = W - pL - pR, pH = H - pT - pB;
 
   ctx.clearRect(0, 0, W, H);
@@ -354,7 +410,7 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
   if (pts.length < 2) return;
 
   const xMin = xArr[0], xMax = xArr[xArr.length - 1];
-  const logY  = pts.map(p => Math.log10(p[1]));
+  const logY = pts.map(p => Math.log10(p[1]));
   let yLo = Math.min(...logY), yHi = Math.max(...logY);
   const rng = yHi - yLo || 0.5;
   yLo -= rng * 0.08; yHi += rng * 0.08;
@@ -362,21 +418,19 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
   const toX = x => pL + (x - xMin) / (xMax - xMin) * pW;
   const toY = y => pT + (1 - (Math.log10(Math.max(y, 1e-99)) - yLo) / (yHi - yLo)) * pH;
 
-  // Y grid + tick labels (integer log ticks)
-  ctx.font = '10px Arial'; ctx.textAlign = 'right'; ctx.fillStyle = '#888';
+  // Y grid + labels
+  ctx.font = '10px Arial'; ctx.textAlign = 'right';
   for (let ly = Math.ceil(yLo); ly <= Math.floor(yHi); ly++) {
     const cy = pT + (1 - (ly - yLo) / (yHi - yLo)) * pH;
     ctx.strokeStyle = '#ececec'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pL, cy); ctx.lineTo(pL + pW, cy); ctx.stroke();
     const v = Math.pow(10, ly);
-    const lbl = v >= 1000 ? (v/1000).toFixed(0)+'k'
-              : v >= 1   ? v.toPrecision(2)
-              : v.toExponential(0);
+    const lbl = v >= 1000 ? (v/1000).toFixed(0)+'k' : v >= 1 ? v.toPrecision(2) : v.toExponential(0);
     ctx.fillStyle = '#777';
     ctx.fillText(lbl, pL - 3, cy + 3.5);
   }
 
-  // X grid + tick labels
+  // X grid + labels
   ctx.textAlign = 'center'; ctx.fillStyle = '#777';
   for (const xt of [100, 200, 300, 400]) {
     if (xt < xMin - 1 || xt > xMax + 1) continue;
@@ -386,11 +440,11 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
     ctx.fillText(xt, cx, pT + pH + 13);
   }
 
-  // Border box
+  // Border
   ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
   ctx.strokeRect(pL, pT, pW, pH);
 
-  // Current D dashed line
+  // Current-D dashed line
   if (curX >= xMin && curX <= xMax) {
     const cx = toX(curX);
     ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
@@ -409,20 +463,94 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
   }
   ctx.stroke();
 
-  // Dot at current D
-  // Find nearest x in array to curX
+  // Current-D dot
   let bestIdx = 0, bestDist = Infinity;
-  xArr.forEach((x, i) => { const d = Math.abs(x - curX); if (d < bestDist) { bestDist = d; bestIdx = i; }});
-  const cy_val = yArr[bestIdx];
-  if (!isNaN(cy_val) && cy_val > 0) {
+  xArr.forEach((x, i) => { const d = Math.abs(x - curX); if (d < bestDist) { bestDist = d; bestIdx = i; } });
+  const curY = yArr[bestIdx];
+  if (!isNaN(curY) && curY > 0) {
     ctx.fillStyle = lineColor;
-    ctx.beginPath();
-    ctx.arc(toX(curX), toY(cy_val), 4.5, 0, 2 * Math.PI);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(toX(curX), toY(curY), 4.5, 0, 2 * Math.PI); ctx.fill();
   }
+
+  // Save state for hover handler
+  CHARTS[id] = { xArr, yArr, xMin, xMax, yLo, yHi, color: lineColor,
+                 baseImg: ctx.getImageData(0, 0, W, H) };
 }
 
-// ── Main update ──────────────────────────────────────────────────────────────
+// ── Hover handler ─────────────────────────────────────────────────────────────
+function onHover(canvasId, tooltipId, unitLabel, decimals, displayLabel, e) {
+  const st = CHARTS[canvasId];
+  if (!st) return;
+
+  const canvas  = document.getElementById(canvasId);
+  const tooltip = document.getElementById(tooltipId);
+  const ctx     = canvas.getContext('2d');
+  const rect    = canvas.getBoundingClientRect();
+
+  // Scale from CSS → canvas pixels
+  const scaleX = canvas.width / rect.width;
+  const mx = (e.clientX - rect.left) * scaleX;
+
+  const { L: pL, R: pR, T: pT, B: pB } = PAD;
+  const pW = canvas.width  - pL - pR;
+  const pH = canvas.height - pT - pB;
+
+  // Restore base image
+  ctx.putImageData(st.baseImg, 0, 0);
+
+  if (mx < pL || mx > pL + pW) { tooltip.style.display = 'none'; return; }
+
+  const Dhov = st.xMin + (mx - pL) / pW * (st.xMax - st.xMin);
+
+  // Nearest data point
+  let bestIdx = 0, bestDist = Infinity;
+  st.xArr.forEach((x, i) => { const d = Math.abs(x - Dhov); if (d < bestDist) { bestDist = d; bestIdx = i; } });
+  const yVal = st.yArr[bestIdx];
+  if (isNaN(yVal) || yVal <= 0) { tooltip.style.display = 'none'; return; }
+
+  const toX = x => pL + (x - st.xMin) / (st.xMax - st.xMin) * pW;
+  const toY = y => pT + (1 - (Math.log10(Math.max(y, 1e-99)) - st.yLo) / (st.yHi - st.yLo)) * pH;
+
+  const hx = toX(st.xArr[bestIdx]);
+  const hy = toY(yVal);
+
+  // Draw hover crosshair
+  ctx.strokeStyle = 'rgba(100,100,100,0.5)'; ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(hx, pT); ctx.lineTo(hx, pT + pH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw hover dot (white ring + filled)
+  ctx.fillStyle = st.color;
+  ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI); ctx.fill();
+  ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI); ctx.stroke();
+
+  // Tooltip text
+  const Ddisp   = st.xArr[bestIdx].toFixed(0);
+  const yDisp   = yVal.toFixed(decimals);
+  tooltip.textContent = `D = ${Ddisp} \u03bcm  \u2192  ${displayLabel} = ${yDisp} ${unitLabel}`;
+
+  // Tooltip position (relative to chart-inner div)
+  const wrapRect = canvas.parentElement.getBoundingClientRect();
+  let left = e.clientX - wrapRect.left + 12;
+  if (left + 210 > wrapRect.width) left = e.clientX - wrapRect.left - 220;
+  const top  = Math.max(2, e.clientY - wrapRect.top - 36);
+  tooltip.style.left = left + 'px';
+  tooltip.style.top  = top  + 'px';
+  tooltip.style.display = 'block';
+}
+
+function onLeave(canvasId, tooltipId) {
+  const st = CHARTS[canvasId];
+  if (st) {
+    const canvas = document.getElementById(canvasId);
+    canvas.getContext('2d').putImageData(st.baseImg, 0, 0);
+  }
+  document.getElementById(tooltipId).style.display = 'none';
+}
+
+// ── Main update ───────────────────────────────────────────────────────────────
 function update() {
   const R    = parseFloat(document.getElementById('sl-R').value);
   const D    = parseFloat(document.getElementById('sl-D').value);
@@ -435,38 +563,42 @@ function update() {
   document.getElementById('D-val').textContent = D;
   document.getElementById('s-val').textContent = s.toFixed(2);
 
-  // Extrapolation warning
   document.getElementById('warn-extrap').style.display =
     isExtrapolated(R, D, s) ? 'block' : 'none';
 
-  // Current-point values
   const Cmf   = interp(R, D, s, 0);
   const Cgnd  = interp(R, D, s, 1);
   const Cself = interp(R, D, s, 2);
   const T1    = (isNaN(Cmf) || Cmf <= 0) ? NaN : calcT1(Cmf, fq, Csig, Z0);
 
-  document.getElementById('res-cmf').textContent =
-    isNaN(Cmf)   ? '—' : (Cmf  * 1e18).toFixed(3) + ' aF';
-  document.getElementById('res-t1').textContent =
-    isNaN(T1)    ? '—' : (T1   * 1e6 ).toFixed(2)  + ' µs';
-  document.getElementById('res-cgnd').textContent =
-    isNaN(Cgnd)  ? '—' : (Cgnd * 1e15).toFixed(2)  + ' fF';
-  document.getElementById('res-cself').textContent =
-    isNaN(Cself) ? '—' : (Cself* 1e15).toFixed(2)  + ' fF';
+  document.getElementById('res-cmf').textContent   = isNaN(Cmf)   ? '—' : (Cmf   * 1e18).toFixed(3) + ' aF';
+  document.getElementById('res-t1').textContent    = isNaN(T1)    ? '—' : (T1    * 1e6 ).toFixed(2)  + ' µs';
+  document.getElementById('res-cgnd').textContent  = isNaN(Cgnd)  ? '—' : (Cgnd  * 1e15).toFixed(2)  + ' fF';
+  document.getElementById('res-cself').textContent = isNaN(Cself) ? '—' : (Cself * 1e15).toFixed(2)  + ' fF';
 
-  // Build chart data: vary D from 100 to 400 µm
-  const N = 250;
-  const dArr   = Array.from({length: N}, (_, i) => 100 + i * 300 / (N - 1));
-  const cmfArr = dArr.map(d => { const v = interp(R, d, s, 0); return isNaN(v) ? NaN : v * 1e18; }); // aF
+  // Build chart arrays (D from 100 to 400 µm)
+  const N    = 250;
+  const dArr = Array.from({length: N}, (_, i) => 100 + i * 300 / (N - 1));
+  const cmfArr = dArr.map(d => { const v = interp(R, d, s, 0); return isNaN(v) ? NaN : v * 1e18; });
   const t1Arr  = dArr.map(d => {
     const c = interp(R, d, s, 0);
-    if (isNaN(c) || c <= 0) return NaN;
-    return calcT1(c, fq, Csig, Z0) * 1e6; // µs
+    return (isNaN(c) || c <= 0) ? NaN : calcT1(c, fq, Csig, Z0) * 1e6;
   });
 
   drawChart('cv-cmf', dArr, cmfArr, D, '#2563eb');
   drawChart('cv-t1',  dArr, t1Arr,  D, '#16a34a');
 }
+
+// Wire up hover events after DOM is ready
+document.getElementById('cv-cmf').addEventListener('mousemove',
+  e => onHover('cv-cmf', 'tip-cmf', 'aF', 3, 'C\u2098\u2091', e));
+document.getElementById('cv-cmf').addEventListener('mouseleave',
+  () => onLeave('cv-cmf', 'tip-cmf'));
+
+document.getElementById('cv-t1').addEventListener('mousemove',
+  e => onHover('cv-t1', 'tip-t1', 'µs', 2, 'T\u2081', e));
+document.getElementById('cv-t1').addEventListener('mouseleave',
+  () => onLeave('cv-t1', 'tip-t1'));
 
 update();
 </script>
