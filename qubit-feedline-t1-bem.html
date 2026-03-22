@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qubit–Feedline T1 Estimator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f4f8;
+    padding: 2em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .container {
+    background: white;
+    padding: 2em;
+    max-width: 660px;
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  h2 { margin-top: 0; }
+  h3 { margin-top: 1.5em; }
+  .section-label {
+    display: block;
+    font-weight: bold;
+    margin-top: 1.5em;
+    margin-bottom: 0.25em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #ddd;
+    color: #333;
+  }
+  label { display: block; margin-top: 1em; font-weight: normal; }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin-top: 0.25em;
+  }
+  .slider-row input[type=range] { flex: 1; }
+  .input-row {
+    display: flex;
+    gap: 0.5em;
+    margin-top: 0.3em;
+  }
+  .input-row input {
+    flex: 1;
+    box-sizing: border-box;
+    padding: 0.4em 0.6em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7em;
+    margin-top: 1em;
+  }
+  .result-box {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75em 0.8em;
+    text-align: center;
+  }
+  .result-box .val {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #0077cc;
+  }
+  .result-box .lbl {
+    font-size: 0.82em;
+    color: #555;
+    margin-top: 0.2em;
+  }
+  .chart-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 1.4em;
+  }
+  .y-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 0.8em;
+    color: #444;
+    text-align: center;
+    white-space: nowrap;
+    align-self: center;
+  }
+  .chart-inner { flex: 1; min-width: 0; }
+  canvas { display: block; width: 100%; border-radius: 4px; }
+  .x-label {
+    font-size: 0.8em;
+    color: #444;
+    text-align: center;
+    margin-top: 3px;
+  }
+  .warn-box {
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 0.5em 0.8em;
+    font-size: 0.9em;
+    margin-top: 0.8em;
+    display: none;
+  }
+  table { margin-top: 1em; width: 100%; border-collapse: collapse; }
+  table, th, td { border: 1px solid #ddd; }
+  th, td { padding: 0.5em; text-align: left; }
+  th { background: #f0f0f0; }
+  .card {
+    background: white;
+    padding: 1.5em;
+    margin: 1em;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 660px;
+    text-align: center;
+  }
+  .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+  .card a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Qubit–Feedline T₁ Estimator</h2>
+  <p style="color:#555; margin-top:0; font-size:0.95em;">
+    The mutual capacitance C<sub>mf</sub> and the island-to-ground capacitance C<sub>gnd</sub>
+    are linearly interpolated from a lookup table computed with a boundary-element method (BEM).
+    Simulation parameters: half silicon / half vacuum substrate
+    (&epsilon;<sub>eff</sub>&nbsp;=&nbsp;(1&nbsp;+&nbsp;&epsilon;<sub>Si</sub>)/2&nbsp;&approx;&nbsp;6.2),
+    feedline length 1.98&nbsp;mm, boundary box 2&nbsp;mm&nbsp;&times;&nbsp;2&nbsp;mm,
+    feedline centre-conductor width 10&nbsp;&mu;m, gap to either side 5.5&nbsp;&mu;m.
+    The table covers R&nbsp;&isin;&nbsp;{50, 100, 200}&nbsp;&mu;m,
+    D&nbsp;&isin;&nbsp;{100, 200, 400}&nbsp;&mu;m,
+    s&nbsp;&isin;&nbsp;{5, 10, 20}&nbsp;&mu;m; values are linearly interpolated between grid points.
+    T₁ is then calculated using input-output theory.
+  </p>
+
+  <div id="warn-extrap" class="warn-box">
+    &#9888; Parameter combination is outside or near the edge of the BEM grid &mdash; result involves extrapolation and may be less accurate.
+  </div>
+
+  <!-- Geometry sliders -->
+  <span class="section-label">Geometry</span>
+
+  <label>Island radius R (&mu;m): <strong id="R-val">100</strong></label>
+  <div class="slider-row">
+    <input type="range" id="sl-R" min="50" max="200" step="1" value="100" oninput="update()">
+  </div>
+
+  <label>Centre-to-centre distance D (&mu;m): <strong id="D-val">200</strong></label>
+  <div class="slider-row">
+    <input type="range" id="sl-D" min="100" max="400" step="1" value="200" oninput="update()">
+  </div>
+
+  <label>Island gap width s (&mu;m): <strong id="s-val">10.00</strong></label>
+  <div class="slider-row">
+    <input type="range" id="sl-s" min="5" max="20" step="0.25" value="10" oninput="update()">
+  </div>
+
+  <!-- T1 parameters -->
+  <span class="section-label">T₁ calculation parameters</span>
+
+  <label>Qubit frequency f<sub>q</sub> (GHz):</label>
+  <div class="input-row">
+    <input type="number" id="inp-fq" step="0.1" min="0.5" max="20" value="5.0" oninput="update()">
+  </div>
+
+  <label>Total qubit capacitance C<sub>&Sigma;</sub> (fF):</label>
+  <div class="input-row">
+    <input type="number" id="inp-csig" step="1" min="1" max="1000" value="80" oninput="update()">
+  </div>
+
+  <label>Feedline impedance Z<sub>0</sub> (&Omega;):</label>
+  <div class="input-row">
+    <input type="number" id="inp-z0" step="1" min="10" max="200" value="50" oninput="update()">
+  </div>
+
+  <!-- Results -->
+  <span class="section-label">Results at current D</span>
+  <div class="result-grid">
+    <div class="result-box">
+      <div class="val" id="res-cmf">—</div>
+      <div class="lbl">C<sub>mf</sub> (aF) &mdash; feedline coupling</div>
+    </div>
+    <div class="result-box">
+      <div class="val" id="res-t1">—</div>
+      <div class="lbl">T₁ (&mu;s) &mdash; feedline decay</div>
+    </div>
+    <div class="result-box">
+      <div class="val" id="res-cgnd">—</div>
+      <div class="lbl">C<sub>gnd</sub> (fF) &mdash; island to ground</div>
+    </div>
+    <div class="result-box">
+      <div class="val" id="res-cself">—</div>
+      <div class="lbl">C<sub>self</sub> (fF) &mdash; BEM island total</div>
+    </div>
+  </div>
+
+  <!-- Chart: Cmf vs D -->
+  <div class="chart-wrap">
+    <div class="y-label">C<sub>mf</sub> (aF) &mdash; log</div>
+    <div class="chart-inner">
+      <canvas id="cv-cmf" width="560" height="230"></canvas>
+      <div class="x-label">Centre-to-centre distance D (&mu;m)</div>
+    </div>
+  </div>
+
+  <!-- Chart: T1 vs D -->
+  <div class="chart-wrap">
+    <div class="y-label">T₁ (&mu;s) &mdash; log</div>
+    <div class="chart-inner">
+      <canvas id="cv-t1" width="560" height="230"></canvas>
+      <div class="x-label">Centre-to-centre distance D (&mu;m)</div>
+    </div>
+  </div>
+
+  <!-- Formulas -->
+  <h3>Formulas</h3>
+  <table>
+    <tr><th>Quantity</th><th>Formula / Note</th></tr>
+    <tr>
+      <td>C<sub>mf</sub>, C<sub>gnd</sub>, C<sub>self</sub></td>
+      <td>Linearly interpolated from BEM table in (R, D, s). C<sub>mf</sub> = |C<sub>feedline,island</sub>|, C<sub>gnd</sub> = |C<sub>GND,island</sub>|, C<sub>self</sub> = C<sub>island,island</sub> (Maxwell matrix).</td>
+    </tr>
+    <tr>
+      <td>Angular frequency</td>
+      <td>&omega; = 2&pi;f<sub>q</sub></td>
+    </tr>
+    <tr>
+      <td>T₁ (input-output theory)</td>
+      <td>T₁ = C<sub>&Sigma;</sub> / (2&omega;&sup2; C<sub>mf</sub>&sup2; Z<sub>0</sub>)</td>
+    </tr>
+    <tr>
+      <td>Factor of 2</td>
+      <td>Two ports of an infinite matched feedline (power radiated both ways)</td>
+    </tr>
+    <tr>
+      <td>Validity</td>
+      <td>&omega; C<sub>mf</sub> Z<sub>0</sub> &ll; 1 (weak coupling; typically ~10&sup2;)</td>
+    </tr>
+  </table>
+</div>
+
+<div class="card">
+  <a href="index.html">Back</a>
+</div>
+
+<script>
+// BEM lookup table
+// Columns: R (µm), D (µm), s (µm), C_mf (F), C_gnd (F), C_self (F)
+// C_mf  = |C_feedline_island_F| (off-diagonal Maxwell matrix, absolute value)
+// C_gnd = |C_GND_island_F|
+// C_self = C_island_island_F (diagonal)
+const TABLE = [
+  [ 50, 100,  5, 8.015e-16, 2.316e-14, 2.470e-14],
+  [ 50, 100, 10, 8.769e-16, 2.217e-14, 2.386e-14],
+  [ 50, 100, 20, 1.068e-15, 2.143e-14, 2.338e-14],
+  [ 50, 200,  5, 2.600e-16, 2.250e-14, 2.354e-14],
+  [ 50, 200, 10, 2.648e-16, 2.212e-14, 2.323e-14],
+  [ 50, 200, 20, 2.967e-16, 2.155e-14, 2.276e-14],
+  [ 50, 400,  5, 6.841e-17, 2.256e-14, 2.340e-14],
+  [ 50, 400, 10, 7.146e-17, 2.237e-14, 2.324e-14],
+  [ 50, 400, 20, 7.715e-17, 2.202e-14, 2.295e-14],
+  [100, 200,  5, 5.292e-16, 2.616e-14, 2.818e-14],
+  [100, 200, 10, 5.523e-16, 2.595e-14, 2.804e-14],
+  [100, 200, 20, 5.982e-16, 2.567e-14, 2.787e-14],
+  [100, 400,  5, 1.437e-16, 2.599e-14, 2.770e-14],
+  [100, 400, 10, 1.241e-16, 2.670e-14, 2.822e-14],
+  [100, 400, 20, 1.487e-16, 2.610e-14, 2.781e-14],
+  [200, 400,  5, 8.052e-16, 8.787e-14, 9.640e-14],
+  [200, 400, 10, 8.161e-16, 8.727e-14, 9.590e-14],
+  [200, 400, 20, 8.294e-16, 8.685e-14, 9.559e-14],
+];
+
+const R_GRID = [50, 100, 200];
+const D_GRID = [100, 200, 400];
+const S_GRID = [5, 10, 20];
+
+// Return value at exact grid point, or NaN if not in table
+function exact(R, D, s, col) {
+  const row = TABLE.find(r => r[0]===R && r[1]===D && r[2]===s);
+  return row ? row[3 + col] : NaN;
+}
+
+// Find bracketing indices [lo, hi, t] for val in sorted array arr
+function brk(arr, val) {
+  const v = Math.max(arr[0], Math.min(arr[arr.length-1], val));
+  for (let i = 0; i < arr.length - 1; i++) {
+    if (v <= arr[i+1]) {
+      const t = arr[i+1] === arr[i] ? 0 : (v - arr[i]) / (arr[i+1] - arr[i]);
+      return [i, i+1, t];
+    }
+  }
+  return [arr.length-1, arr.length-1, 0];
+}
+
+// Lerp handling NaN by falling back to the other value (graceful extrapolation)
+function lp(a, b, t) {
+  if (isNaN(a) && isNaN(b)) return NaN;
+  if (isNaN(a)) return b;
+  if (isNaN(b)) return a;
+  return a + t * (b - a);
+}
+
+// Trilinear interpolation. Returns NaN if no data is available at all.
+function interp(R, D, s, col) {
+  const [Ri0, Ri1, tR] = brk(R_GRID, R);
+  const [Di0, Di1, tD] = brk(D_GRID, D);
+  const [Si0, Si1, tS] = brk(S_GRID, s);
+
+  function atRDS(ri, di, si) { return exact(R_GRID[ri], D_GRID[di], S_GRID[si], col); }
+  function atRD(ri, di)      { return lp(atRDS(ri,di,Si0), atRDS(ri,di,Si1), tS); }
+  function atR(ri)           { return lp(atRD(ri,Di0), atRD(ri,Di1), tD); }
+  return lp(atR(Ri0), atR(Ri1), tR);
+}
+
+// Check whether any of the 8 trilinear corners are missing
+function isExtrapolated(R, D, s) {
+  const [Ri0, Ri1] = brk(R_GRID, R);
+  const [Di0, Di1] = brk(D_GRID, D);
+  const [Si0, Si1] = brk(S_GRID, s);
+  for (const ri of [Ri0, Ri1])
+    for (const di of [Di0, Di1])
+      for (const si of [Si0, Si1])
+        if (isNaN(exact(R_GRID[ri], D_GRID[di], S_GRID[si], 0))) return true;
+  return false;
+}
+
+function calcT1(Cmf_F, fq_GHz, Csig_fF, Z0_Ohm) {
+  const om = 2 * Math.PI * fq_GHz * 1e9;
+  const C  = Csig_fF * 1e-15;
+  return C / (2 * om * om * Cmf_F * Cmf_F * Z0_Ohm); // seconds
+}
+
+// ── Canvas chart ─────────────────────────────────────────────────────────────
+function drawChart(id, xArr, yArr, curX, lineColor) {
+  const canvas = document.getElementById(id);
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pL = 42, pR = 12, pT = 12, pB = 22;
+  const pW = W - pL - pR, pH = H - pT - pB;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const pts = xArr.map((x, i) => [x, yArr[i]]).filter(p => !isNaN(p[1]) && p[1] > 0);
+  if (pts.length < 2) return;
+
+  const xMin = xArr[0], xMax = xArr[xArr.length - 1];
+  const logY  = pts.map(p => Math.log10(p[1]));
+  let yLo = Math.min(...logY), yHi = Math.max(...logY);
+  const rng = yHi - yLo || 0.5;
+  yLo -= rng * 0.08; yHi += rng * 0.08;
+
+  const toX = x => pL + (x - xMin) / (xMax - xMin) * pW;
+  const toY = y => pT + (1 - (Math.log10(Math.max(y, 1e-99)) - yLo) / (yHi - yLo)) * pH;
+
+  // Y grid + tick labels (integer log ticks)
+  ctx.font = '10px Arial'; ctx.textAlign = 'right'; ctx.fillStyle = '#888';
+  for (let ly = Math.ceil(yLo); ly <= Math.floor(yHi); ly++) {
+    const cy = pT + (1 - (ly - yLo) / (yHi - yLo)) * pH;
+    ctx.strokeStyle = '#ececec'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pL, cy); ctx.lineTo(pL + pW, cy); ctx.stroke();
+    const v = Math.pow(10, ly);
+    const lbl = v >= 1000 ? (v/1000).toFixed(0)+'k'
+              : v >= 1   ? v.toPrecision(2)
+              : v.toExponential(0);
+    ctx.fillStyle = '#777';
+    ctx.fillText(lbl, pL - 3, cy + 3.5);
+  }
+
+  // X grid + tick labels
+  ctx.textAlign = 'center'; ctx.fillStyle = '#777';
+  for (const xt of [100, 200, 300, 400]) {
+    if (xt < xMin - 1 || xt > xMax + 1) continue;
+    const cx = toX(xt);
+    ctx.strokeStyle = '#ececec'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, pT); ctx.lineTo(cx, pT + pH); ctx.stroke();
+    ctx.fillText(xt, cx, pT + pH + 13);
+  }
+
+  // Border box
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+  ctx.strokeRect(pL, pT, pW, pH);
+
+  // Current D dashed line
+  if (curX >= xMin && curX <= xMax) {
+    const cx = toX(curX);
+    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(cx, pT); ctx.lineTo(cx, pT + pH); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Data curve
+  ctx.strokeStyle = lineColor; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  let first = true;
+  for (const [x, y] of pts) {
+    const px = toX(x), py = toY(y);
+    if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Dot at current D
+  // Find nearest x in array to curX
+  let bestIdx = 0, bestDist = Infinity;
+  xArr.forEach((x, i) => { const d = Math.abs(x - curX); if (d < bestDist) { bestDist = d; bestIdx = i; }});
+  const cy_val = yArr[bestIdx];
+  if (!isNaN(cy_val) && cy_val > 0) {
+    ctx.fillStyle = lineColor;
+    ctx.beginPath();
+    ctx.arc(toX(curX), toY(cy_val), 4.5, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+}
+
+// ── Main update ──────────────────────────────────────────────────────────────
+function update() {
+  const R    = parseFloat(document.getElementById('sl-R').value);
+  const D    = parseFloat(document.getElementById('sl-D').value);
+  const s    = parseFloat(document.getElementById('sl-s').value);
+  const fq   = parseFloat(document.getElementById('inp-fq').value)   || 5;
+  const Csig = parseFloat(document.getElementById('inp-csig').value) || 80;
+  const Z0   = parseFloat(document.getElementById('inp-z0').value)   || 50;
+
+  document.getElementById('R-val').textContent = R;
+  document.getElementById('D-val').textContent = D;
+  document.getElementById('s-val').textContent = s.toFixed(2);
+
+  // Extrapolation warning
+  document.getElementById('warn-extrap').style.display =
+    isExtrapolated(R, D, s) ? 'block' : 'none';
+
+  // Current-point values
+  const Cmf   = interp(R, D, s, 0);
+  const Cgnd  = interp(R, D, s, 1);
+  const Cself = interp(R, D, s, 2);
+  const T1    = (isNaN(Cmf) || Cmf <= 0) ? NaN : calcT1(Cmf, fq, Csig, Z0);
+
+  document.getElementById('res-cmf').textContent =
+    isNaN(Cmf)   ? '—' : (Cmf  * 1e18).toFixed(3) + ' aF';
+  document.getElementById('res-t1').textContent =
+    isNaN(T1)    ? '—' : (T1   * 1e6 ).toFixed(2)  + ' µs';
+  document.getElementById('res-cgnd').textContent =
+    isNaN(Cgnd)  ? '—' : (Cgnd * 1e15).toFixed(2)  + ' fF';
+  document.getElementById('res-cself').textContent =
+    isNaN(Cself) ? '—' : (Cself* 1e15).toFixed(2)  + ' fF';
+
+  // Build chart data: vary D from 100 to 400 µm
+  const N = 250;
+  const dArr   = Array.from({length: N}, (_, i) => 100 + i * 300 / (N - 1));
+  const cmfArr = dArr.map(d => { const v = interp(R, d, s, 0); return isNaN(v) ? NaN : v * 1e18; }); // aF
+  const t1Arr  = dArr.map(d => {
+    const c = interp(R, d, s, 0);
+    if (isNaN(c) || c <= 0) return NaN;
+    return calcT1(c, fq, Csig, Z0) * 1e6; // µs
+  });
+
+  drawChart('cv-cmf', dArr, cmfArr, D, '#2563eb');
+  drawChart('cv-t1',  dArr, t1Arr,  D, '#16a34a');
+}
+
+update();
+</script>
+</body>
+</html>
