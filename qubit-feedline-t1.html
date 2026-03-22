@@ -317,12 +317,14 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
   uncertainty of the formula.</p>
 
   <p class="prose"><strong>2.3 View-factor integral.</strong>
-  Consider a radial distance \(x\) from the island centre, measured across the feedline
-  (perpendicular to the feedline axis, in the chip plane). The half-angle subtended by the
-  effective island circle (radius \(R_\text{eff}\)) from that distance is
-  \(\theta(x) = \arcsin(R_\text{eff}/x)\).
+  Consider the transverse distance \(x\) from the island centre to a strip of the feedline,
+  measured perpendicular to the feedline axis at the closest-approach cross-section (\(y = 0\)).
+  The half-angle subtended by the island (radius \(R_\text{eff}\)) from that transverse distance is
+  \(\theta(x) = \arcsin(R_\text{eff}/x)\) — the angle you would need to look away from the
+  transverse axis to just graze the island boundary, when standing at transverse distance \(x\)
+  directly across from the island centre.
   The island spatial extent enters here: a larger \(R_\text{eff}\) means a larger \(\theta\)
-  at every \(x\), hence more coupling everywhere along the feedline width.
+  at every \(x\), hence more coupling everywhere across the feedline width.
   The coupling kernel \(\sec\theta - 1 = x/\sqrt{x^2 - R_\text{eff}^2} - 1\)
   vanishes as \(x\to\infty\) and diverges as \(x\to R_\text{eff}\) (contact).
   Integrating across the effective feedline width \([D - W_\text{eff},\; D + W_\text{eff}]\):</p>
@@ -331,9 +333,13 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
       \int_{D-W_\text{eff}}^{D+W_\text{eff}}
       \!\!\left[\frac{x}{\sqrt{x^2 - R_\text{eff}^2}} - 1\right] dx\]
   </div>
-  <p class="prose">The integration is over the <em>transverse</em> width of the feedline only. The
-  feedline is infinite in the longitudinal direction, and its length is handled implicitly by the
-  2D coplanar geometry of the kernel — no separate integration over feedline length is needed.</p>
+  <p class="prose">The integration variable \(x\) runs across the effective feedline width
+  \([D-W_\text{eff},\, D+W_\text{eff}]\) — the transverse direction, perpendicular to the feedline
+  axis. The formula evaluates the geometry at the closest-approach cross-section (\(y = 0\)) only;
+  the feedline's longitudinal extent is <em>not</em> integrated. This is a
+  <strong>1D cross-sectional approximation</strong>. The omitted longitudinal contribution carries
+  the same \(1/D^2\) distance dependence as the formula and differs only by an \(O(1)\) prefactor,
+  which is absorbed into the overall ±factor-of-2–3 accuracy.</p>
 
   <p class="prose"><strong>2.4 Closed-form result.</strong>
   Using the antiderivative
@@ -344,13 +350,31 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
            - \sqrt{(D-W_\text{eff})^2 - R_\text{eff}^2}
            - 2\,W_\text{eff}\Bigr]\]
   </div>
+  <p class="prose"><strong>Note on the prefactor \(4\varepsilon_\text{eff}\varepsilon_0\).</strong>
+  This prefactor is not derived from first principles — it is chosen so that the large-\(D\)
+  limit matches the expected dipole scaling. A full 2D calculation (integrating over both
+  transverse and longitudinal directions) yields a prefactor of
+  \(2\varepsilon_\text{eff}\varepsilon_0\) at large \(D\):</p>
+  <div class="math-block">
+    \[C_\text{mf}^\text{full 2D} \;\longrightarrow\;
+      \frac{2\,\varepsilon_\text{eff}\,\varepsilon_0\,R_\text{eff}^2\,W_\text{eff}}{D^2}\]
+  </div>
+  <p class="prose">
+  The factor-of-2 difference is a direct and concrete consequence of the 1D cross-sectional
+  approximation described above — the formula overcounts by a factor of ~2 because it evaluates
+  the longitudinal geometry only at \(y=0\) rather than integrating over all \(y\). This is one
+  of the identifiable sources of the stated ±factor-of-2–3 accuracy.</p>
+
   <p class="prose">Validity condition (conductors do not overlap in effective-parameter space):</p>
   <div class="math-block">
     \[D - W_\text{eff} > R_\text{eff}
       \quad\Longleftrightarrow\quad
-      D > \frac{d}{2} + \frac{s}{4} + \frac{w}{2} + \frac{a}{4}
-      \quad(\text{typically satisfied for gap} \gtrsim \text{a few }\mu\text{m})\]
+      D > \frac{d}{2} + \frac{s}{4} + \frac{w}{2} + \frac{a}{4}\]
   </div>
+  <p class="prose">Accuracy regime: the formula is most reliable when \(D/R_\text{eff} > 5\).
+  At \(D/R_\text{eff} \approx 5\) (the nominal geometry with \(R_\text{eff} \approx 65\,\mu\text{m}\)),
+  accuracy is ~factor-of-2–3. At \(D/R_\text{eff} < 3\), the cross-sectional approximation breaks
+  down more severely and EM simulation (Sonnet, HFSS, Palace) is the only reliable option.</p>
 
   <p class="prose"><strong>2.5 Large-distance limit.</strong>
   Expanding for \(D \gg W_\text{eff}, R_\text{eff}\):</p>
@@ -397,7 +421,7 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
     <tr><th>#</th><th>Assumption / Limitation</th><th>Expected impact</th></tr>
     <tr><td>1</td><td>Planar 2D geometry. All conductors coplanar on one metal layer.</td><td>Appropriate for planar CPW chips. Small error (&lt;10%).</td></tr>
     <tr><td>2</td><td>Uniform ε_eff = (1+ε_Si)/2 = 6.35. Treats the Si/vacuum interface as a uniform effective medium.</td><td>5–10% on all capacitances. Depends on substrate thickness and conductor width.</td></tr>
-    <tr><td>3</td><td>Coupling kernel sec θ − 1 is a geometric approximation, not a rigorous EM solution.</td><td>Factor 2–3 vs. full EM simulation (Sonnet, HFSS). Best available closed form.</td></tr>
+    <tr><td>3</td><td>1D cross-sectional approximation: the integral runs over the transverse feedline width at the closest-approach cross-section (y = 0) only. The longitudinal direction is not integrated. A full 2D integration would reduce the prefactor from 4 to 2 at large D.</td><td>Identifiable factor-of-~2 overestimate of C_mf. Dominant source of error together with the effective-parameter prescription.</td></tr>
     <tr><td>4</td><td>Effective parameters R_eff = d/2 + s/4 and W_eff = w/2 + a/4 place the effective boundary at the midpoint between the conductor edge and the gap midpoint.</td><td>~20% on C_mf. Other weightings are plausible; midpoint minimises known error.</td></tr>
     <tr><td>5</td><td>Formula is specific to the with-ground-plane geometry.</td><td>Does not apply to geometries without a coplanar ground plane.</td></tr>
     <tr><td>6</td><td>Feedline is infinite and perfectly impedance-matched at Z₀.</td><td>Negligible if terminated properly. A resonance near f_q can dramatically increase coupling.</td></tr>
