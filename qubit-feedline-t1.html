@@ -87,9 +87,8 @@ canvas{display:block;width:100%}
 .atable td{padding:6px 8px 6px 0;border-bottom:.5px solid var(--border);color:var(--t2);vertical-align:top;line-height:1.5}
 .atable td:first-child{color:var(--t3);font-weight:700;white-space:nowrap;width:24px}
 .atable td:nth-child(2){color:var(--t1);min-width:220px}
-/* back button */
-.back-link{display:inline-block;color:var(--blue);font-size:13px;text-decoration:none}
-.back-link:hover{text-decoration:underline}
+.card a{text-decoration:none;font-size:1.2em;color:var(--blue)}
+.card a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -124,7 +123,7 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
       <input type="range" id="sl-w"    min="5"    max="40"   value="20"    oninput="go()">
       <span class="val" id="vl-w">20 µm</span></div>
     <div class="param"><label>Feedline CPW gap a (µm)</label>
-      <input type="range" id="sl-a"    min="2"    max="20"   value="10"    oninput="go()">
+      <input type="range" id="sl-a"    min="2"    max="20"   step="0.25" value="10"    oninput="go()">
       <span class="val" id="vl-a">10 µm</span></div>
     <div class="param"><label>Centre-to-centre distance D (µm)</label>
       <input type="range" id="sl-D"    min="50"   max="3000" value="322.5" step="0.5" oninput="go()">
@@ -381,13 +380,12 @@ Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or
     <tr><td>7</td><td>Both feedline ports counted (factor of 2 in κ). For a one-sided feedline, remove the factor of 2.</td><td>Factor of 2 error in κ and T₁ if wrong.</td></tr>
     <tr><td>8</td><td>No Purcell filter or coupling resonator. This is the direct radiation T₁ limit.</td><td>With a Purcell filter, T₁ improves by (Δ/g)², typically 100–1000×.</td></tr>
     <tr><td>9</td><td>C_Σ (total qubit capacitance) is a free parameter, not computed from geometry.</td><td>Uncertainty in C_Σ propagates linearly to T₁.</td></tr>
-    <tr><td>10</td><td>JJ leads not modelled. If leads point toward the feedline, C_mf increases locally.</td><td>Check layout — JJ leads should point away from the feedline.</td></tr>
   </table>
 </div>
 </div><!-- /tab-assump -->
 
 <div class="card">
-  <a class="back-link" href="index.html">← Back</a>
+  <a href="index.html">Back</a>
 </div>
 
 </div><!-- /wrap -->
@@ -453,7 +451,7 @@ function go() {
   document.getElementById('vl-d').textContent    = (p.d*1e6).toFixed(0)+' µm';
   document.getElementById('vl-s').textContent    = (p.s*1e6).toFixed(0)+' µm';
   document.getElementById('vl-w').textContent    = (p.w*1e6).toFixed(0)+' µm';
-  document.getElementById('vl-a').textContent    = (p.a*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-a').textContent    = (p.a*1e6).toFixed(2)+' µm';
   document.getElementById('vl-D').textContent    = (p.D*1e6).toFixed(1)+' µm';
   document.getElementById('vl-eps').textContent  = p.eps.toFixed(2);
   document.getElementById('vl-csig').textContent = (p.csig*1e15).toFixed(0)+' fF';
