@@ -118,6 +118,15 @@
     display: none;
     z-index: 10;
   }
+  .info-box {
+    color: #1e3a5f;
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    padding: 0.5em 0.8em;
+    font-size: 0.9em;
+    margin-top: 0.8em;
+  }
   .warn-box {
     color: #92400e;
     background: #fffbeb;
@@ -150,6 +159,61 @@
 <div class="container">
   <h2>Qubit–Feedline T₁ Estimator</h2>
 
+  <svg viewBox="0 0 620 345" xmlns="http://www.w3.org/2000/svg"
+       style="width:100%;max-width:620px;display:block;margin:8px auto 16px;border-radius:6px">
+    <defs>
+      <marker id="ah"  markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+        <polygon points="0 0,7 3.5,0 7" fill="#444"/></marker>
+      <marker id="aht" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
+        <polygon points="7 0,0 3.5,7 7" fill="#444"/></marker>
+    </defs>
+    <!-- ground plane -->
+    <rect x="0" y="0" width="620" height="345" fill="#c9c6be" rx="6"/>
+    <text x="22" y="28" font-family="Arial" font-size="12" fill="#666">Ground plane</text>
+    <!-- feedline: CPW gap a top (y 44–61), centre w (y 61–93), CPW gap a bottom (y 93–110) -->
+    <rect x="20" y="44"  width="562" height="17" fill="#dbd8d0"/>
+    <rect x="20" y="61"  width="562" height="32" fill="#3a6eaa"/>
+    <rect x="20" y="93"  width="562" height="17" fill="#dbd8d0"/>
+    <text x="200" y="82" font-family="Arial" font-size="13" font-weight="bold"
+          fill="white" text-anchor="middle">CPW feedline</text>
+    <!-- dimension lines right side -->
+    <line x1="594" y1="44"  x2="594" y2="61"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="44"  x2="599" y2="44"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
+    <text x="612" y="56"  font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
+    <line x1="594" y1="61"  x2="594" y2="93"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
+    <text x="612" y="81"  font-family="Arial" font-size="12" fill="#333" text-anchor="middle">w</text>
+    <line x1="594" y1="93"  x2="594" y2="110" stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="110" x2="599" y2="110" stroke="#333" stroke-width="1"/>
+    <text x="612" y="105" font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
+    <!-- D arrow: feedline centre to island centre -->
+    <line x1="315" y1="77" x2="315" y2="258"
+          stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="330" y="175" font-family="Arial" font-size="13" font-weight="bold" fill="#222">D</text>
+    <!-- qubit island: centre (300,258), island r=56, gap ring r=72 -->
+    <circle cx="300" cy="258" r="72" fill="#dbd8d0"/>
+    <circle cx="300" cy="258" r="56" fill="#d4700a"/>
+    <text x="300" y="254" font-family="Arial" font-size="12" font-weight="bold"
+          fill="white" text-anchor="middle">Qubit</text>
+    <text x="300" y="270" font-family="Arial" font-size="12" font-weight="bold"
+          fill="white" text-anchor="middle">island</text>
+    <!-- s label pointing to the gap ring -->
+    <line x1="352" y1="220" x2="370" y2="207" stroke="#555" stroke-width="1"/>
+    <text x="376" y="204" font-family="Arial" font-size="12" fill="#555">s</text>
+    <!-- R arrow: island diameter at y=325 -->
+    <line x1="244" y1="325" x2="356" y2="325"
+          stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="300" y="340" font-family="Arial" font-size="12" font-weight="bold"
+          fill="#333" text-anchor="middle">d = 2R</text>
+    <!-- caption -->
+    <text x="310" y="16" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">
+      Figure 1. Chip top-view (not to scale). D is the centre-to-centre distance from feedline to island.
+    </text>
+  </svg>
+
   <div class="desc-box">
     <p>C<sub>mf</sub> and C<sub>gnd</sub> are read from a BEM lookup table and linearly
        interpolated. T₁ is then calculated with input-output theory.</p>
@@ -163,6 +227,15 @@
                                 s &isin; <span id="grid-S">…</span>&nbsp;&mu;m</dd>
       <dt>Interpolation</dt><dd>Trilinear (linear in R, D, s independently)</dd>
     </dl>
+  </div>
+
+  <div class="info-box">
+    &#9432; <strong>Accuracy note:</strong> Capacitances from this calculator are more likely to be
+    <em>underestimated</em> than overestimated, typically by ~20&nbsp;%.
+    Two reasons: (1)&nbsp;the BEM solves for charge distribution in 2D rather than full 3D field lines &mdash;
+    mathematically equivalent only under idealised assumptions; (2)&nbsp;for large islands or wide
+    centre-to-centre distances the feedline segment can no longer be treated as infinitely long,
+    reducing the effective coupling captured by the simulation.
   </div>
 
   <div id="warn-extrap" class="warn-box">
