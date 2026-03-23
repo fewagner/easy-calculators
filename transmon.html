@@ -85,31 +85,99 @@
     .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
     .card a:hover { text-decoration: underline; }
     #band-plot { margin-top: 1.5em; }
+
+    /* ── segmented toggle ─────────────────────────────────────────── */
+    .seg-toggle {
+      display: inline-flex;
+      margin-top: 1em;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      overflow: hidden;
+      width: auto;               /* override the block label rule */
+    }
+    .seg-toggle input[type="radio"] { display: none; }
+    .seg-toggle label {
+      display: inline-block;
+      width: auto;
+      margin: 0;
+      padding: 0.35em 0.9em;
+      font-size: 0.88em;
+      cursor: pointer;
+      background: #f5f5f5;
+      color: #555;
+      border-right: 1px solid #bbb;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .seg-toggle label:last-of-type { border-right: none; }
+    .seg-toggle input[type="radio"]:checked + label {
+      background: #1565c0;
+      color: white;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Cooper Pair Box / Transmon Calculator</h2>
 
-    <label for="Ec">Charging energy E<sub>C</sub> [GHz]:</label>
-    <input type="number" id="Ec" step="any" placeholder="e.g. 0.2">
+    <!-- ── Charging energy: direct or via C_Σ ──────────────────────── -->
+    <span class="section-label">Charging energy</span>
 
-    <label for="Ej">Josephson energy E<sub>J</sub> [GHz]:</label>
+    <div class="seg-toggle">
+      <input type="radio" name="ec-mode" id="ec-mode-ec" value="ec" checked onchange="toggleEcMode()">
+      <label for="ec-mode-ec">Enter E<sub>C</sub></label>
+      <input type="radio" name="ec-mode" id="ec-mode-csig" value="csig" onchange="toggleEcMode()">
+      <label for="ec-mode-csig">Enter C<sub>&Sigma;</sub></label>
+    </div>
+
+    <div id="ec-input">
+      <label for="Ec">Charging energy E<sub>C</sub> [GHz]:</label>
+      <input type="number" id="Ec" step="any" placeholder="e.g. 0.2">
+    </div>
+    <div id="csig-input" style="display:none">
+      <label for="Csig">Total qubit capacitance C<sub>&Sigma;</sub> [fF]:</label>
+      <input type="number" id="Csig" step="any" placeholder="e.g. 70">
+    </div>
+
+    <!-- ── Josephson energy ─────────────────────────────────────────── -->
+    <span class="section-label" style="margin-top:1.2em">Josephson energy</span>
+    <label for="Ej">E<sub>J</sub> [GHz]:</label>
     <input type="number" id="Ej" step="any" placeholder="e.g. 10">
 
-    <label for="ng">Gate charge n<sub>g</sub> [Cooper pairs] (0 = integer charge, 0.5 = half-charge sweet spot):</label>
+    <!-- ── Gate charge ──────────────────────────────────────────────── -->
+    <span class="section-label" style="margin-top:1.2em">Gate charge</span>
+    <label for="ng">n<sub>g</sub> [Cooper pairs] &nbsp;(0 = integer charge, 0.5 = half-charge sweet spot):</label>
     <input type="number" id="ng" step="any" value="0" placeholder="0">
 
-    <label for="f_r">Readout resonator f<sub>r</sub> [GHz] (optional):</label>
+    <!-- ── Readout resonator ────────────────────────────────────────── -->
+    <span class="section-label" style="margin-top:1.2em">Readout resonator (optional)</span>
+
+    <label for="f_r">Resonator frequency f<sub>r</sub> [GHz]:</label>
     <input type="number" id="f_r" step="any">
 
-    <label for="g">Coupling g [MHz] (optional):</label>
-    <input type="number" id="g" step="any">
+    <div class="seg-toggle">
+      <input type="radio" name="g-mode" id="g-mode-g" value="g" checked onchange="toggleGMode()">
+      <label for="g-mode-g">Enter g directly</label>
+      <input type="radio" name="g-mode" id="g-mode-cc" value="cc" onchange="toggleGMode()">
+      <label for="g-mode-cc">Enter C<sub>c</sub> (coupling cap.)</label>
+    </div>
 
-    <label for="kappa">Resonator linewidth &kappa; [MHz] (optional):</label>
+    <div id="g-input">
+      <label for="g">Coupling g [MHz]:</label>
+      <input type="number" id="g" step="any">
+    </div>
+    <div id="cc-input" style="display:none">
+      <label for="Cc">Coupling capacitance C<sub>c</sub> [fF] &nbsp;<span style="font-weight:normal;color:#888">(qubit island &rarr; resonator pad; Z<sub>r</sub> = 50 &Omega; assumed)</span>:</label>
+      <input type="number" id="Cc" step="any" placeholder="e.g. 2">
+    </div>
+
+    <label for="kappa">Resonator linewidth &kappa; [MHz]:</label>
     <input type="number" id="kappa" step="any">
 
-    <label for="Cg">Capacitance to charge line C<sub>g</sub> [fF] (optional, for T<sub>1</sub> limit):</label>
+    <!-- ── Charge line ──────────────────────────────────────────────── -->
+    <span class="section-label" style="margin-top:1.2em">Charge line (optional)</span>
+    <label for="Cg">Capacitance to charge line C<sub>g</sub> [fF] &nbsp;<span style="font-weight:normal;color:#888">(for T<sub>1</sub> limit)</span>:</label>
     <input type="number" id="Cg" step="any" placeholder="e.g. 1">
 
     <button onclick="calculate()">Calculate</button>
@@ -125,17 +193,33 @@
       <tr><td>Charge dispersion &Delta;</td><td>|f&#x2080;&#x2081;(n<sub>g</sub>=0) &minus; f&#x2080;&#x2081;(n<sub>g</sub>=&frac12;)|</td></tr>
       <tr><td>f&#x2080;&#x2081; (transmon approx.)</td><td>&radic;(8E<sub>J</sub>E<sub>C</sub>) &minus; E<sub>C</sub> &nbsp;(valid for E<sub>J</sub>/E<sub>C</sub> &Gt; 1)</td></tr>
       <tr><td>Critical current I<sub>c</sub></td><td>E<sub>J</sub> = &hbar;I<sub>c</sub> / (2e)</td></tr>
-      <tr><td>Capacitance C</td><td>E<sub>C</sub> = e&sup2; / (2C)</td></tr>
+      <tr><td>E<sub>C</sub> from C<sub>&Sigma;</sub></td><td>E<sub>C</sub> = e&sup2; / (2C<sub>&Sigma;</sub>)</td></tr>
+      <tr><td>C<sub>&Sigma;</sub> from E<sub>C</sub></td><td>C<sub>&Sigma;</sub> = e&sup2; / (2E<sub>C</sub>)</td></tr>
       <tr><td>Josephson inductance L<sub>J</sub></td><td>&Phi;<sub>0</sub> / (2&pi;I<sub>c</sub>) = &hbar; / (2eI<sub>c</sub>)</td></tr>
       <tr><td>Lamb shift</td><td>&delta;<sub>L</sub> &approx; g&sup2; / (f&#x2080;&#x2081; &minus; f<sub>r</sub>)</td></tr>
       <tr><td>Dispersive shift &chi;</td><td>g&sup2;&alpha; / ((f&#x2080;&#x2081;&minus;f<sub>r</sub>)(&alpha;+f&#x2080;&#x2081;&minus;f<sub>r</sub>))</td></tr>
       <tr><td>Purcell T<sub>1</sub></td><td>1/T<sub>1</sub><sup>Purcell</sup> = &kappa;<sub>r</sub>(g/&Delta;)&sup2;, &Delta; = &omega;&#x2080;&#x2081; &minus; &omega;<sub>r</sub> (all angular frequencies)</td></tr>
+      <tr><td>g from C<sub>c</sub></td><td>g = (C<sub>c</sub>/C<sub>&Sigma;</sub>) &middot; (e/&hbar;) &middot; V<sub>zpf</sub> &middot; (E<sub>J</sub>/8E<sub>C</sub>)<sup>1/4</sup> &nbsp;(transmon limit)</td></tr>
+      <tr><td>Resonator V<sub>zpf</sub></td><td>V<sub>zpf</sub> = &omega;<sub>r</sub>&radic;(&hbar;Z<sub>r</sub>/2), &nbsp;Z<sub>r</sub> = 50 &Omega;</td></tr>
       <tr><td>Charge-line T<sub>1</sub></td><td>1/T<sub>1</sub><sup>gate</sup> = &omega;<sub>01</sub>&sup2; C<sub>g</sub>&sup2; Z<sub>0</sub> / C<sub>&Sigma;</sub>, C<sub>&Sigma;</sub> = e&sup2;/(2E<sub>C</sub>), Z<sub>0</sub> = 50 &Omega;</td></tr>
     </table>
   </div>
 
   <script>
-    // Charge basis truncated at ±N_STATES → 31×31 Hamiltonian.
+    // ── UI toggle helpers ──────────────────────────────────────────────
+    function toggleEcMode() {
+      const mode = document.querySelector('input[name="ec-mode"]:checked').value;
+      document.getElementById('ec-input').style.display   = mode === 'ec'   ? '' : 'none';
+      document.getElementById('csig-input').style.display = mode === 'csig' ? '' : 'none';
+    }
+
+    function toggleGMode() {
+      const mode = document.querySelector('input[name="g-mode"]:checked').value;
+      document.getElementById('g-input').style.display  = mode === 'g'  ? '' : 'none';
+      document.getElementById('cc-input').style.display = mode === 'cc' ? '' : 'none';
+    }
+
+    // ── Charge basis truncated at ±N_STATES → 31×31 Hamiltonian.
     // N=15 gives < 0.01% error for any practical E_J/E_C ratio.
     const N_STATES = 15;
 
@@ -150,7 +234,6 @@
         if (i < dim - 1) H[i][i + 1] = -Ej / 2;
       }
       const result = math.eigs(H);
-      // math.re() handles both plain numbers and Complex objects safely
       return result.values.map(v => math.re(v)).sort((a, b) => a - b);
     }
 
@@ -159,22 +242,35 @@
       const hbar = h / (2 * Math.PI);
       const e    = 1.602176634e-19;
       const GHz_to_J = h * 1e9;
+      const outDiv = document.getElementById('output');
 
-      const Ec      = parseFloat(document.getElementById('Ec').value);
-      const Ej      = parseFloat(document.getElementById('Ej').value);
-      const ng_raw  = parseFloat(document.getElementById('ng').value);
-      const fr      = parseFloat(document.getElementById('f_r').value);
-      const gMHz    = parseFloat(document.getElementById('g').value);
-      const kappaMHz = parseFloat(document.getElementById('kappa').value);
-      const outDiv  = document.getElementById('output');
+      // ── Resolve E_C ─────────────────────────────────────────────────
+      const ecMode = document.querySelector('input[name="ec-mode"]:checked').value;
+      let Ec, ecSourceHTML;
+      if (ecMode === 'ec') {
+        Ec = parseFloat(document.getElementById('Ec').value);
+        ecSourceHTML = '';
+      } else {
+        const Csig_fF = parseFloat(document.getElementById('Csig').value);
+        if (isNaN(Csig_fF) || Csig_fF <= 0) {
+          outDiv.innerText = 'Please enter a valid positive C\u03A3.';
+          return;
+        }
+        const Csig = Csig_fF * 1e-15;
+        Ec = (e * e) / (2 * Csig * GHz_to_J);   // in GHz
+        ecSourceHTML = `E<sub>C</sub> (from C<sub>&Sigma;</sub> = ${Csig_fF} fF): ${Ec.toExponential(4)} GHz<br>`;
+      }
+
+      const Ej     = parseFloat(document.getElementById('Ej').value);
+      const ng_raw = parseFloat(document.getElementById('ng').value);
 
       if (isNaN(Ec) || isNaN(Ej) || Ec <= 0 || Ej <= 0) {
-        outDiv.innerText = 'Please enter valid positive E_C and E_J.';
+        outDiv.innerText = 'Please enter valid positive E_C (or C\u03A3) and E_J.';
         return;
       }
       const ng = isNaN(ng_raw) ? 0 : ng_raw;
 
-      // ── Regime indicator ────────────────────────────────────────────────
+      // ── Regime indicator ────────────────────────────────────────────
       const ratio = Ej / Ec;
       let regimeLabel, regimeColor;
       if (ratio < 5) {
@@ -188,26 +284,56 @@
         regimeColor = '#2e7d32';
       }
 
-      // ── Exact diagonalization ───────────────────────────────────────────
-      const ev    = getEigenvalues(Ec, Ej, ng);
-      const ev0   = getEigenvalues(Ec, Ej, 0.0);
-      const ev05  = getEigenvalues(Ec, Ej, 0.5);
+      // ── Exact diagonalization ───────────────────────────────────────
+      const ev   = getEigenvalues(Ec, Ej, ng);
+      const ev0  = getEigenvalues(Ec, Ej, 0.0);
+      const ev05 = getEigenvalues(Ec, Ej, 0.5);
 
-      const f01   = ev[1]  - ev[0];
-      const alpha = (ev[2] - ev[1]) - (ev[1] - ev[0]);
+      const f01        = ev[1]  - ev[0];
+      const alpha      = (ev[2] - ev[1]) - (ev[1] - ev[0]);
       const chargeDisp = Math.abs((ev0[1] - ev0[0]) - (ev05[1] - ev05[0]));
 
-      // ── Transmon approximations (for comparison) ────────────────────────
+      // ── Transmon approximations ─────────────────────────────────────
       const f01_approx   = Math.sqrt(8 * Ej * Ec) - Ec;
       const alpha_approx = -Ec;
       const delta_approx = Ec * Math.exp(-Math.sqrt(8 * Ej / Ec));
 
-      // ── Circuit parameters (exact) ──────────────────────────────────────
+      // ── Circuit parameters ──────────────────────────────────────────
       const Ic = (2 * e * Ej * GHz_to_J) / hbar;
       const C  = (e * e) / (2 * Ec * GHz_to_J);
       const Lj = hbar / (2 * e * Ic);
 
-      // ── Coupling / dispersive (optional) ───────────────────────────────
+      // ── Resolve g ───────────────────────────────────────────────────
+      const fr    = parseFloat(document.getElementById('f_r').value);
+      const gMode = document.querySelector('input[name="g-mode"]:checked').value;
+      let gMHz, gSourceHTML = '';
+
+      if (gMode === 'g') {
+        gMHz = parseFloat(document.getElementById('g').value);
+      } else {
+        const Cc_fF = parseFloat(document.getElementById('Cc').value);
+        if (!isNaN(Cc_fF) && Cc_fF > 0 && !isNaN(fr) && fr > 0) {
+          const Zr   = 50;                                 // Ω
+          const omr  = 2 * Math.PI * fr * 1e9;            // rad/s
+          const Vpzf = omr * Math.sqrt(hbar * Zr / 2);    // V  (= ω_r √(ħZ_r/2))
+          const Csig = (e * e) / (2 * Ec * GHz_to_J);     // F
+          const Cc   = Cc_fF * 1e-15;
+          // transmon charge matrix element: |<0|n|1>| ≈ ½(E_J/8E_C)^(1/4)
+          // the factor of 2 from the H_int = 2e·n·V coupling cancels the ½
+          const n01  = Math.pow(Ej / (8 * Ec), 0.25);
+          const gRad = (Cc / Csig) * (e / hbar) * Vpzf * n01;   // rad/s
+          gMHz = gRad / (2 * Math.PI * 1e6);                     // MHz
+
+          const transmonWarn = ratio < 20
+            ? `<span style="color:#c62828"> &#9888; E<sub>J</sub>/E<sub>C</sub> = ${ratio.toFixed(1)} &lt; 20 — transmon approximation for matrix element may be inaccurate</span>`
+            : '';
+          gSourceHTML = `g (from C<sub>c</sub> = ${Cc_fF} fF): ${gMHz.toExponential(4)} MHz${transmonWarn}<br>`;
+        } else {
+          gMHz = NaN;
+        }
+      }
+
+      // ── Coupling / dispersive (optional) ───────────────────────────
       let couplingHTML = '';
       if (!isNaN(fr) && !isNaN(gMHz)) {
         const gGHz   = gMHz / 1000;
@@ -217,12 +343,13 @@
         if (Math.abs(alpha + deltaF) > 1e-12)
           chi = gGHz ** 2 * alpha / (deltaF * (alpha + deltaF));
 
-        let kappaLine = '';
+        let kappaLine   = '';
         let purcellLine = '';
+        const kappaMHz  = parseFloat(document.getElementById('kappa').value);
         if (!isNaN(kappaMHz) && kappaMHz > 0) {
-          const kGHz = kappaMHz / 1000;
+          const kGHz   = kappaMHz / 1000;
           const chiMHz = Math.abs(chi) * 1000;
-          const r = chiMHz / kappaMHz;
+          const r      = chiMHz / kappaMHz;
           const regime = r > 1
             ? `<span style="color:#2e7d32">strong dispersive ✓ (|&chi;|/&kappa; = ${r.toFixed(2)})</span>`
             : `<span style="color:#c62828">weak dispersive (|&chi;|/&kappa; = ${r.toFixed(2)})</span>`;
@@ -230,7 +357,7 @@
 
           if (Math.abs(deltaF) > 1e-6) {
             const purcellRateRad = 2 * Math.PI * kGHz * 1e9 * (gGHz / deltaF) ** 2;
-            const T1_purcell_us = 1e6 / purcellRateRad;
+            const T1_purcell_us  = 1e6 / purcellRateRad;
             purcellLine = `T<sub>1</sub><sup>Purcell</sup>: ${T1_purcell_us.toExponential(4)} &mu;s<br>`;
           } else {
             purcellLine = `T<sub>1</sub><sup>Purcell</sup>: qubit near-resonant with resonator &mdash; Purcell rate undefined<br>`;
@@ -239,20 +366,21 @@
 
         couplingHTML = `
           <span class="section-label">Coupling / Dispersive (using exact f&#x2080;&#x2081;, &alpha;)</span>
+          ${gSourceHTML}
           Lamb shift &delta;<sub>L</sub>: ${lamb.toExponential(4)} GHz<br>
           Dispersive shift &chi;: ${chi.toExponential(4)} GHz &nbsp;(${(chi * 1000).toExponential(4)} MHz)<br>
           ${kappaLine}${purcellLine}
         `;
       }
 
-      // ── Charge-line T₁ (optional) ───────────────────────────────────────
+      // ── Charge-line T₁ (optional) ───────────────────────────────────
       let chargeLineHTML = '';
       const Cg_fF = parseFloat(document.getElementById('Cg').value);
       if (!isNaN(Cg_fF) && Cg_fF > 0) {
-        const Cg = Cg_fF * 1e-15;
+        const Cg     = Cg_fF * 1e-15;
         const Csigma = (e * e) / (2 * Ec * GHz_to_J);
-        const omega01 = 2 * Math.PI * f01 * 1e9;
-        const Z0 = 50;
+        const omega01   = 2 * Math.PI * f01 * 1e9;
+        const Z0        = 50;
         const Gamma_gate = omega01 ** 2 * Cg ** 2 * Z0 / Csigma;
         const T1_gate_us = 1e6 / Gamma_gate;
         chargeLineHTML = `
@@ -266,6 +394,7 @@
         <div class="regime-badge" style="background:${regimeColor};">${regimeLabel}</div>
 
         <span class="section-label">Exact &mdash; CPB diagonalization at n<sub>g</sub> = ${ng}</span>
+        ${ecSourceHTML}
         Qubit frequency f&#x2080;&#x2081;: ${f01.toExponential(6)} GHz<br>
         Anharmonicity &alpha;: ${alpha.toExponential(6)} GHz<br>
         Charge dispersion &Delta;: ${chargeDisp.toExponential(6)} GHz<br>
@@ -277,7 +406,7 @@
 
         <span class="section-label">Circuit parameters (exact)</span>
         Critical current I<sub>c</sub>: ${Ic.toExponential(6)} A<br>
-        Capacitance C: ${C.toExponential(6)} F<br>
+        Total capacitance C<sub>&Sigma;</sub>: ${C.toExponential(6)} F &nbsp;(${(C * 1e15).toFixed(2)} fF)<br>
         Josephson inductance L<sub>J</sub>: ${Lj.toExponential(6)} H<br>
         ${couplingHTML}${chargeLineHTML}
       `;
