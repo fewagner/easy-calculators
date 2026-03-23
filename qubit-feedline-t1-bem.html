@@ -35,11 +35,18 @@
   }
   .desc-box p { margin: 0 0 0.4em 0; }
   .desc-box p:last-child { margin-bottom: 0; }
+  .desc-section-head {
+    font-weight: bold;
+    font-size: 0.95em;
+    margin: 0.6em 0 0.2em;
+    color: #333;
+  }
+  .desc-section-head:first-child { margin-top: 0; }
   .desc-kv {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 0.15em 0.8em;
-    margin-top: 0.5em;
+    margin-top: 0.3em;
   }
   .desc-kv dt { font-weight: bold; color: #555; white-space: nowrap; }
   .desc-kv dd { margin: 0; }
@@ -86,7 +93,8 @@
     padding: 0.75em 0.8em;
     text-align: center;
   }
-  .result-box .val { font-size: 1.3em; font-weight: bold; color: #0077cc; }
+  .result-box .val { font-size: 1.15em; font-weight: bold; color: #0077cc; line-height: 1.5; }
+  .result-box .val .src-label { font-size: 0.78em; font-weight: normal; color: #555; }
   .result-box .lbl { font-size: 0.82em; color: #555; margin-top: 0.2em; }
   .chart-wrap {
     display: flex;
@@ -137,6 +145,42 @@
     margin-top: 0.8em;
     display: none;
   }
+  /* ── segmented toggle ───────────────────────────────────────── */
+  .seg-toggle {
+    display: inline-flex;
+    margin-top: 0.6em;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    overflow: hidden;
+    width: auto;
+  }
+  .seg-toggle input[type="radio"] { display: none; }
+  .seg-toggle label {
+    display: inline-block;
+    width: auto;
+    margin: 0;
+    padding: 0.35em 1.1em;
+    font-size: 0.88em;
+    cursor: pointer;
+    background: #f5f5f5;
+    color: #555;
+    border-right: 1px solid #bbb;
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+  }
+  .seg-toggle label:last-of-type { border-right: none; }
+  .seg-toggle input[type="radio"]:checked + label {
+    background: #1565c0;
+    color: white;
+    font-weight: bold;
+  }
+  .color-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
   table { margin-top: 1em; width: 100%; border-collapse: collapse; }
   table, th, td { border: 1px solid #ddd; }
   th, td { padding: 0.5em; text-align: left; }
@@ -167,16 +211,13 @@
       <marker id="aht" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
         <polygon points="7 0,0 3.5,7 7" fill="#444"/></marker>
     </defs>
-    <!-- ground plane -->
     <rect x="0" y="0" width="620" height="345" fill="#c9c6be" rx="6"/>
     <text x="22" y="28" font-family="Arial" font-size="12" fill="#666">Ground plane</text>
-    <!-- feedline: CPW gap a top (y 44–61), centre w (y 61–93), CPW gap a bottom (y 93–110) -->
     <rect x="20" y="44"  width="562" height="17" fill="#dbd8d0"/>
     <rect x="20" y="61"  width="562" height="32" fill="#3a6eaa"/>
     <rect x="20" y="93"  width="562" height="17" fill="#dbd8d0"/>
     <text x="200" y="82" font-family="Arial" font-size="13" font-weight="bold"
           fill="white" text-anchor="middle">CPW feedline</text>
-    <!-- dimension lines right side -->
     <line x1="594" y1="44"  x2="594" y2="61"  stroke="#333" stroke-width="1"/>
     <line x1="589" y1="44"  x2="599" y2="44"  stroke="#333" stroke-width="1"/>
     <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
@@ -189,43 +230,54 @@
     <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
     <line x1="589" y1="110" x2="599" y2="110" stroke="#333" stroke-width="1"/>
     <text x="612" y="105" font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
-    <!-- D arrow: feedline centre to island centre -->
     <line x1="315" y1="77" x2="315" y2="258"
           stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
     <text x="330" y="175" font-family="Arial" font-size="13" font-weight="bold" fill="#222">D</text>
-    <!-- qubit island: centre (300,258), island r=56, gap ring r=72 -->
     <circle cx="300" cy="258" r="72" fill="#dbd8d0"/>
     <circle cx="300" cy="258" r="56" fill="#d4700a"/>
     <text x="300" y="254" font-family="Arial" font-size="12" font-weight="bold"
           fill="white" text-anchor="middle">Qubit</text>
     <text x="300" y="270" font-family="Arial" font-size="12" font-weight="bold"
           fill="white" text-anchor="middle">island</text>
-    <!-- s label pointing to the gap ring -->
     <line x1="352" y1="220" x2="370" y2="207" stroke="#555" stroke-width="1"/>
     <text x="376" y="204" font-family="Arial" font-size="12" fill="#555">s</text>
-    <!-- R arrow: island diameter at y=325 -->
     <line x1="244" y1="325" x2="356" y2="325"
           stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
     <text x="300" y="340" font-family="Arial" font-size="12" font-weight="bold"
           fill="#333" text-anchor="middle">d = 2R</text>
-    <!-- caption -->
     <text x="310" y="16" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">
       Figure 1. Chip top-view (not to scale). D is the centre-to-centre distance from feedline to island.
     </text>
   </svg>
 
+  <!-- ── Description box ──────────────────────────────────────────────── -->
   <div class="desc-box">
-    <p>C<sub>mf</sub> and C<sub>gnd</sub> are read from a BEM lookup table and linearly
-       interpolated. T₁ is then calculated with input-output theory.</p>
+    <p>C<sub>mf</sub> and C<sub>gnd</sub> are read from simulation lookup tables and
+       log-linearly interpolated. T₁ is calculated with input-output theory.</p>
+
+    <p class="desc-section-head"><span class="color-dot" style="background:#2563eb"></span>BEM simulation</p>
     <dl class="desc-kv">
       <dt>Method</dt>       <dd>Boundary-element method (BEM), Maxwell capacitance matrix</dd>
       <dt>Substrate</dt>    <dd>Half silicon / half vacuum &mdash; &epsilon;<sub>eff</sub> = (1 + &epsilon;<sub>Si</sub>)/2 = 6.35</dd>
       <dt>Feedline</dt>     <dd>Length 1.98&nbsp;mm, centre-conductor width 10&nbsp;&mu;m, gap 5.5&nbsp;&mu;m each side</dd>
       <dt>Boundary box</dt> <dd>2&nbsp;mm &times; 2&nbsp;mm</dd>
-      <dt>Table grid</dt>   <dd>R &isin; <span id="grid-R">…</span>&nbsp;&mu;m &nbsp;&middot;&nbsp;
-                                D &isin; <span id="grid-D">…</span>&nbsp;&mu;m &nbsp;&middot;&nbsp;
-                                s &isin; <span id="grid-S">…</span>&nbsp;&mu;m</dd>
-      <dt>Interpolation</dt><dd>Trilinear (linear in R, D, s independently)</dd>
+      <dt>Grid</dt>         <dd>R &isin; <span id="grid-R-bem">…</span>&nbsp;&mu;m &nbsp;&middot;&nbsp;
+                                D &isin; <span id="grid-D-bem">…</span>&nbsp;&mu;m &nbsp;&middot;&nbsp;
+                                s &isin; <span id="grid-S-bem">…</span>&nbsp;&mu;m</dd>
+    </dl>
+
+    <div id="desc-fem-section" style="display:none">
+      <p class="desc-section-head"><span class="color-dot" style="background:#d97706"></span>FEM simulation</p>
+      <dl class="desc-kv">
+        <dt>Method</dt>  <dd>Finite-element method (FEM), Maxwell capacitance matrix</dd>
+        <dt>Grid</dt>    <dd>R &isin; <span id="grid-R-fem">…</span>&nbsp;&mu;m &nbsp;&middot;&nbsp;
+                             D &isin; <span id="grid-D-fem">…</span>&nbsp;&mu;m &nbsp;&middot;&nbsp;
+                             s &isin; <span id="grid-S-fem">…</span>&nbsp;&mu;m</dd>
+      </dl>
+    </div>
+
+    <dl class="desc-kv" style="margin-top:0.5em">
+      <dt>Interpolation</dt><dd>Trilinear log-space (geometric mean in each dimension)</dd>
     </dl>
   </div>
 
@@ -238,10 +290,28 @@
     reducing the effective coupling captured by the simulation.
   </div>
 
-  <div id="warn-extrap" class="warn-box">
-    &#9888; Parameter combination is outside or near the edge of the BEM grid &mdash; result involves extrapolation and may be less accurate.
+  <!-- ── Simulation source toggle ─────────────────────────────────────── -->
+  <span class="section-label">Simulation source</span>
+  <div class="seg-toggle">
+    <input type="radio" name="src" id="src-bem"  value="bem"  checked onchange="update()">
+    <label for="src-bem"><span class="color-dot" style="background:#2563eb"></span>BEM</label>
+    <input type="radio" name="src" id="src-fem"  value="fem"  onchange="update()">
+    <label for="src-fem"><span class="color-dot" style="background:#d97706"></span>FEM</label>
+    <input type="radio" name="src" id="src-both" value="both" onchange="update()">
+    <label for="src-both">Both</label>
   </div>
 
+  <div id="fem-unavail" class="warn-box">
+    &#9888; FEM data not yet available &mdash; <code>qubit-feedline-t1-fem.csv</code> not found.
+    Showing BEM results only.
+  </div>
+
+  <div id="warn-extrap" class="warn-box">
+    &#9888; Parameter combination is outside or near the edge of the lookup grid &mdash; result
+    involves extrapolation and may be less accurate.
+  </div>
+
+  <!-- ── Geometry sliders ──────────────────────────────────────────────── -->
   <span class="section-label">Geometry</span>
 
   <label>Island radius R (&mu;m): <strong id="R-val">—</strong></label>
@@ -276,6 +346,7 @@
     <input type="number" id="inp-z0" step="1" min="10" max="200" value="50" oninput="update()">
   </div>
 
+  <!-- ── Results ───────────────────────────────────────────────────────── -->
   <span class="section-label">Results at current D</span>
   <div class="result-grid">
     <div class="result-box">
@@ -292,10 +363,11 @@
     </div>
     <div class="result-box">
       <div class="val" id="res-cself">—</div>
-      <div class="lbl">C<sub>self</sub> (fF) &mdash; BEM island total</div>
+      <div class="lbl">C<sub>self</sub> (fF) &mdash; island total cap</div>
     </div>
   </div>
 
+  <!-- ── Charts ────────────────────────────────────────────────────────── -->
   <div class="chart-wrap">
     <div class="y-label">C<sub>mf</sub> (aF) &mdash; log</div>
     <div class="chart-inner">
@@ -319,7 +391,7 @@
     <tr><th>Quantity</th><th>Formula / Note</th></tr>
     <tr>
       <td>C<sub>mf</sub>, C<sub>gnd</sub>, C<sub>self</sub></td>
-      <td>Linearly interpolated from BEM table in (R, D, s).
+      <td>Log-linearly interpolated from simulation table in (R, D, s).
           C<sub>mf</sub> = |C<sub>feedline,island</sub>|,
           C<sub>gnd</sub> = |C<sub>GND,island</sub>|,
           C<sub>self</sub> = C<sub>island,island</sub> (Maxwell matrix diagonal).</td>
@@ -339,25 +411,24 @@
 </div>
 
 <script>
-// ── Mutable data tables (populated from CSV) ──────────────────────────────────
-// Each row: [R_µm, D_µm, s_µm, C_mf_F, C_gnd_F, C_self_F]
-let TABLE  = [];
-let R_GRID = [];
-let D_GRID = [];
-let S_GRID = [];
+// ── Source descriptors ─────────────────────────────────────────────────────────
+// Each source holds its own table and grid; loaded flag tracks availability.
+const SRCS = {
+  bem: { table: [], Rgrid: [], Dgrid: [], Sgrid: [], loaded: false,
+         color: '#2563eb', label: 'BEM' },
+  fem: { table: [], Rgrid: [], Dgrid: [], Sgrid: [], loaded: false,
+         color: '#d97706', label: 'FEM' }
+};
 
 // ── Required CSV column names ─────────────────────────────────────────────────
-// The CSV must contain at least these six columns (other columns are ignored).
 const COL_R     = 'R_um';
 const COL_D     = 'D_um';
 const COL_S     = 's_um';
-const COL_CMF   = 'C_feedline_island_F';   // mutual cap feedline↔island (sign ignored)
-const COL_CGND  = 'C_GND_island_F';        // mutual cap GND↔island     (sign ignored)
-const COL_CSELF = 'C_island_island_F';     // Maxwell diagonal (island self-cap)
+const COL_CMF   = 'C_feedline_island_F';
+const COL_CGND  = 'C_GND_island_F';
+const COL_CSELF = 'C_island_island_F';
 
-// ── Fallback: the same data embedded as a string ─────────────────────────────
-// Used when the CSV file cannot be fetched (e.g. opened via file://).
-// To update: replace this string with the new CSV content.
+// ── Fallback BEM data (used when CSV cannot be fetched, e.g. via file://) ─────
 const FALLBACK_CSV = `R_um,D_um,s_um,C_GND_GND_F,C_feedline_feedline_F,C_island_island_F,C_GND_feedline_F,C_GND_island_F,C_feedline_island_F,row_sum_GND_F,row_sum_feedline_F,row_sum_island_F,missing_cap_GND_F,missing_cap_feedline_F,missing_cap_island_F
 50,100,5,6.769e-13,1.559e-13,2.47e-14,-1.503e-13,-2.316e-14,-8.015e-16,5.034e-13,4.749e-15,7.34e-16,-5.034e-13,-4.749e-15,-7.34e-16
 50,100,10,6.761e-13,1.563e-13,2.386e-14,-1.507e-13,-2.217e-14,-8.769e-16,5.033e-13,4.735e-15,8.201e-16,-5.033e-13,-4.735e-15,-8.201e-16
@@ -400,7 +471,7 @@ function parseCSV(text) {
     const R = parseFloat(c[iR]), D = parseFloat(c[iD]), s = parseFloat(c[iS]);
     if (isNaN(R) || isNaN(D) || isNaN(s)) continue;
     rows.push([R, D, s,
-               Math.abs(parseFloat(c[iCmf])),   // sign convention: store absolute value
+               Math.abs(parseFloat(c[iCmf])),
                Math.abs(parseFloat(c[iCgnd])),
                parseFloat(c[iCself])]);
   }
@@ -410,54 +481,70 @@ function parseCSV(text) {
 
 function uniq(arr) { return [...new Set(arr)].sort((a, b) => a - b); }
 
-function applyData(rows) {
-  // Populate globals
-  TABLE  = rows;
-  R_GRID = uniq(rows.map(r => r[0]));
-  D_GRID = uniq(rows.map(r => r[1]));
-  S_GRID = uniq(rows.map(r => r[2]));
+function applyData(key, rows) {
+  const src = SRCS[key];
+  src.table  = rows;
+  src.Rgrid  = uniq(rows.map(r => r[0]));
+  src.Dgrid  = uniq(rows.map(r => r[1]));
+  src.Sgrid  = uniq(rows.map(r => r[2]));
+  src.loaded = true;
 
-  // Update slider ranges from actual grid extents
-  const mid = arr => arr[Math.floor(arr.length / 2)];
-
-  const slR = document.getElementById('sl-R');
-  slR.min   = R_GRID[0];
-  slR.max   = R_GRID[R_GRID.length - 1];
-  slR.value = mid(R_GRID);
-
-  const slD = document.getElementById('sl-D');
-  slD.min   = D_GRID[0];
-  slD.max   = D_GRID[D_GRID.length - 1];
-  slD.value = mid(D_GRID);
-
-  const slS = document.getElementById('sl-s');
-  slS.min   = S_GRID[0];
-  slS.max   = S_GRID[S_GRID.length - 1];
-  slS.value = mid(S_GRID);
-
-  // Update description grid text
+  // Update description grid text for this source
   const fmt = arr => '{' + arr.join(', ') + '}';
-  document.getElementById('grid-R').textContent = fmt(R_GRID);
-  document.getElementById('grid-D').textContent = fmt(D_GRID);
-  document.getElementById('grid-S').textContent = fmt(S_GRID);
+  document.getElementById(`grid-R-${key}`).textContent = fmt(src.Rgrid);
+  document.getElementById(`grid-D-${key}`).textContent = fmt(src.Dgrid);
+  document.getElementById(`grid-S-${key}`).textContent = fmt(src.Sgrid);
+
+  // Use BEM grid to set slider ranges (BEM always loads; params identical across sources)
+  if (key === 'bem') {
+    const mid = arr => arr[Math.floor(arr.length / 2)];
+
+    const slR = document.getElementById('sl-R');
+    slR.min   = src.Rgrid[0];
+    slR.max   = src.Rgrid[src.Rgrid.length - 1];
+    slR.value = mid(src.Rgrid);
+
+    const slD = document.getElementById('sl-D');
+    slD.min   = src.Dgrid[0];
+    slD.max   = src.Dgrid[src.Dgrid.length - 1];
+    slD.value = mid(src.Dgrid);
+
+    const slS = document.getElementById('sl-s');
+    slS.min   = src.Sgrid[0];
+    slS.max   = src.Sgrid[src.Sgrid.length - 1];
+    slS.value = mid(src.Sgrid);
+  }
 
   update();
 }
 
 async function loadCSV() {
+  // BEM — always load (falls back to embedded data if file missing)
   try {
     const resp = await fetch('qubit-feedline-t1-bem.csv');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    applyData(parseCSV(await resp.text()));
+    applyData('bem', parseCSV(await resp.text()));
   } catch (e) {
-    console.warn('CSV fetch failed, using embedded fallback:', e);
-    applyData(parseCSV(FALLBACK_CSV));
+    console.warn('BEM CSV fetch failed, using embedded fallback:', e);
+    applyData('bem', parseCSV(FALLBACK_CSV));
+  }
+
+  // FEM — optional; silently unavailable if file not present yet
+  try {
+    const resp = await fetch('qubit-feedline-t1-fem.csv');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    applyData('fem', parseCSV(await resp.text()));
+    // Show FEM section in description box now that data is available
+    document.getElementById('desc-fem-section').style.display = '';
+  } catch (e) {
+    console.info('FEM CSV not available:', e.message);
+    // FEM stays as loaded:false; UI handled in update()
   }
 }
 
 // ── Interpolation ─────────────────────────────────────────────────────────────
-function exact(R, D, s, col) {
-  const row = TABLE.find(r => r[0]===R && r[1]===D && r[2]===s);
+function exactS(src, R, D, s, col) {
+  const row = src.table.find(r => r[0]===R && r[1]===D && r[2]===s);
   return row ? row[3 + col] : NaN;
 }
 
@@ -479,24 +566,24 @@ function lp(a, b, t) {
   return Math.exp(Math.log(a) + t * (Math.log(b) - Math.log(a)));
 }
 
-function interp(R, D, s, col) {
-  const [Ri0, Ri1, tR] = brk(R_GRID, R);
-  const [Di0, Di1, tD] = brk(D_GRID, D);
-  const [Si0, Si1, tS] = brk(S_GRID, s);
-  const atRDS = (ri, di, si) => exact(R_GRID[ri], D_GRID[di], S_GRID[si], col);
-  const atRD  = (ri, di)     => lp(atRDS(ri,di,Si0), atRDS(ri,di,Si1), tS);
-  const atR   = ri           => lp(atRD(ri,Di0), atRD(ri,Di1), tD);
+function interpS(src, R, D, s, col) {
+  const [Ri0, Ri1, tR] = brk(src.Rgrid, R);
+  const [Di0, Di1, tD] = brk(src.Dgrid, D);
+  const [Si0, Si1, tS] = brk(src.Sgrid, s);
+  const at = (ri, di, si) => exactS(src, src.Rgrid[ri], src.Dgrid[di], src.Sgrid[si], col);
+  const atRD = (ri, di)   => lp(at(ri,di,Si0), at(ri,di,Si1), tS);
+  const atR  = ri          => lp(atRD(ri,Di0), atRD(ri,Di1), tD);
   return lp(atR(Ri0), atR(Ri1), tR);
 }
 
-function isExtrapolated(R, D, s) {
-  const [Ri0, Ri1] = brk(R_GRID, R);
-  const [Di0, Di1] = brk(D_GRID, D);
-  const [Si0, Si1] = brk(S_GRID, s);
+function isExtrapolatedS(src, R, D, s) {
+  const [Ri0, Ri1] = brk(src.Rgrid, R);
+  const [Di0, Di1] = brk(src.Dgrid, D);
+  const [Si0, Si1] = brk(src.Sgrid, s);
   for (const ri of [Ri0, Ri1])
     for (const di of [Di0, Di1])
       for (const si of [Si0, Si1])
-        if (isNaN(exact(R_GRID[ri], D_GRID[di], S_GRID[si], 0))) return true;
+        if (isNaN(exactS(src, src.Rgrid[ri], src.Dgrid[di], src.Sgrid[si], 0))) return true;
   return false;
 }
 
@@ -505,11 +592,22 @@ function calcT1(Cmf_F, fq_GHz, Csig_fF, Z0_Ohm) {
   return (Csig_fF * 1e-15) / (2 * om * om * Cmf_F * Cmf_F * Z0_Ohm);
 }
 
+// ── Active source helper ──────────────────────────────────────────────────────
+function getActiveSources() {
+  const sel = document.querySelector('input[name="src"]:checked').value;
+  if (sel === 'bem')  return ['bem'];
+  if (sel === 'fem')  return SRCS.fem.loaded ? ['fem'] : ['bem'];
+  // both
+  return SRCS.fem.loaded ? ['bem', 'fem'] : ['bem'];
+}
+
 // ── Chart drawing ─────────────────────────────────────────────────────────────
 const CHARTS = {};
 const PAD = { L: 42, R: 12, T: 12, B: 22 };
 
-function drawChart(id, xArr, yArr, curX, lineColor) {
+// seriesList: [{xArr, yArr, color, key}]
+// The x-axis tick positions are driven by the BEM Dgrid (always available).
+function drawChart(id, seriesList, curX) {
   const canvas = document.getElementById(id);
   const ctx    = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -518,12 +616,15 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
 
   ctx.clearRect(0, 0, W, H);
 
-  const pts = xArr.map((x, i) => [x, yArr[i]]).filter(p => !isNaN(p[1]) && p[1] > 0);
-  if (pts.length < 2) return;
+  // Determine axis range across all series
+  const allPts = seriesList.flatMap(s => s.xArr.map((x, i) => [x, s.yArr[i]])
+                                            .filter(p => !isNaN(p[1]) && p[1] > 0));
+  if (allPts.length < 2) return;
 
-  const xMin = xArr[0], xMax = xArr[xArr.length - 1];
-  const logY = pts.map(p => Math.log10(p[1]));
-  let yLo = Math.min(...logY), yHi = Math.max(...logY);
+  const xMin = seriesList[0].xArr[0];
+  const xMax = seriesList[0].xArr[seriesList[0].xArr.length - 1];
+  const logYAll = allPts.map(p => Math.log10(p[1]));
+  let yLo = Math.min(...logYAll), yHi = Math.max(...logYAll);
   const rng = yHi - yLo || 0.5;
   yLo -= rng * 0.08; yHi += rng * 0.08;
 
@@ -538,13 +639,13 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
     ctx.beginPath(); ctx.moveTo(pL, cy); ctx.lineTo(pL + pW, cy); ctx.stroke();
     const v = Math.pow(10, ly);
     const lbl = v >= 1000 ? (v/1000).toFixed(0)+'k' : v >= 1 ? v.toPrecision(2) : v.toExponential(0);
-    ctx.fillStyle = '#777';
-    ctx.fillText(lbl, pL - 3, cy + 3.5);
+    ctx.fillStyle = '#777'; ctx.fillText(lbl, pL - 3, cy + 3.5);
   }
 
-  // X grid + labels — ticks at D_GRID values (derived from data, not hardcoded)
+  // X grid + labels — ticks at BEM Dgrid values
   ctx.textAlign = 'center'; ctx.fillStyle = '#777';
-  for (const xt of D_GRID) {
+  const tickGrid = SRCS.bem.loaded ? SRCS.bem.Dgrid : SRCS.fem.Dgrid;
+  for (const xt of tickGrid) {
     if (xt < xMin - 1 || xt > xMax + 1) continue;
     const cx = toX(xt);
     ctx.strokeStyle = '#ececec'; ctx.lineWidth = 1;
@@ -565,32 +666,36 @@ function drawChart(id, xArr, yArr, curX, lineColor) {
     ctx.setLineDash([]);
   }
 
-  // Data curve
-  ctx.strokeStyle = lineColor; ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  let first = true;
-  for (const [x, y] of pts) {
-    const px = toX(x), py = toY(y);
-    if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
+  // Draw each series + current-D dot
+  for (const series of seriesList) {
+    const pts = series.xArr.map((x, i) => [x, series.yArr[i]]).filter(p => !isNaN(p[1]) && p[1] > 0);
+    if (pts.length < 2) continue;
 
-  // Current-D dot
-  let bestIdx = 0, bestDist = Infinity;
-  xArr.forEach((x, i) => { const d = Math.abs(x - curX); if (d < bestDist) { bestDist = d; bestIdx = i; } });
-  const curY = yArr[bestIdx];
-  if (!isNaN(curY) && curY > 0) {
-    ctx.fillStyle = lineColor;
-    ctx.beginPath(); ctx.arc(toX(curX), toY(curY), 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = series.color; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let first = true;
+    for (const [x, y] of pts) {
+      const px = toX(x), py = toY(y);
+      if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Current-D dot
+    let bestIdx = 0, bestDist = Infinity;
+    series.xArr.forEach((x, i) => { const d = Math.abs(x - curX); if (d < bestDist) { bestDist = d; bestIdx = i; } });
+    const curY = series.yArr[bestIdx];
+    if (!isNaN(curY) && curY > 0) {
+      ctx.fillStyle = series.color;
+      ctx.beginPath(); ctx.arc(toX(curX), toY(curY), 4.5, 0, 2 * Math.PI); ctx.fill();
+    }
   }
 
-  // Save state for hover
-  CHARTS[id] = { xArr, yArr, xMin, xMax, yLo, yHi, color: lineColor,
+  CHARTS[id] = { seriesList, xMin, xMax, yLo, yHi,
                  baseImg: ctx.getImageData(0, 0, W, H) };
 }
 
 // ── Hover handler ─────────────────────────────────────────────────────────────
-function onHover(canvasId, tooltipId, unitLabel, decimals, displayLabel, e) {
+function onHover(canvasId, tooltipId, unitLabel, decimals, e) {
   const st = CHARTS[canvasId]; if (!st) return;
   const canvas  = document.getElementById(canvasId);
   const tooltip = document.getElementById(tooltipId);
@@ -605,29 +710,45 @@ function onHover(canvasId, tooltipId, unitLabel, decimals, displayLabel, e) {
   if (mx < pL || mx > pL + pW) { tooltip.style.display = 'none'; return; }
 
   const Dhov = st.xMin + (mx - pL) / pW * (st.xMax - st.xMin);
-  let bestIdx = 0, bestDist = Infinity;
-  st.xArr.forEach((x, i) => { const d = Math.abs(x - Dhov); if (d < bestDist) { bestDist = d; bestIdx = i; } });
-  const yVal = st.yArr[bestIdx];
-  if (isNaN(yVal) || yVal <= 0) { tooltip.style.display = 'none'; return; }
 
-  const toX = x => pL + (x - st.xMin) / (st.xMax - st.xMin) * pW;
-  const toY = y => pT + (1 - (Math.log10(Math.max(y, 1e-99)) - st.yLo) / (st.yHi - st.yLo)) * pH;
-  const hx = toX(st.xArr[bestIdx]), hy = toY(yVal);
+  // Build tooltip text and draw a dot for each series
+  const parts = [];
+  for (const series of st.seriesList) {
+    let bestIdx = 0, bestDist = Infinity;
+    series.xArr.forEach((x, i) => { const d = Math.abs(x - Dhov); if (d < bestDist) { bestDist = d; bestIdx = i; } });
+    const yVal = series.yArr[bestIdx];
+    if (isNaN(yVal) || yVal <= 0) continue;
 
-  ctx.strokeStyle = 'rgba(100,100,100,0.5)'; ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath(); ctx.moveTo(hx, pT); ctx.lineTo(hx, pT + pH); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = st.color;
-  ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI); ctx.fill();
-  ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI); ctx.stroke();
+    const toX = x => pL + (x - st.xMin) / (st.xMax - st.xMin) * pW;
+    const toY = y => pT + (1 - (Math.log10(Math.max(y, 1e-99)) - st.yLo) / (st.yHi - st.yLo)) * pH;
+    const hx = toX(series.xArr[bestIdx]), hy = toY(yVal);
 
-  tooltip.textContent =
-    `D = ${st.xArr[bestIdx].toFixed(0)} \u03bcm  \u2192  ${displayLabel} = ${yVal.toFixed(decimals)} ${unitLabel}`;
+    // Crosshair (only once, reuse same x)
+    if (parts.length === 0) {
+      ctx.strokeStyle = 'rgba(100,100,100,0.5)'; ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(hx, pT); ctx.lineTo(hx, pT + pH); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.fillStyle = series.color;
+    ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(hx, hy, 5, 0, 2 * Math.PI); ctx.stroke();
+
+    parts.push(`${series.label}: ${yVal.toFixed(decimals)} ${unitLabel}`);
+  }
+
+  if (parts.length === 0) { tooltip.style.display = 'none'; return; }
+
+  const DLabel = `D = ${st.seriesList[0].xArr[
+    (() => { let bi=0, bd=Infinity; st.seriesList[0].xArr.forEach((x,i)=>{const d=Math.abs(x-Dhov);if(d<bd){bd=d;bi=i;}}); return bi; })()
+  ].toFixed(0)} \u03bcm`;
+  tooltip.textContent = DLabel + '  \u2192  ' + parts.join('  |  ');
+
   const wrapRect = canvas.parentElement.getBoundingClientRect();
   let left = e.clientX - wrapRect.left + 12;
-  if (left + 210 > wrapRect.width) left = e.clientX - wrapRect.left - 220;
+  if (left + 260 > wrapRect.width) left = e.clientX - wrapRect.left - 270;
   tooltip.style.left = left + 'px';
   tooltip.style.top  = Math.max(2, e.clientY - wrapRect.top - 36) + 'px';
   tooltip.style.display = 'block';
@@ -639,9 +760,23 @@ function onLeave(canvasId, tooltipId) {
   document.getElementById(tooltipId).style.display = 'none';
 }
 
+// ── Result box helper ─────────────────────────────────────────────────────────
+function setResultBox(id, values) {
+  // values: [{label, text, color}]  (label omitted when only one source active)
+  const el = document.getElementById(id);
+  if (values.length === 1) {
+    el.innerHTML = `<span style="color:${values[0].color}">${values[0].text}</span>`;
+  } else {
+    el.innerHTML = values.map(v =>
+      `<span class="src-label" style="color:${v.color}">${v.label}:</span> ` +
+      `<span style="color:${v.color}">${v.text}</span>`
+    ).join('<br>');
+  }
+}
+
 // ── Main update ───────────────────────────────────────────────────────────────
 function update() {
-  if (TABLE.length === 0) return;   // data not yet loaded
+  if (!SRCS.bem.loaded) return;   // nothing to show yet
 
   const R    = parseFloat(document.getElementById('sl-R').value);
   const D    = parseFloat(document.getElementById('sl-D').value);
@@ -654,40 +789,76 @@ function update() {
   document.getElementById('D-val').textContent = D;
   document.getElementById('s-val').textContent = s.toFixed(2);
 
-  document.getElementById('warn-extrap').style.display =
-    isExtrapolated(R, D, s) ? 'block' : 'none';
+  const sel         = document.querySelector('input[name="src"]:checked').value;
+  const femWanted   = sel === 'fem' || sel === 'both';
+  const femAvail    = SRCS.fem.loaded;
 
-  const Cmf   = interp(R, D, s, 0);
-  const Cgnd  = interp(R, D, s, 1);
-  const Cself = interp(R, D, s, 2);
-  const T1    = (isNaN(Cmf) || Cmf <= 0) ? NaN : calcT1(Cmf, fq, Csig, Z0);
+  // FEM-not-available warning
+  document.getElementById('fem-unavail').style.display =
+    (femWanted && !femAvail) ? 'block' : 'none';
 
-  document.getElementById('res-cmf').textContent   = isNaN(Cmf)   ? '—' : (Cmf   * 1e18).toFixed(3) + ' aF';
-  document.getElementById('res-t1').textContent    = isNaN(T1)    ? '—' : (T1    * 1e6 ).toFixed(2)  + ' µs';
-  document.getElementById('res-cgnd').textContent  = isNaN(Cgnd)  ? '—' : (Cgnd  * 1e15).toFixed(2)  + ' fF';
-  document.getElementById('res-cself').textContent = isNaN(Cself) ? '—' : (Cself * 1e15).toFixed(2)  + ' fF';
+  // FEM section in desc-box
+  document.getElementById('desc-fem-section').style.display =
+    (femWanted && femAvail) ? '' : 'none';
 
-  // Chart arrays — x-axis spans the full D range from the data
-  const dMin = D_GRID[0], dMax = D_GRID[D_GRID.length - 1];
+  const activeSrcs = getActiveSources();
+
+  // Extrapolation warning — check all active sources
+  const extrap = activeSrcs.some(k => isExtrapolatedS(SRCS[k], R, D, s));
+  document.getElementById('warn-extrap').style.display = extrap ? 'block' : 'none';
+
+  // ── Result boxes ─────────────────────────────────────────────────────
+  const cmfVals = [], t1Vals = [], cgndVals = [], cselfVals = [];
+  for (const k of activeSrcs) {
+    const src  = SRCS[k];
+    const Cmf   = interpS(src, R, D, s, 0);
+    const Cgnd  = interpS(src, R, D, s, 1);
+    const Cself = interpS(src, R, D, s, 2);
+    const T1    = (isNaN(Cmf) || Cmf <= 0) ? NaN : calcT1(Cmf, fq, Csig, Z0);
+
+    cmfVals.push({   label: src.label, color: src.color,
+      text: isNaN(Cmf)   ? '—' : (Cmf   * 1e18).toFixed(3) + ' aF' });
+    t1Vals.push({    label: src.label, color: src.color,
+      text: isNaN(T1)    ? '—' : (T1    * 1e6 ).toFixed(2)  + ' µs' });
+    cgndVals.push({  label: src.label, color: src.color,
+      text: isNaN(Cgnd)  ? '—' : (Cgnd  * 1e15).toFixed(2)  + ' fF' });
+    cselfVals.push({ label: src.label, color: src.color,
+      text: isNaN(Cself) ? '—' : (Cself * 1e15).toFixed(2)  + ' fF' });
+  }
+  setResultBox('res-cmf',   cmfVals);
+  setResultBox('res-t1',    t1Vals);
+  setResultBox('res-cgnd',  cgndVals);
+  setResultBox('res-cself', cselfVals);
+
+  // ── Chart series ──────────────────────────────────────────────────────
+  const refDgrid = SRCS.bem.loaded ? SRCS.bem.Dgrid : SRCS.fem.Dgrid;
+  const dMin = refDgrid[0], dMax = refDgrid[refDgrid.length - 1];
   const N    = 250;
-  const dArr   = Array.from({length: N}, (_, i) => dMin + i * (dMax - dMin) / (N - 1));
-  const cmfArr = dArr.map(d => { const v = interp(R, d, s, 0); return isNaN(v) ? NaN : v * 1e18; });
-  const t1Arr  = dArr.map(d => {
-    const c = interp(R, d, s, 0);
-    return (isNaN(c) || c <= 0) ? NaN : calcT1(c, fq, Csig, Z0) * 1e6;
-  });
+  const dArr = Array.from({length: N}, (_, i) => dMin + i * (dMax - dMin) / (N - 1));
 
-  drawChart('cv-cmf', dArr, cmfArr, D, '#2563eb');
-  drawChart('cv-t1',  dArr, t1Arr,  D, '#16a34a');
+  const cmfSeries = [], t1Series = [];
+  for (const k of activeSrcs) {
+    const src = SRCS[k];
+    const cmfArr = dArr.map(d => { const v = interpS(src, R, d, s, 0); return isNaN(v) ? NaN : v * 1e18; });
+    const t1Arr  = dArr.map(d => {
+      const c = interpS(src, R, d, s, 0);
+      return (isNaN(c) || c <= 0) ? NaN : calcT1(c, fq, Csig, Z0) * 1e6;
+    });
+    cmfSeries.push({ xArr: dArr, yArr: cmfArr, color: src.color, label: src.label, key: k });
+    t1Series.push(  { xArr: dArr, yArr: t1Arr,  color: src.color, label: src.label, key: k });
+  }
+
+  drawChart('cv-cmf', cmfSeries, D);
+  drawChart('cv-t1',  t1Series,  D);
 }
 
 // ── Hover event wiring ────────────────────────────────────────────────────────
 document.getElementById('cv-cmf').addEventListener('mousemove',
-  e => onHover('cv-cmf', 'tip-cmf', 'aF', 3, 'C\u2098\u2091', e));
+  e => onHover('cv-cmf', 'tip-cmf', 'aF', 3, e));
 document.getElementById('cv-cmf').addEventListener('mouseleave',
   () => onLeave('cv-cmf', 'tip-cmf'));
 document.getElementById('cv-t1').addEventListener('mousemove',
-  e => onHover('cv-t1', 'tip-t1', '\u03bcs', 2, 'T\u2081', e));
+  e => onHover('cv-t1', 'tip-t1', '\u03bcs', 2, e));
 document.getElementById('cv-t1').addEventListener('mouseleave',
   () => onLeave('cv-t1', 'tip-t1'));
 
