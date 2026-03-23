@@ -401,9 +401,9 @@ function brk(arr, val) {
 
 function lp(a, b, t) {
   if (isNaN(a) && isNaN(b)) return NaN;
-  if (isNaN(a)) return b;
-  if (isNaN(b)) return a;
-  return a + t * (b - a);
+  if (isNaN(a) || a <= 0) return b;
+  if (isNaN(b) || b <= 0) return a;
+  return Math.exp(Math.log(a) + t * (Math.log(b) - Math.log(a)));
 }
 
 function interp(R, D, s, col) {
