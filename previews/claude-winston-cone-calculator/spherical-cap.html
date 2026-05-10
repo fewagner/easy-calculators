@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spherical Cap Reflector Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 560px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+    p.intro {
+      color: #555;
+      font-size: 0.95em;
+      margin-top: 0;
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+      font-weight: 600;
+    }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: flex;
+      gap: 0.6em;
+      align-items: flex-end;
+    }
+    .row > * { margin-top: 0; }
+    .row label { flex: 0 0 auto; min-width: 0; margin-top: 0; }
+    .row input { flex: 1 1 auto; }
+    .row select { flex: 0 0 110px; }
+    .var-row {
+      display: grid;
+      grid-template-columns: 1.6em 1fr 110px;
+      gap: 0.5em;
+      align-items: center;
+      margin-top: 0.5em;
+    }
+    .var-row .sym {
+      font-style: italic;
+      font-size: 1.05em;
+      text-align: right;
+    }
+    .var-row input {
+      margin-top: 0;
+    }
+    .var-row .unit {
+      color: #555;
+      font-size: 0.9em;
+      text-align: left;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.2em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.95em;
+      white-space: pre-line;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    .computed { color: #1565c0; }
+    .given { color: #2e7d32; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 560px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Spherical Cap Reflector</h2>
+    <p class="intro">A spherical cap is the portion of a sphere cut off by a plane. Enter exactly two of the five quantities below; the remaining three will be computed.</p>
+
+    <!-- Sketch -->
+    <svg viewBox="0 0 440 340" style="width:100%;max-width:440px;display:block;margin:1em auto 0.5em;" aria-label="Spherical cap geometry sketch">
+      <!-- Full sphere outline (faint) -->
+      <circle cx="220" cy="210" r="120" fill="#f3f8fd" stroke="#b8c8dd" stroke-width="1"/>
+
+      <!-- Cap fill -->
+      <path d="M 132 130 A 120 120 0 0 1 308 130 Z" fill="#fff3e0" stroke="none"/>
+
+      <!-- Cap arc highlighted -->
+      <path d="M 132 130 A 120 120 0 0 1 308 130" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+
+      <!-- Chord (the cutting plane edge) -->
+      <line x1="132" y1="130" x2="308" y2="130" stroke="#888" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Vertical symmetry axis (dotted) -->
+      <line x1="220" y1="90" x2="220" y2="210" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+      <!-- Center marker -->
+      <circle cx="220" cy="210" r="2.8" fill="#222"/>
+      <text x="227" y="223" font-size="12" fill="#222" font-family="Arial,sans-serif">C (sphere center / focal point)</text>
+
+      <!-- R: from center to right edge of cap -->
+      <line x1="220" y1="210" x2="308" y2="130" stroke="#1565c0" stroke-width="1.8"/>
+      <text x="278" y="180" font-size="16" font-style="italic" font-weight="bold" fill="#0d47a1" font-family="Arial,sans-serif">R</text>
+
+      <!-- h: cap height (dimension on the left of axis) -->
+      <line x1="195" y1="130" x2="195" y2="90" stroke="#2e7d32" stroke-width="1.6"/>
+      <line x1="190" y1="130" x2="200" y2="130" stroke="#2e7d32" stroke-width="1.6"/>
+      <line x1="190" y1="90"  x2="200" y2="90"  stroke="#2e7d32" stroke-width="1.6"/>
+      <text x="178" y="115" font-size="15" font-style="italic" font-weight="bold" fill="#1b5e20" font-family="Arial,sans-serif">h</text>
+
+      <!-- a: base radius (dimension below chord) -->
+      <line x1="220" y1="148" x2="308" y2="148" stroke="#6a1b9a" stroke-width="1.6"/>
+      <line x1="220" y1="143" x2="220" y2="153" stroke="#6a1b9a" stroke-width="1.6"/>
+      <line x1="308" y1="143" x2="308" y2="153" stroke="#6a1b9a" stroke-width="1.6"/>
+      <text x="260" y="164" font-size="15" font-style="italic" font-weight="bold" fill="#4a148c" font-family="Arial,sans-serif">a</text>
+
+      <!-- theta: angle arc at center between axis and R -->
+      <path d="M 220 175 A 35 35 0 0 1 244.65 184.18" fill="none" stroke="#c62828" stroke-width="1.8"/>
+      <text x="232" y="195" font-size="15" font-style="italic" font-weight="bold" fill="#b71c1c" font-family="Arial,sans-serif">&#952;</text>
+
+      <!-- A label on cap arc -->
+      <text x="220" y="115" text-anchor="middle" font-size="15" font-style="italic" font-weight="bold" fill="#e07b00" font-family="Arial,sans-serif">A (cap area)</text>
+
+      <!-- Legend -->
+      <g font-family="Arial,sans-serif" font-size="11" fill="#333">
+        <text x="20" y="280"><tspan font-style="italic" font-weight="bold" fill="#0d47a1">R</tspan> = sphere radius (center → cap surface)</text>
+        <text x="20" y="296"><tspan font-style="italic" font-weight="bold" fill="#1b5e20">h</tspan> = cap height (chord plane → apex)</text>
+        <text x="20" y="312"><tspan font-style="italic" font-weight="bold" fill="#4a148c">a</tspan> = base radius (radius of circular edge)</text>
+        <text x="20" y="328"><tspan font-style="italic" font-weight="bold" fill="#b71c1c">&#952;</tspan> = half-opening angle at center; <tspan font-style="italic" font-weight="bold" fill="#e07b00">A</tspan> = curved surface area</text>
+      </g>
+    </svg>
+
+    <!-- Unit selectors -->
+    <label for="length-unit">Length unit:</label>
+    <select id="length-unit">
+      <option value="m">m (metres)</option>
+      <option value="cm" selected>cm (centimetres)</option>
+      <option value="mm">mm (millimetres)</option>
+    </select>
+
+    <label for="angle-unit">Angle unit:</label>
+    <select id="angle-unit">
+      <option value="deg" selected>degrees</option>
+      <option value="rad">radians</option>
+    </select>
+
+    <label style="margin-top:1.2em;">Enter exactly two quantities (leave the others blank):</label>
+
+    <div class="var-row">
+      <span class="sym">R =</span>
+      <input type="number" id="in-R" step="any" placeholder="sphere radius">
+      <span class="unit" id="unit-R">cm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">h =</span>
+      <input type="number" id="in-h" step="any" placeholder="cap height">
+      <span class="unit" id="unit-h">cm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">a =</span>
+      <input type="number" id="in-a" step="any" placeholder="base radius">
+      <span class="unit" id="unit-a">cm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">&#952; =</span>
+      <input type="number" id="in-theta" step="any" placeholder="half-opening angle">
+      <span class="unit" id="unit-theta">deg</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">A =</span>
+      <input type="number" id="in-A" step="any" placeholder="surface area">
+      <span class="unit" id="unit-A">cm&#178;</span>
+    </div>
+
+    <button onclick="computeCap()">Compute</button>
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    const lengthFactors = { m: 1, cm: 1e-2, mm: 1e-3 };
+
+    function refreshUnitLabels() {
+      const u = document.getElementById('length-unit').value;
+      const au = document.getElementById('angle-unit').value;
+      document.getElementById('unit-R').textContent = u;
+      document.getElementById('unit-h').textContent = u;
+      document.getElementById('unit-a').textContent = u;
+      document.getElementById('unit-theta').textContent = au;
+      document.getElementById('unit-A').innerHTML = u + '&#178;';
+    }
+    document.getElementById('length-unit').addEventListener('change', refreshUnitLabels);
+    document.getElementById('angle-unit').addEventListener('change', refreshUnitLabels);
+
+    function readField(id) {
+      const v = document.getElementById(id).value.trim();
+      if (v === '') return undefined;
+      const x = parseFloat(v);
+      if (!isFinite(x)) return NaN;
+      return x;
+    }
+
+    function showError(msg) {
+      const r = document.getElementById('result');
+      r.style.display = 'block';
+      r.classList.add('error');
+      r.textContent = msg;
+    }
+
+    function computeCap() {
+      const lengthUnit = document.getElementById('length-unit').value;
+      const angleUnit = document.getElementById('angle-unit').value;
+      const Lf = lengthFactors[lengthUnit];     // multiply user value by Lf to get metres
+      const Af = Lf * Lf;                       // for areas
+      const Tf = (angleUnit === 'deg') ? Math.PI / 180 : 1;
+
+      // Read all five
+      const raw = {
+        R: readField('in-R'),
+        h: readField('in-h'),
+        a: readField('in-a'),
+        theta: readField('in-theta'),
+        A: readField('in-A'),
+      };
+
+      // Validate parses
+      for (const k of Object.keys(raw)) {
+        if (Number.isNaN(raw[k])) { showError('Invalid number in field ' + k + '.'); return; }
+      }
+
+      const provided = {};
+      for (const k of Object.keys(raw)) {
+        if (raw[k] !== undefined) provided[k] = raw[k];
+      }
+
+      const keys = Object.keys(provided);
+      if (keys.length !== 2) {
+        showError('Please enter exactly two values (you entered ' + keys.length + ').');
+        return;
+      }
+
+      // Convert to SI
+      const SI = {};
+      for (const k of keys) {
+        const v = provided[k];
+        if (v <= 0) { showError(k + ' must be positive.'); return; }
+        if (k === 'theta') SI.theta = v * Tf;
+        else if (k === 'A') SI.A = v * Af;
+        else SI[k] = v * Lf;
+      }
+      if (SI.theta !== undefined && (SI.theta <= 0 || SI.theta > Math.PI)) {
+        showError('θ must lie in (0, 180°] (or (0, π] rad).'); return;
+      }
+
+      // Resolve R and h from the chosen pair (everything else follows).
+      let R, h;
+      const has = (k) => SI[k] !== undefined;
+      try {
+        if (has('R') && has('h')) {
+          R = SI.R; h = SI.h;
+        } else if (has('R') && has('a')) {
+          R = SI.R;
+          if (SI.a > R) throw new Error('Base radius a cannot exceed sphere radius R.');
+          // smaller cap (h ≤ R) by convention
+          h = R - Math.sqrt(R*R - SI.a*SI.a);
+        } else if (has('R') && has('theta')) {
+          R = SI.R; h = R * (1 - Math.cos(SI.theta));
+        } else if (has('R') && has('A')) {
+          R = SI.R;
+          h = SI.A / (2 * Math.PI * R);
+          if (h > 2*R) throw new Error('Area A is larger than the full sphere surface (4πR²).');
+        } else if (has('h') && has('a')) {
+          h = SI.h;
+          R = (SI.a*SI.a + h*h) / (2*h);
+          if (h > 2*R + 1e-15) throw new Error('Inconsistent h and a.');
+        } else if (has('h') && has('theta')) {
+          h = SI.h;
+          const denom = 1 - Math.cos(SI.theta);
+          if (denom <= 0) throw new Error('Invalid θ.');
+          R = h / denom;
+        } else if (has('h') && has('A')) {
+          h = SI.h;
+          R = SI.A / (2 * Math.PI * h);
+          if (h > 2*R + 1e-15) throw new Error('Inconsistent h and A (implied R is too small).');
+        } else if (has('a') && has('theta')) {
+          R = SI.a / Math.sin(SI.theta);
+          h = R * (1 - Math.cos(SI.theta));
+        } else if (has('a') && has('A')) {
+          // A = π(a² + h²)  ⇒  h = √(A/π − a²),  then R = (a²+h²)/(2h)
+          const t = SI.A / Math.PI - SI.a * SI.a;
+          if (t < 0) throw new Error('A is too small for the given a (need A ≥ π·a²).');
+          h = Math.sqrt(t);
+          if (h === 0) throw new Error('Degenerate cap (h = 0).');
+          R = (SI.a*SI.a + h*h) / (2*h);
+        } else if (has('theta') && has('A')) {
+          const denom = 2 * Math.PI * (1 - Math.cos(SI.theta));
+          if (denom <= 0) throw new Error('Invalid θ.');
+          R = Math.sqrt(SI.A / denom);
+          h = R * (1 - Math.cos(SI.theta));
+        } else {
+          throw new Error('Unsupported combination of inputs.');
+        }
+      } catch (e) {
+        showError(e.message);
+        return;
+      }
+
+      if (!(R > 0) || !(h > 0)) { showError('Could not derive a valid spherical cap from those inputs.'); return; }
+      if (h > 2*R + 1e-9) { showError('Resulting cap height h exceeds 2R (sphere diameter).'); return; }
+
+      const a = Math.sqrt(Math.max(0, 2*R*h - h*h));
+      const theta = Math.acos(Math.min(1, Math.max(-1, 1 - h/R)));
+      const A = 2 * Math.PI * R * h;
+
+      // Convert back to user units
+      const out = {
+        R: R / Lf,
+        h: h / Lf,
+        a: a / Lf,
+        theta: theta / Tf,
+        A: A / Af,
+      };
+
+      const lu = lengthUnit;
+      const lu2 = lengthUnit + '²';
+      const au = angleUnit;
+      const givenSet = new Set(keys);
+
+      function fmtRow(sym, key, val, unit) {
+        const cls = givenSet.has(key) ? 'given' : 'computed';
+        const tag = givenSet.has(key) ? '(input)  ' : '(computed)';
+        return `<span class="${cls}">${tag}  ${sym} = ${val.toExponential(6)} ${unit}</span>`;
+      }
+
+      const r = document.getElementById('result');
+      r.classList.remove('error');
+      r.style.display = 'block';
+      r.innerHTML = [
+        fmtRow('R', 'R', out.R, lu),
+        fmtRow('h', 'h', out.h, lu),
+        fmtRow('a', 'a', out.a, lu),
+        fmtRow('θ', 'theta', out.theta, au),
+        fmtRow('A', 'A', out.A, lu2),
+      ].join('\n');
+    }
+
+    refreshUnitLabels();
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>
