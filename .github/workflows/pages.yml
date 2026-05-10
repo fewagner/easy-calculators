@@ -1,0 +1,116 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: ['**']
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source ref
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: pages
+        continue-on-error: true
+
+      - name: Initialize gh-pages if missing
+        run: |
+          set -euo pipefail
+          if [ ! -d pages/.git ]; then
+            rm -rf pages
+            mkdir pages
+            cd pages
+            git init -b gh-pages
+          fi
+
+      - name: Update site (push / manual)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME}"
+          SAFE="${BRANCH//\//-}"
+          if [ "$BRANCH" = "main" ]; then
+            # Replace top-level files but preserve previews/ subtree.
+            find pages -mindepth 1 -maxdepth 1 \
+              ! -name '.git' ! -name 'previews' \
+              -exec rm -rf {} +
+            rsync -a --exclude='.git' --exclude='.github' source/ pages/
+          else
+            DEST="pages/previews/$SAFE"
+            rm -rf "$DEST"
+            mkdir -p "$DEST"
+            rsync -a --exclude='.git' --exclude='.github' source/ "$DEST/"
+          fi
+
+      - name: Remove preview on branch delete
+        if: github.event_name == 'delete' && github.event.ref_type == 'branch'
+        env:
+          DELETED_REF: ${{ github.event.ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DELETED_REF}" ] || [ "${DELETED_REF}" = "main" ] || [ "${DELETED_REF}" = "gh-pages" ]; then
+            echo "Refusing to delete root site for ref '${DELETED_REF}'."
+            exit 0
+          fi
+          SAFE="${DELETED_REF//\//-}"
+          rm -rf "pages/previews/$SAFE"
+
+      - name: Regenerate previews index
+        run: |
+          set -euo pipefail
+          mkdir -p pages/previews
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="en"><head><meta charset="UTF-8">'
+            echo '<title>Branch Previews</title>'
+            echo '<style>body{font-family:Arial,sans-serif;background:#f0f4f8;margin:2em;}'
+            echo 'h1{margin-bottom:1em;} ul{list-style:none;padding:0;max-width:560px;}'
+            echo 'li{background:#fff;margin:0.6em 0;padding:1em;border-radius:10px;'
+            echo 'box-shadow:0 2px 6px rgba(0,0,0,0.08);} a{color:#0077cc;text-decoration:none;font-size:1.1em;}'
+            echo 'a:hover{text-decoration:underline;}</style></head><body>'
+            echo '<h1>Branch Previews</h1><ul>'
+            if [ -d pages/previews ]; then
+              for d in pages/previews/*/; do
+                [ -d "$d" ] || continue
+                name="$(basename "$d")"
+                echo "<li><a href=\"./${name}/\">${name}</a></li>"
+              done
+            fi
+            echo '</ul><p style="margin-top:2em;"><a href="../">&larr; Back to main site</a></p>'
+            echo '</body></html>'
+          } > pages/previews/index.html
+
+      - name: Commit and push gh-pages
+        working-directory: pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+            exit 0
+          fi
+          REF_LABEL="${GITHUB_REF_NAME:-${{ github.event.ref }}}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          git commit -m "Deploy ${REF_LABEL} (${SHORT_SHA})"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
