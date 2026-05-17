@@ -43,6 +43,27 @@
       font-weight: bold;
       text-align: center;
     }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 500px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.95em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
     .card {
       background: white;
       padding: 1.5em;
@@ -104,6 +125,7 @@
       const c = 2.99792458e8;
       const kB = 1.380649e-23;
       const eV_J = 1.602176634e-19;
+      const v_DM = 220e3; // m/s, local galactic virial velocity assumption
 
       const value = parseFloat(document.getElementById('energy-value').value);
       const unit = document.getElementById('energy-unit').value;
@@ -124,19 +146,38 @@
       else if (unit === 'wavelength') E_J = h * c / (value * prefix);
       else if (unit === 'mass') E_J = value * prefix * c**2;
 
+      const m_kg = E_J / (c * c);
+      const lambda_dB_DM = h / (m_kg * v_DM);
+
       const outputs = `
         Joule: ${E_J.toExponential(6)} J<br>
         Electronvolt: ${(E_J / eV_J).toExponential(6)} eV<br>
         Frequency: ${(E_J / h).toExponential(6)} Hz<br>
         Temperature: ${(E_J / kB).toExponential(6)} K<br>
         Photon Wavelength: ${(h * c / E_J).toExponential(6)} m<br>
-        Mass (rest energy): ${(E_J / (c**2)).toExponential(6)} kg<br>
-        De Broglie Wavelength (nonrelativistic): ${(h * c / (Math.sqrt(2) * E_J)).toExponential(6)} m
+        Mass (rest energy): ${m_kg.toExponential(6)} kg<br>
+        Dark-matter de Broglie wavelength (v = 220 km/s): ${lambda_dB_DM.toExponential(6)} m
       `;
 
       resultDiv.innerHTML = outputs;
     }
   </script>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <p>All inputs are converted to a common energy E (in joules); every output is then derived from E:</p>
+    <ul>
+      <li>Electronvolt: <code>E = q<sub>e</sub> · (value in eV)</code>, so <code>E[eV] = E / q<sub>e</sub></code></li>
+      <li>Frequency: <code>E = h · &nu;</code>, so <code>&nu; = E / h</code></li>
+      <li>Temperature: <code>E = k<sub>B</sub> · T</code>, so <code>T = E / k<sub>B</sub></code></li>
+      <li>Photon wavelength: <code>E = h c / &lambda;</code>, so <code>&lambda; = h c / E</code></li>
+      <li>Rest energy ↔ mass: <code>E = m c<sup>2</sup></code>, so <code>m = E / c<sup>2</sup></code></li>
+      <li>Dark-matter de Broglie wavelength (interprets the input as the rest energy of a DM particle and uses the local galactic virial velocity <code>v &approx; 220 km/s</code>):
+        <code>&lambda;<sub>dB</sub> = h / (m v) = h c<sup>2</sup> / (E v)</code></li>
+    </ul>
+    <p style="margin-bottom:0;">Constants (CODATA): <code>h = 6.62607015 × 10<sup>-34</sup> J·s</code>, <code>c = 2.99792458 × 10<sup>8</sup> m/s</code>, <code>k<sub>B</sub> = 1.380649 × 10<sup>-23</sup> J/K</code>, <code>q<sub>e</sub> = 1.602176634 × 10<sup>-19</sup> C</code>.</p>
+  </div>
+
   <div class="card">
     <a href="index.html">Back</a>
   </div>
