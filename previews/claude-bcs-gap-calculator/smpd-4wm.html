@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Four-Wave Mixing SMPD Efficiency</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 680px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 { margin-top: 0; }
+    .paper-ref {
+      background: #f7f9fc;
+      border-left: 4px solid #1565c0;
+      padding: 0.7em 1em;
+      margin: 0 0 1.2em 0;
+      font-size: 0.9em;
+      color: #333;
+    }
+    .paper-ref a {
+      color: #1565c0;
+      text-decoration: none;
+    }
+    .paper-ref a:hover { text-decoration: underline; }
+
+    details.glossary {
+      margin: 0 0 1.2em 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fafcff;
+    }
+    details.glossary > summary {
+      cursor: pointer;
+      padding: 0.6em 1em;
+      font-weight: bold;
+      color: #333;
+      list-style: none;
+      user-select: none;
+    }
+    details.glossary > summary::-webkit-details-marker { display: none; }
+    details.glossary > summary::before {
+      content: '▸ ';
+      display: inline-block;
+      transition: transform 0.15s;
+      margin-right: 0.3em;
+    }
+    details.glossary[open] > summary::before {
+      content: '▾ ';
+    }
+    details.glossary table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+    details.glossary th, details.glossary td {
+      border-top: 1px solid #e2e8f0;
+      padding: 0.45em 0.8em;
+      text-align: left;
+      vertical-align: top;
+    }
+    details.glossary th {
+      background: #f0f4f8;
+      white-space: nowrap;
+      width: 30%;
+    }
+
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-top: 0.8em;
+      box-sizing: border-box;
+    }
+    input[type="number"] {
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1.6em;
+      margin-bottom: 0.3em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+      font-size: 1.05em;
+    }
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em;
+    }
+    .row2 > div > label { margin-top: 0.8em; }
+    .row2 > div > input { margin-top: 0.3em; }
+
+    .result {
+      margin-top: 1em;
+      padding: 0.8em 1em;
+      background: #fafcff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      line-height: 1.7em;
+      font-size: 0.95em;
+    }
+    .result strong { color: #1565c0; }
+
+    #eff-plot {
+      margin-top: 1.2em;
+      width: 100%;
+      height: 380px;
+    }
+
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 680px;
+      text-align: center;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+
+    table.formula {
+      margin-top: 1em;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+    table.formula, table.formula th, table.formula td {
+      border: 1px solid #ddd;
+    }
+    table.formula th, table.formula td {
+      padding: 0.5em; text-align: left;
+    }
+    table.formula th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Four-Wave Mixing SMPD Efficiency</h2>
+
+    <div class="paper-ref">
+      Based on Balembois <em>et&nbsp;al.</em>,
+      “Cyclically operated Single Microwave Photon Counter with 10<sup>&minus;22</sup> W/&radic;Hz sensitivity”,
+      <a href="https://arxiv.org/abs/2307.03614" target="_blank" rel="noopener">arXiv:2307.03614</a>.
+      Implements Eq.&nbsp;(3) (four-wave mixing transfer efficiency),
+      Appendix&nbsp;G (optimal detection time), and the total-efficiency
+      product &eta;<sub>theory</sub> = &eta;<sub>4wm</sub> &middot; &eta;<sub>RO</sub> &middot; &eta;<sub>D</sub> &middot; &eta;<sub>qubit</sub>.
+    </div>
+
+    <details class="glossary">
+      <summary>Glossary — what each variable means</summary>
+      <table>
+        <tr>
+          <th>&chi;<sub>b</sub>, &chi;<sub>w</sub></th>
+          <td>Dispersive shifts of the transmon qubit with respect to the
+              <strong>buffer</strong> (b) and <strong>waste</strong> (w) resonators.
+              Quoted as &chi;/2&pi; in MHz.</td>
+        </tr>
+        <tr>
+          <th>&kappa;<sub>b</sub>, &kappa;<sub>w</sub></th>
+          <td>Total linewidths (energy decay rates) of the buffer and waste
+              resonators. Quoted as &kappa;/2&pi; in MHz. &kappa;<sub>w</sub> provides
+              the irreversible dissipation that makes the click event irreversible.</td>
+        </tr>
+        <tr>
+          <th>|&xi;|</th>
+          <td>Pump amplitude (dimensionless, in units of &radic;photons) of the
+              off-resonant pump tone that activates the four-wave-mixing process.
+              Controls the parametric coupling g<sub>3</sub> = 2|&xi;|&radic;(&chi;<sub>b</sub>&chi;<sub>w</sub>).</td>
+        </tr>
+        <tr>
+          <th>C</th>
+          <td>Cooperativity of the four-wave-mixing process,
+              C = 4|&xi;|<sup>2</sup>&chi;<sub>b</sub>&chi;<sub>w</sub>/(&kappa;<sub>b</sub>&kappa;<sub>w</sub>).
+              Unit transfer efficiency is reached at C = 1.</td>
+        </tr>
+        <tr>
+          <th>&eta;<sub>4wm</sub></th>
+          <td>Transfer efficiency of a buffer photon into a qubit excitation
+              via the four-wave-mixing process (Eq.&nbsp;3). Peaks at 1 when C = 1.</td>
+        </tr>
+        <tr>
+          <th>T<sub>1</sub></th>
+          <td>Qubit energy-relaxation time (|e&rang; &rarr; |g&rang;).
+              Sets how long an absorbed excitation survives in the qubit.</td>
+        </tr>
+        <tr>
+          <th>T<sub>d</sub></th>
+          <td><strong>Detection window:</strong> duration during which the
+              pump is on and an incoming photon can trigger a qubit excitation.</td>
+        </tr>
+        <tr>
+          <th>T<sub>m</sub></th>
+          <td><strong>Measurement window:</strong> duration of the dispersive
+              readout pulse on the waste resonator that checks the qubit state.</td>
+        </tr>
+        <tr>
+          <th>T<sub>r</sub></th>
+          <td><strong>Reset window:</strong> conditional reset back to |g&rang;
+              (&pi;-pulse + re-measurement if the qubit was found excited).
+              Use the average reset time.</td>
+        </tr>
+        <tr>
+          <th>T<sub>cycle</sub></th>
+          <td>T<sub>d</sub> + T<sub>m</sub> + T<sub>r</sub>, the total duration of
+              one detect–measure–reset cycle.</td>
+        </tr>
+        <tr>
+          <th>&eta;<sub>D</sub></th>
+          <td>Duty-cycle efficiency = fraction of time the detector is actually
+              listening, T<sub>d</sub>/T<sub>cycle</sub>.</td>
+        </tr>
+        <tr>
+          <th>&eta;<sub>qubit</sub></th>
+          <td>Probability that a qubit excitation created during detection
+              survives until measurement, averaged over the detection window:
+              (T<sub>1</sub>/T<sub>d</sub>)(1 &minus; e<sup>&minus;T<sub>d</sub>/T<sub>1</sub></sup>).</td>
+        </tr>
+        <tr>
+          <th>&eta;<sub>RO</sub></th>
+          <td>Single-shot readout fidelity for the excited state
+              — probability of reading &ldquo;click&rdquo; given the qubit is in |e&rang;.</td>
+        </tr>
+        <tr>
+          <th>&eta;<sub>theory</sub></th>
+          <td>Total predicted operational efficiency:
+              &eta;<sub>4wm</sub> &middot; &eta;<sub>RO</sub> &middot; &eta;<sub>D</sub> &middot; &eta;<sub>qubit</sub>.</td>
+        </tr>
+      </table>
+    </details>
+
+    <!-- ── Section A: 4WM efficiency ────────────────────────────────── -->
+    <span class="section-label">1. Four-wave mixing efficiency &eta;<sub>4wm</sub></span>
+    <p style="color:#555; font-size:0.9em; margin:0.3em 0 0.6em 0;">
+      &eta;<sub>4wm</sub> = 4C/(1+C)<sup>2</sup>, &nbsp;
+      C = 4|&xi;|<sup>2</sup> &chi;<sub>b</sub>&chi;<sub>w</sub>/(&kappa;<sub>b</sub>&kappa;<sub>w</sub>).
+      The 2&pi; factors cancel in the ratio, so &chi;/2&pi; and &kappa;/2&pi; in MHz may be entered directly.
+    </p>
+
+    <div class="row2">
+      <div>
+        <label for="chi_b">&chi;<sub>b</sub>/2&pi; [MHz]:</label>
+        <input type="number" id="chi_b" step="any" value="5.2">
+      </div>
+      <div>
+        <label for="chi_w">&chi;<sub>w</sub>/2&pi; [MHz]:</label>
+        <input type="number" id="chi_w" step="any" value="18.8">
+      </div>
+      <div>
+        <label for="kappa_b">&kappa;<sub>b</sub>/2&pi; [MHz]:</label>
+        <input type="number" id="kappa_b" step="any" value="0.2">
+      </div>
+      <div>
+        <label for="kappa_w">&kappa;<sub>w</sub>/2&pi; [MHz]:</label>
+        <input type="number" id="kappa_w" step="any" value="1.8">
+      </div>
+    </div>
+
+    <label for="xi">Pump amplitude |&xi;| (dimensionless, &radic;photons) &nbsp;
+      <span style="font-weight:normal;color:#888">— spot evaluation</span>:</label>
+    <input type="number" id="xi" step="any" value="0.0304">
+
+    <div id="eff-plot"></div>
+
+    <div class="result" id="res-4wm"></div>
+
+    <!-- ── Section B: Optimal detection time ─────────────────────────── -->
+    <span class="section-label">2. Optimal detection time (Appendix G)</span>
+    <p style="color:#555; font-size:0.9em; margin:0.3em 0 0.6em 0;">
+      &eta;<sub>D</sub> = T<sub>d</sub>/(T<sub>m</sub>+T<sub>r</sub>+T<sub>d</sub>), &nbsp;
+      &eta;<sub>qubit</sub> = (T<sub>1</sub>/T<sub>d</sub>)(1 &minus; e<sup>&minus;T<sub>d</sub>/T<sub>1</sub></sup>).
+      Optimum: T<sub>d</sub><sup>opt</sup> &approx; &radic;(2(T<sub>m</sub>+T<sub>r</sub>)T<sub>1</sub>) &nbsp;(Eq.&nbsp;G3).
+    </p>
+
+    <div class="row2">
+      <div>
+        <label for="T1">T<sub>1</sub> [&mu;s]:</label>
+        <input type="number" id="T1" step="any" value="37">
+      </div>
+      <div>
+        <label for="Tm">T<sub>m</sub> [&mu;s]:</label>
+        <input type="number" id="Tm" step="any" value="0.5">
+      </div>
+      <div>
+        <label for="Tr">T<sub>r</sub> [&mu;s]:</label>
+        <input type="number" id="Tr" step="any" value="0.5">
+      </div>
+      <div>
+        <label for="Td">T<sub>d</sub> [&mu;s] (user value):</label>
+        <input type="number" id="Td" step="any" value="10">
+      </div>
+    </div>
+
+    <div class="result" id="res-time"></div>
+
+    <!-- ── Section C: Total efficiency ───────────────────────────────── -->
+    <span class="section-label">3. Total detection efficiency</span>
+    <p style="color:#555; font-size:0.9em; margin:0.3em 0 0.6em 0;">
+      &eta;<sub>theory</sub> = &eta;<sub>4wm</sub> &middot; &eta;<sub>RO</sub> &middot; &eta;<sub>D</sub> &middot; &eta;<sub>qubit</sub>.
+      Uses &eta;<sub>4wm</sub>(|&xi;|) from section 1 and
+      &eta;<sub>D</sub>, &eta;<sub>qubit</sub> from section 2.
+    </p>
+
+    <label for="eta_RO">Readout efficiency &eta;<sub>RO</sub>:</label>
+    <input type="number" id="eta_RO" step="any" value="0.73">
+
+    <div style="margin-top:0.8em; font-size:0.9em;">
+      <label style="display:inline-flex; align-items:center; width:auto; margin:0;">
+        <input type="radio" name="td-choice" value="user" checked
+               style="display:inline; width:auto; margin:0 0.4em 0 0;">
+        use user T<sub>d</sub>
+      </label>
+      &nbsp;&nbsp;
+      <label style="display:inline-flex; align-items:center; width:auto; margin:0;">
+        <input type="radio" name="td-choice" value="opt"
+               style="display:inline; width:auto; margin:0 0.4em 0 0;">
+        use optimal T<sub>d</sub>
+      </label>
+    </div>
+
+    <div class="result" id="res-total"></div>
+
+    <h3 style="margin-top:2em;">Formulas</h3>
+    <table class="formula">
+      <tr><th>Quantity</th><th>Expression</th></tr>
+      <tr><td>Cooperativity C</td>
+          <td>4|&xi;|<sup>2</sup> &chi;<sub>b</sub>&chi;<sub>w</sub>/(&kappa;<sub>b</sub>&kappa;<sub>w</sub>)</td></tr>
+      <tr><td>4WM efficiency &eta;<sub>4wm</sub></td>
+          <td>4C/(1+C)<sup>2</sup> &nbsp; (Eq.&nbsp;3)</td></tr>
+      <tr><td>Optimal pump |&xi;|<sup>opt</sup></td>
+          <td>&radic;(&kappa;<sub>b</sub>&kappa;<sub>w</sub>/(4&chi;<sub>b</sub>&chi;<sub>w</sub>)) &nbsp; (C=1)</td></tr>
+      <tr><td>Duty-cycle efficiency &eta;<sub>D</sub></td>
+          <td>T<sub>d</sub>/(T<sub>m</sub>+T<sub>r</sub>+T<sub>d</sub>)</td></tr>
+      <tr><td>Qubit efficiency &eta;<sub>qubit</sub></td>
+          <td>(T<sub>1</sub>/T<sub>d</sub>)(1 &minus; e<sup>&minus;T<sub>d</sub>/T<sub>1</sub></sup>)</td></tr>
+      <tr><td>Optimal detection time</td>
+          <td>T<sub>d</sub><sup>opt</sup> &approx; &radic;(2(T<sub>m</sub>+T<sub>r</sub>)T<sub>1</sub>) &nbsp; (Eq.&nbsp;G3)</td></tr>
+      <tr><td>Total efficiency</td>
+          <td>&eta;<sub>theory</sub> = &eta;<sub>4wm</sub> &middot; &eta;<sub>RO</sub> &middot; &eta;<sub>D</sub> &middot; &eta;<sub>qubit</sub></td></tr>
+    </table>
+
+    <details class="glossary" style="margin-top:1.5em;">
+      <summary>How to compare to an experiment</summary>
+      <div style="padding: 0.8em 1em; font-size: 0.92em; line-height: 1.55em;">
+        <p style="margin-top:0;">
+          Two kinds of measurement map onto the efficiencies on this page.
+          Which one you look at determines which factors appear.
+        </p>
+
+        <p><strong>(a) End-of-detection qubit population p<sub>e</sub>
+          (Fig.&nbsp;2a-style).</strong>
+          Read the qubit immediately after the detection window.
+          In the weak-signal regime (&lang;n<sub>ph</sub>&rang; &Lt; 1 per cycle):
+        </p>
+        <p style="text-align:center; margin:0.6em 0;">
+          p<sub>e</sub>(|&xi;|) &nbsp;&approx;&nbsp; p<sub>e</sub><sup>bg</sup>
+          + &eta;<sub>4wm</sub>(|&xi;|) &middot; &eta;<sub>qubit</sub> &middot;
+          &lang;n<sub>ph</sub>&rang;
+        </p>
+        <p>
+          with &lang;n<sub>ph</sub>&rang; = &Phi;<sub>in</sub> &middot; T<sub>d</sub> the mean
+          number of signal photons during the detection window.
+          <strong>Only &eta;<sub>4wm</sub> and &eta;<sub>qubit</sub> enter</strong>
+          — &eta;<sub>RO</sub> and &eta;<sub>D</sub> do not, because you are reading
+          the population directly rather than converting to a per-second rate.
+          Normalizing the curve to its peak gives the shape
+          &eta;<sub>4wm</sub>(|&xi;|) independent of the absolute calibration of
+          &Phi;<sub>in</sub>.
+        </p>
+
+        <p style="margin-top:1em;"><strong>(b) Click rate vs incoming photon
+          rate (Fig.&nbsp;3b-style — recommended).</strong>
+          Record the detector click rate R for several input photon rates
+          &Phi;<sub>in</sub> and fit a line:
+        </p>
+        <p style="text-align:center; margin:0.6em 0;">
+          R &nbsp;=&nbsp; &eta; &middot; &Phi;<sub>in</sub> &nbsp;+&nbsp; &alpha;
+        </p>
+        <ul style="margin:0.3em 0 0.3em 1.4em; padding:0;">
+          <li><strong>Slope &eta;</strong> =
+            &eta;<sub>4wm</sub> &middot; &eta;<sub>RO</sub> &middot; &eta;<sub>D</sub> &middot; &eta;<sub>qubit</sub>
+            — the full operational efficiency from section&nbsp;3 of this calculator.</li>
+          <li><strong>Intercept &alpha;</strong> — the dark count rate
+            (incl. thermal photons in the input line, pump-induced qubit heating,
+            and thermal qubit population).</li>
+        </ul>
+        <p>
+          The linear fit extracts &eta; and &alpha; <em>simultaneously</em> from
+          one dataset, so dark counts are absorbed into the intercept and you
+          do not need a separately calibrated &ldquo;signal off&rdquo; baseline
+          (nor an accurate subtraction, which can drift between runs).
+          For reliable numbers, sweep &Phi;<sub>in</sub> over at least a decade
+          and include a point or two deep enough that &eta; &middot; &Phi;<sub>in</sub>
+          &Gt; &alpha; as well as a point near &Phi;<sub>in</sub> = 0 to
+          anchor the intercept.
+        </p>
+        <p style="margin-bottom:0;">
+          The power sensitivity then follows from Eq.&nbsp;1 of the paper:
+          &nbsp;&Sscr; = &hbar;&omega;&radic;&alpha; / &eta;.
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    // ── core formulas ─────────────────────────────────────────────────
+    function cooperativity(xi, chi_b, chi_w, kap_b, kap_w) {
+      return 4 * xi * xi * (chi_b * chi_w) / (kap_b * kap_w);
+    }
+    function eta4wm(C) {
+      return 4 * C / ((1 + C) * (1 + C));
+    }
+    function etaD(Td, Tm, Tr) {
+      return Td / (Tm + Tr + Td);
+    }
+    function etaQubit(Td, T1) {
+      return (T1 / Td) * (1 - Math.exp(-Td / T1));
+    }
+    function TdOpt(Tm, Tr, T1) {
+      return Math.sqrt(2 * (Tm + Tr) * T1);
+    }
+
+    // ── readers ───────────────────────────────────────────────────────
+    function val(id) { return parseFloat(document.getElementById(id).value); }
+    function ok(...xs) { return xs.every(x => !isNaN(x) && x > 0); }
+
+    // ── plot + section 1 update ───────────────────────────────────────
+    let plotInitialized = false;
+    function updateEff() {
+      const chi_b = val('chi_b'), chi_w = val('chi_w');
+      const kap_b = val('kappa_b'), kap_w = val('kappa_w');
+      const xi    = val('xi');
+      const res   = document.getElementById('res-4wm');
+
+      if (!ok(chi_b, chi_w, kap_b, kap_w)) {
+        res.innerHTML = 'Enter positive values for all dispersive shifts and linewidths.';
+        return;
+      }
+
+      const xiOpt = Math.sqrt((kap_b * kap_w) / (4 * chi_b * chi_w));
+      // sweep to show peak clearly — extend to include the user point if larger
+      const xiMax = Math.max(3.2 * xiOpt, (isNaN(xi) ? 0 : 1.2 * xi));
+      const N = 400;
+      const xs = new Array(N), ys = new Array(N);
+      for (let i = 0; i < N; i++) {
+        const x = (i / (N - 1)) * xiMax;
+        xs[i] = x;
+        ys[i] = eta4wm(cooperativity(x, chi_b, chi_w, kap_b, kap_w));
+      }
+
+      const traces = [{
+        x: xs, y: ys,
+        mode: 'lines',
+        line: { color: '#1565c0', width: 2 },
+        name: 'η<sub>4wm</sub>',
+        hovertemplate: '|ξ| = %{x:.4f}<br>η<sub>4wm</sub> = %{y:.4f}<extra></extra>'
+      }];
+
+      // mark user pump amplitude
+      if (!isNaN(xi) && xi >= 0) {
+        const yUser = eta4wm(cooperativity(xi, chi_b, chi_w, kap_b, kap_w));
+        traces.push({
+          x: [xi], y: [yUser],
+          mode: 'markers',
+          marker: { color: '#d32f2f', size: 10, symbol: 'circle' },
+          name: 'user |ξ|',
+          hovertemplate: 'user |ξ| = %{x:.4f}<br>η<sub>4wm</sub> = %{y:.4f}<extra></extra>'
+        });
+      }
+      // mark optimum
+      traces.push({
+        x: [xiOpt], y: [1.0],
+        mode: 'markers',
+        marker: { color: '#388e3c', size: 10, symbol: 'diamond' },
+        name: 'optimum (C=1)',
+        hovertemplate: '|ξ|<sub>opt</sub> = %{x:.4f}<br>η<sub>4wm</sub> = 1<extra></extra>'
+      });
+
+      const layout = {
+        margin: { l: 55, r: 15, t: 10, b: 50 },
+        xaxis: { title: 'Pump amplitude |ξ| (a.u.)', zeroline: true },
+        yaxis: { title: 'η<sub>4wm</sub>', range: [0, 1.05], zeroline: true },
+        hovermode: 'x unified',
+        showlegend: true,
+        legend: { x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top',
+                  bgcolor: 'rgba(255,255,255,0.85)' }
+      };
+      const config = { displayModeBar: false, responsive: true };
+
+      if (!plotInitialized) {
+        Plotly.newPlot('eff-plot', traces, layout, config);
+        plotInitialized = true;
+      } else {
+        Plotly.react('eff-plot', traces, layout, config);
+      }
+
+      // numeric spot output
+      let html = `|&xi;|<sup>opt</sup> (at C=1) = <strong>${xiOpt.toExponential(4)}</strong>`;
+      if (!isNaN(xi) && xi >= 0) {
+        const C = cooperativity(xi, chi_b, chi_w, kap_b, kap_w);
+        const e = eta4wm(C);
+        html += `<br>At user |&xi;| = ${xi}: &nbsp; C = <strong>${C.toExponential(4)}</strong>, &nbsp; `
+             +  `&eta;<sub>4wm</sub> = <strong>${e.toFixed(4)}</strong>`;
+      }
+      res.innerHTML = html;
+      updateTotal();
+    }
+
+    // ── section 2 update ──────────────────────────────────────────────
+    function updateTime() {
+      const T1 = val('T1'), Tm = val('Tm'), Tr = val('Tr'), Td = val('Td');
+      const res = document.getElementById('res-time');
+      if (!ok(T1) || isNaN(Tm) || isNaN(Tr) || Tm < 0 || Tr < 0) {
+        res.innerHTML = 'Enter a positive T<sub>1</sub> and non-negative T<sub>m</sub>, T<sub>r</sub>.';
+        return;
+      }
+      const Topt = TdOpt(Tm, Tr, T1);
+      let html = `T<sub>d</sub><sup>opt</sup> = <strong>${Topt.toFixed(3)} &mu;s</strong> `
+               + `(Eq.&nbsp;G3, &radic;(2(T<sub>m</sub>+T<sub>r</sub>)T<sub>1</sub>))`;
+      if (ok(Td)) {
+        const eD = etaD(Td, Tm, Tr);
+        const eQ = etaQubit(Td, T1);
+        html += `<br>At user T<sub>d</sub> = ${Td} &mu;s: &nbsp; `
+             +  `&eta;<sub>D</sub> = <strong>${eD.toFixed(4)}</strong>, &nbsp; `
+             +  `&eta;<sub>qubit</sub> = <strong>${eQ.toFixed(4)}</strong>, &nbsp; `
+             +  `product = <strong>${(eD * eQ).toFixed(4)}</strong>`;
+      }
+      const eD_opt = etaD(Topt, Tm, Tr);
+      const eQ_opt = etaQubit(Topt, T1);
+      html += `<br>At T<sub>d</sub><sup>opt</sup>: &nbsp; `
+           +  `&eta;<sub>D</sub> = <strong>${eD_opt.toFixed(4)}</strong>, &nbsp; `
+           +  `&eta;<sub>qubit</sub> = <strong>${eQ_opt.toFixed(4)}</strong>, &nbsp; `
+           +  `product = <strong>${(eD_opt * eQ_opt).toFixed(4)}</strong>`;
+      res.innerHTML = html;
+      updateTotal();
+    }
+
+    // ── section 3 update ──────────────────────────────────────────────
+    function updateTotal() {
+      const res = document.getElementById('res-total');
+      const eta_RO = val('eta_RO');
+      const chi_b = val('chi_b'), chi_w = val('chi_w');
+      const kap_b = val('kappa_b'), kap_w = val('kappa_w');
+      const xi = val('xi');
+      const T1 = val('T1'), Tm = val('Tm'), Tr = val('Tr'), Td = val('Td');
+
+      if (!ok(eta_RO) || eta_RO > 1) {
+        res.innerHTML = 'Enter 0 &lt; &eta;<sub>RO</sub> &le; 1.';
+        return;
+      }
+      if (!ok(chi_b, chi_w, kap_b, kap_w, xi, T1) ||
+          isNaN(Tm) || isNaN(Tr) || Tm < 0 || Tr < 0) {
+        res.innerHTML = 'Fill in all inputs in sections 1 and 2.';
+        return;
+      }
+      const e4 = eta4wm(cooperativity(xi, chi_b, chi_w, kap_b, kap_w));
+      const choice = document.querySelector('input[name="td-choice"]:checked').value;
+      const TdUse = choice === 'opt' ? TdOpt(Tm, Tr, T1) : Td;
+      if (!ok(TdUse)) {
+        res.innerHTML = 'Invalid T<sub>d</sub>.';
+        return;
+      }
+      const eD = etaD(TdUse, Tm, Tr);
+      const eQ = etaQubit(TdUse, T1);
+      const tot = e4 * eta_RO * eD * eQ;
+      res.innerHTML =
+        `Using T<sub>d</sub> = <strong>${TdUse.toFixed(3)} &mu;s</strong> `
+        + `(${choice === 'opt' ? 'optimal' : 'user value'})<br>`
+        + `&eta;<sub>4wm</sub> = ${e4.toFixed(4)}, &nbsp; `
+        + `&eta;<sub>RO</sub> = ${eta_RO.toFixed(4)}, &nbsp; `
+        + `&eta;<sub>D</sub> = ${eD.toFixed(4)}, &nbsp; `
+        + `&eta;<sub>qubit</sub> = ${eQ.toFixed(4)}<br>`
+        + `&eta;<sub>theory</sub> = <strong>${tot.toFixed(4)}</strong>`;
+    }
+
+    // ── wiring ────────────────────────────────────────────────────────
+    const allInputs = ['chi_b', 'chi_w', 'kappa_b', 'kappa_w', 'xi',
+                       'T1', 'Tm', 'Tr', 'Td', 'eta_RO'];
+    allInputs.forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (['chi_b', 'chi_w', 'kappa_b', 'kappa_w', 'xi'].includes(id)) updateEff();
+        if (['T1', 'Tm', 'Tr', 'Td'].includes(id)) updateTime();
+        updateTotal();
+      });
+    });
+    document.querySelectorAll('input[name="td-choice"]').forEach(el => {
+      el.addEventListener('change', updateTotal);
+    });
+
+    // initial render
+    updateEff();
+    updateTime();
+    updateTotal();
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>
