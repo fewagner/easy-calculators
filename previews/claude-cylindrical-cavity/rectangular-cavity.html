@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rectangular Cavity Resonances</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 640px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 6em;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row input, .row select { margin-top: 0; min-width: 0; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-size: 0.92em;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    table.modes {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5em;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.92em;
+    }
+    table.modes th, table.modes td {
+      padding: 0.35em 0.5em;
+      text-align: right;
+      border-bottom: 1px solid #e3ebe3;
+    }
+    table.modes th { background: #eef4ee; font-weight: 600; text-align: center; }
+    table.modes td.lbl { text-align: left; font-family: Arial, sans-serif; }
+    table.modes tr.fund td { background: #fffbe6; font-weight: 600; }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 640px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      .two-col { grid-template-columns: 1fr; gap: 0; }
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 640px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Rectangular Cavity Resonances</h2>
+    <p class="intro">Resonant frequencies of a rectangular cavity of inner dimensions <i>a</i>&times;<i>b</i>&times;<i>c</i> filled with an isotropic linear medium of relative permittivity &epsilon;<sub>r</sub> and relative permeability &mu;<sub>r</sub>. The <i>c</i> axis is treated as the longitudinal (z) direction for TE/TM labelling. A single-conductor closed cavity does not support TEM modes.</p>
+
+    <!-- 3D sketch -->
+    <svg viewBox="0 0 360 230" style="width:100%;max-width:360px;display:block;margin:1em auto 0.5em;" aria-label="Rectangular cavity 3D sketch">
+      <!-- Back face (further along +z, drawn shifted right and up) -->
+      <polygon points="100,55 300,55 300,155 100,155" fill="#eef4ff" stroke="#7a9ec4" stroke-width="1"/>
+      <!-- Front face -->
+      <polygon points="60,80 260,80 260,180 60,180" fill="#dbe8f6" stroke="#3a6ea0" stroke-width="1.4"/>
+      <!-- Connecting edges -->
+      <line x1="60"  y1="80"  x2="100" y2="55"  stroke="#3a6ea0" stroke-width="1.4"/>
+      <line x1="260" y1="80"  x2="300" y2="55"  stroke="#3a6ea0" stroke-width="1.4"/>
+      <line x1="260" y1="180" x2="300" y2="155" stroke="#3a6ea0" stroke-width="1.4"/>
+      <line x1="60"  y1="180" x2="100" y2="155" stroke="#7a9ec4" stroke-width="1" stroke-dasharray="3,3"/>
+      <!-- a along bottom front edge -->
+      <line x1="60"  y1="195" x2="260" y2="195" stroke="#222" stroke-width="1"/>
+      <line x1="60"  y1="190" x2="60"  y2="200" stroke="#222" stroke-width="1.4"/>
+      <line x1="260" y1="190" x2="260" y2="200" stroke="#222" stroke-width="1.4"/>
+      <text x="160" y="212" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">a (x)</text>
+      <!-- b along left front edge -->
+      <line x1="45" y1="80"  x2="45" y2="180" stroke="#222" stroke-width="1"/>
+      <line x1="40" y1="80"  x2="50" y2="80"  stroke="#222" stroke-width="1.4"/>
+      <line x1="40" y1="180" x2="50" y2="180" stroke="#222" stroke-width="1.4"/>
+      <text x="30" y="135" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">b (y)</text>
+      <!-- c along top-right depth edge -->
+      <line x1="265" y1="75" x2="305" y2="50" stroke="#222" stroke-width="1"/>
+      <line x1="262" y1="78" x2="268" y2="72" stroke="#222" stroke-width="1.4"/>
+      <line x1="302" y1="53" x2="308" y2="47" stroke="#222" stroke-width="1.4"/>
+      <text x="300" y="38" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">c (z)</text>
+      <!-- Axes legend (origin marker) -->
+      <circle cx="60" cy="180" r="2.5" fill="#222"/>
+      <text x="55" y="178" text-anchor="end" font-size="11" fill="#444" font-family="Arial,sans-serif">origin</text>
+    </svg>
+
+    <div class="two-col">
+      <div>
+        <label for="a-value">Side length a (x):</label>
+        <div class="row">
+          <input type="number" id="a-value" step="any" placeholder="e.g. 24">
+          <select id="a-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+      </div>
+      <div>
+        <label for="b-value">Side length b (y):</label>
+        <div class="row">
+          <input type="number" id="b-value" step="any" placeholder="e.g. 12">
+          <select id="b-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+      </div>
+    </div>
+
+    <label for="c-value">Side length c (z, longitudinal):</label>
+    <div class="row">
+      <input type="number" id="c-value" step="any" placeholder="e.g. 6">
+      <select id="c-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label for="eps-r">Relative permittivity &epsilon;<sub>r</sub>:</label>
+        <input type="number" id="eps-r" step="any" value="1">
+      </div>
+      <div>
+        <label for="mu-r">Relative permeability &mu;<sub>r</sub>:</label>
+        <input type="number" id="mu-r" step="any" value="1">
+      </div>
+    </div>
+
+    <label for="nmodes">Number of modes to list:</label>
+    <input type="number" id="nmodes" step="1" min="1" max="200" value="20">
+
+    <button onclick="compute()">Compute</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <ul>
+      <li>Resonant frequency (TE<sub>mnp</sub> and TM<sub>mnp</sub>, same formula):
+        <code>f<sub>mnp</sub> = (c<sub>0</sub> / 2&radic;(&epsilon;<sub>r</sub> &mu;<sub>r</sub>)) &middot; &radic;((m/a)&sup2; + (n/b)&sup2; + (p/c)&sup2;)</code></li>
+      <li>Phase velocity in the medium: <code>v = c<sub>0</sub> / &radic;(&epsilon;<sub>r</sub> &mu;<sub>r</sub>)</code>; free-space wavelength <code>&lambda;<sub>0</sub> = c<sub>0</sub> / f</code>.</li>
+      <li>Mode allowed indices (with c as the longitudinal z-axis):
+        <ul>
+          <li>TE<sub>mnp</sub>: <code>m, n &ge; 0</code> (not both zero), <code>p &ge; 1</code>. E<sub>z</sub> = 0.</li>
+          <li>TM<sub>mnp</sub>: <code>m, n &ge; 1</code>, <code>p &ge; 0</code>. H<sub>z</sub> = 0.</li>
+        </ul>
+      </li>
+      <li>When all three indices are nonzero, TE<sub>mnp</sub> and TM<sub>mnp</sub> are two independent modes at the same frequency.</li>
+      <li>TEM modes do not exist in a closed rectangular cavity (single conductor).</li>
+    </ul>
+    <p style="margin-bottom:0;">Constant: <code>c<sub>0</sub> = 2.99792458 &times; 10<sup>8</sup> m/s</code>.</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script>
+    const c0 = 2.99792458e8;
+    const lengthFactor = { m: 1, cm: 1e-2, mm: 1e-3 };
+
+    function compute() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.classList.remove('error');
+
+      const a = parseFloat(document.getElementById('a-value').value) * lengthFactor[document.getElementById('a-unit').value];
+      const b = parseFloat(document.getElementById('b-value').value) * lengthFactor[document.getElementById('b-unit').value];
+      const c = parseFloat(document.getElementById('c-value').value) * lengthFactor[document.getElementById('c-unit').value];
+      const eps_r = parseFloat(document.getElementById('eps-r').value);
+      const mu_r  = parseFloat(document.getElementById('mu-r').value);
+      const nModes = parseInt(document.getElementById('nmodes').value, 10);
+
+      const inputs = { a, b, c, eps_r, mu_r };
+      for (const [k, v] of Object.entries(inputs)) {
+        if (!Number.isFinite(v) || v <= 0) {
+          resultDiv.classList.add('error');
+          resultDiv.textContent = `Enter a positive value for ${k}.`;
+          return;
+        }
+      }
+      if (!Number.isInteger(nModes) || nModes < 1 || nModes > 200) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'Number of modes must be a positive integer up to 200.';
+        return;
+      }
+
+      const prefactor = c0 / (2 * Math.sqrt(eps_r * mu_r));
+
+      // Pick a search bound generous enough to ensure we find the requested
+      // number of lowest modes. The longest index we ever need scales roughly
+      // as (nModes)^(1/3); take 6 as a safe floor.
+      const maxIdx = Math.max(6, Math.ceil(Math.pow(nModes, 1 / 3)) + 3);
+
+      const modes = [];
+      for (let m = 0; m <= maxIdx; m++) {
+        for (let n = 0; n <= maxIdx; n++) {
+          for (let p = 0; p <= maxIdx; p++) {
+            const isTE = (p >= 1) && (m + n > 0);
+            const isTM = (m >= 1) && (n >= 1);
+            if (!isTE && !isTM) continue;
+            const f = prefactor * Math.sqrt((m / a) ** 2 + (n / b) ** 2 + (p / c) ** 2);
+            if (isTE) modes.push({ type: 'TE', m, n, p, f });
+            if (isTM) modes.push({ type: 'TM', m, n, p, f });
+          }
+        }
+      }
+
+      modes.sort((x, y) => x.f - y.f || (x.m + x.n + x.p) - (y.m + y.n + y.p));
+      const top = modes.slice(0, nModes);
+
+      // Header summary
+      const v_med = c0 / Math.sqrt(eps_r * mu_r);
+      let html = '';
+      html += `<h4>Cavity summary</h4>`;
+      html += `Dimensions: a = ${(a * 1e3).toPrecision(4)} mm &times; b = ${(b * 1e3).toPrecision(4)} mm &times; c = ${(c * 1e3).toPrecision(4)} mm<br>`;
+      html += `Phase velocity in medium: v = c<sub>0</sub>/&radic;(&epsilon;<sub>r</sub>&mu;<sub>r</sub>) = ${v_med.toExponential(6)} m/s<br>`;
+      html += `Fundamental (lowest) mode highlighted below.`;
+
+      html += `<h4 style="margin-top:1em;">Lowest ${top.length} modes</h4>`;
+      html += `<table class="modes"><thead><tr>
+        <th>#</th><th>Mode</th><th>m</th><th>n</th><th>p</th><th>f (GHz)</th><th>&lambda;<sub>0</sub> (mm)</th>
+      </tr></thead><tbody>`;
+
+      const fmin = top[0].f;
+      top.forEach((mode, i) => {
+        const lambda0_mm = c0 / mode.f * 1e3;
+        const isFund = Math.abs(mode.f - fmin) / fmin < 1e-9;
+        html += `<tr${isFund ? ' class="fund"' : ''}>`;
+        html += `<td>${i + 1}</td>`;
+        html += `<td class="lbl">${mode.type}<sub>${mode.m}${mode.n}${mode.p}</sub></td>`;
+        html += `<td>${mode.m}</td><td>${mode.n}</td><td>${mode.p}</td>`;
+        html += `<td>${(mode.f / 1e9).toFixed(4)}</td>`;
+        html += `<td>${lambda0_mm.toPrecision(5)}</td>`;
+        html += `</tr>`;
+      });
+      html += `</tbody></table>`;
+
+      // Count degenerate modes at the fundamental frequency
+      const fundCount = top.filter(m => Math.abs(m.f - fmin) / fmin < 1e-9).length;
+      if (fundCount > 1) {
+        html += `<small>Fundamental frequency degeneracy: ${fundCount} mode${fundCount > 1 ? 's' : ''} at ${(fmin / 1e9).toFixed(4)} GHz.</small>`;
+      }
+
+      resultDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
