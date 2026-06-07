@@ -113,6 +113,24 @@
     }
     .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
     .card a:hover { text-decoration: underline; }
+    details.help {
+      margin-top: 0.4em;
+      padding: 0.5em 0.9em;
+      background: #f4f8fd;
+      border: 1px solid #d6e6f5;
+      border-radius: 6px;
+      font-size: 0.9em;
+      line-height: 1.45;
+    }
+    details.help summary {
+      cursor: pointer;
+      color: #1565c0;
+      font-weight: 600;
+    }
+    details.help[open] summary { margin-bottom: 0.5em; }
+    details.help ul { padding-left: 1.2em; margin: 0.4em 0; }
+    details.help li { margin: 0.35em 0; }
+    details.help p { margin: 0.4em 0; }
   </style>
 </head>
 <body>
@@ -180,6 +198,17 @@
       <option value="2">n = +2 (proportional to area)</option>
     </select>
     <small>Cavity impedance ratio is Z<sub>2</sub>/Z<sub>1</sub> = (d<sub>2</sub>/d<sub>1</sub>)<sup>n</sup>. Only the ratio enters the reflection calculation.</small>
+    <details class="help">
+      <summary>What is n? How do I pick it?</summary>
+      <p>n parameterises how the wave (or characteristic) impedance Z scales with the cavity diameter d. Klopfenstein's analysis is impedance-based, so the diameter-to-impedance mapping is a modelling choice that depends on <i>what</i> the cavity is carrying.</p>
+      <ul>
+        <li><b>EM wave in a conducting-walled (waveguide) cavity, in vacuum or filled with a dielectric &mdash; the typical "microwave cavity" case</b>: above cutoff, the wave impedance Z<sub>TE</sub> = &eta;/&radic;(1&minus;(f<sub>c</sub>/f)&sup2;) is approximately the intrinsic impedance &eta; = &radic;(&mu;/&epsilon;) (= &eta;<sub>0</sub>/&radic;&epsilon;<sub>r</sub> in a dielectric), <i>independent of the cavity diameter</i>. So <b>n &asymp; 0</b> and the smooth geometric taper introduces almost no impedance step. The reflection at such a transition is dominated by mode-matching and edge effects rather than impedance mismatch, and this Klopfenstein calculation is not the right model. The result of the calculator in this case is "no useful reflection prediction"; use full-wave simulation or mode-matching instead. (Closer to cutoff, where f<sub>c</sub> &prop; 1/d makes Z rise sharply for small d, an effective frequency-dependent n &gt; 0 appears, but this calculator's single-n model is still only a rough guide.)</li>
+        <li><b>Acoustic horn or multi-mode optical/THz lightpipe</b>: Z = &rho;v/A &prop; 1/d&sup2;. <b>n = &minus;2</b> (the default). This is Klopfenstein's classical regime.</li>
+        <li><b>TEM line such as coax with the inner/outer ratio held constant</b>: Z = (&eta;/2&pi;) ln(b/a) is independent of absolute size, so <b>n = 0</b>.</li>
+        <li><b>Coax where only one conductor is tapered, or microstrip with a tapered width</b>: Z depends logarithmically on the geometry, not as a clean power law; pick n by fitting Z vs d numerically over the range of interest, or use a stepped transformer.</li>
+      </ul>
+      <p>Bottom line for the user's typical case: if you are tapering a conductor-walled microwave waveguide between two diameters and the wave is well above cutoff, the impedance model behind this calculator does not apply. Use it for acoustic / multi-mode lightpipe-style geometries, or as a side-by-side comparison of the Klopfenstein vs linear <i>shape</i> for an assumed impedance step.</p>
+    </details>
 
     <div class="two-col">
       <div>
@@ -236,7 +265,21 @@
       <li>Transmission (lossless): <code>|T|&sup2; = 1 &minus; |&Gamma;|&sup2;</code>, so the insertion loss in dB is <code>10 log<sub>10</sub>(1 &minus; |&Gamma;|&sup2;)</code>.</li>
       <li>Underlying Z(z) profile (not plotted here): <code>ln(Z(z)/&radic;(Z<sub>1</sub>Z<sub>2</sub>)) = (&Gamma;<sub>0</sub>/cosh&nbsp;A) &middot; A&sup2; &phi;(2z/L &minus; 1, A)</code> with <code>&phi;(x,A) = &int;<sub>0</sub><sup>x</sup> I<sub>1</sub>(A&radic;(1&minus;y&sup2;))/(A&radic;(1&minus;y&sup2;)) dy</code>.</li>
     </ul>
-    <p style="margin-bottom:0;">Reference: R. W. Klopfenstein, "A transmission line taper of improved design," Proc. IRE 44, 31 (1956); see also Pozar, Microwave Engineering §5.8.</p>
+    <h3 style="margin-top:1.5em;">Limits of validity &amp; what to do for large transitions</h3>
+    <p>Both the Klopfenstein and the linear-taper formulas come from a perturbation expansion in the local reflection coefficient. They are quantitative while <code>|&Gamma;<sub>0</sub>| = &frac12;|ln(Z<sub>2</sub>/Z<sub>1</sub>)|</code> stays roughly below 0.5. Beyond that, two assumptions break down:</p>
+    <ul>
+      <li>The expressions add up single (first-order) reflections coherently and ignore multiple reflections inside the taper; for a large step, the multiply-reflected paths become as large as the direct ones, so simply summing the first-order term mis-estimates the answer.</li>
+      <li>The analysis treats the taper as a 1D transmission line with a single propagating mode. A large cross-section change excites higher-order modes that aren't part of the model, so |&Gamma;| from the formulas no longer represents the physical reflection.</li>
+    </ul>
+    <p>For large impedance steps, or for the typical case of a single-mode waveguide opening into a much larger (multi-mode) cavity, more appropriate approaches are:</p>
+    <ul>
+      <li><b>Stepped quarter-wave transformer</b> (binomial or Chebyshev, Pozar &sect;5.6&ndash;5.7) &mdash; a chain of discrete &lambda;/4 sections handles arbitrary impedance ratios with each step analysed exactly.</li>
+      <li><b>Mode-matching method</b> &mdash; expand the field in modes at each cross-section and enforce boundary conditions at the interfaces. Standard for waveguide step junctions and multi-mode transitions.</li>
+      <li><b>Full-wave numerical simulation</b> (HFSS, CST, COMSOL, openEMS) &mdash; solves Maxwell's equations on the 3D geometry without any of the small-reflection or single-mode assumptions.</li>
+      <li><b>Coupling apertures (irises), pins, or loops</b> &mdash; for a waveguide entering a large cavity, the standard engineering practice is not a smooth geometric taper but a deliberate small-aperture or probe coupling whose dimensions set the external coupling strength directly. The Klopfenstein analysis assumes a single mode propagates throughout, which fails when the cavity supports many modes.</li>
+      <li><b>Corrugated or stepped horn antennas</b> &mdash; for free-space couplings, designed horns achieve low reflection over wide bandwidths via engineered mode control rather than impedance tapering.</li>
+    </ul>
+    <p style="margin-bottom:0;">Reference: R. W. Klopfenstein, "A transmission line taper of improved design," Proc. IRE 44, 31 (1956); see also Pozar, Microwave Engineering &sect;5.8.</p>
   </div>
 
   <div class="card"><a href="index.html">Back</a></div>
