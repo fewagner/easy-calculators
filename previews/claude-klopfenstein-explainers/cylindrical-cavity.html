@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cylindrical Cavity Resonances</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 640px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 6em;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row input, .row select { margin-top: 0; min-width: 0; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-size: 0.92em;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    table.modes {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5em;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.92em;
+    }
+    table.modes th, table.modes td {
+      padding: 0.35em 0.5em;
+      text-align: right;
+      border-bottom: 1px solid #e3ebe3;
+    }
+    table.modes th { background: #eef4ee; font-weight: 600; text-align: center; }
+    table.modes td.lbl { text-align: left; font-family: Arial, sans-serif; }
+    table.modes tr.fund td { background: #fffbe6; font-weight: 600; }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 640px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      .two-col { grid-template-columns: 1fr; gap: 0; }
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 640px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Cylindrical Cavity Resonances</h2>
+    <p class="intro">Resonant frequencies of a closed cylindrical cavity of inner radius <i>R</i> and length <i>d</i> filled with an isotropic linear medium (&epsilon;<sub>r</sub>, &mu;<sub>r</sub>). The cylinder axis is the longitudinal (z) direction. A single-conductor closed cavity does not support TEM modes; resonances are TM<sub>mnp</sub> and TE<sub>mnp</sub>.</p>
+
+    <!-- Cylinder sketch -->
+    <svg viewBox="0 0 360 230" style="width:100%;max-width:360px;display:block;margin:1em auto 0.5em;" aria-label="Cylindrical cavity sketch">
+      <!-- Body fill -->
+      <rect x="100" y="50" width="160" height="140" fill="#dbe8f6" stroke="none"/>
+      <!-- Top ellipse -->
+      <ellipse cx="180" cy="50" rx="80" ry="18" fill="#dbe8f6" stroke="#3a6ea0" stroke-width="1.4"/>
+      <!-- Vertical sides -->
+      <line x1="100" y1="50" x2="100" y2="190" stroke="#3a6ea0" stroke-width="1.4"/>
+      <line x1="260" y1="50" x2="260" y2="190" stroke="#3a6ea0" stroke-width="1.4"/>
+      <!-- Bottom ellipse: visible (front) arc + hidden (back) arc -->
+      <path d="M 100 190 A 80 18 0 0 0 260 190" fill="none" stroke="#3a6ea0" stroke-width="1.4"/>
+      <path d="M 100 190 A 80 18 0 0 1 260 190" fill="none" stroke="#7a9ec4" stroke-width="1" stroke-dasharray="3,3"/>
+      <!-- Radius indicator on top -->
+      <circle cx="180" cy="50" r="2.5" fill="#222"/>
+      <line x1="180" y1="50" x2="260" y2="50" stroke="#222" stroke-width="1"/>
+      <line x1="260" y1="45" x2="260" y2="55" stroke="#222" stroke-width="1.4"/>
+      <text x="220" y="42" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">R</text>
+      <!-- Length indicator on the left -->
+      <line x1="85" y1="50" x2="85" y2="190" stroke="#222" stroke-width="1"/>
+      <line x1="80" y1="50" x2="90" y2="50" stroke="#222" stroke-width="1.4"/>
+      <line x1="80" y1="190" x2="90" y2="190" stroke="#222" stroke-width="1.4"/>
+      <text x="68" y="125" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">d</text>
+      <!-- z axis arrow inside -->
+      <line x1="180" y1="50" x2="180" y2="190" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <text x="187" y="208" font-size="11" fill="#444" font-family="Arial,sans-serif">z (cylinder axis)</text>
+    </svg>
+
+    <div class="two-col">
+      <div>
+        <label for="R-value">Radius R:</label>
+        <div class="row">
+          <input type="number" id="R-value" step="any" placeholder="e.g. 30">
+          <select id="R-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+      </div>
+      <div>
+        <label for="d-value">Length d (z):</label>
+        <div class="row">
+          <input type="number" id="d-value" step="any" placeholder="e.g. 100">
+          <select id="d-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label for="eps-r">Relative permittivity &epsilon;<sub>r</sub>:</label>
+        <input type="number" id="eps-r" step="any" value="1">
+      </div>
+      <div>
+        <label for="mu-r">Relative permeability &mu;<sub>r</sub>:</label>
+        <input type="number" id="mu-r" step="any" value="1">
+      </div>
+    </div>
+
+    <label for="nmodes">Number of modes to list:</label>
+    <input type="number" id="nmodes" step="1" min="1" max="200" value="20">
+
+    <button onclick="compute()">Compute</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <p>Let <code>x<sub>m,n</sub></code> be the <i>n</i>-th positive zero of the Bessel function <code>J<sub>m</sub>(x)</code>, and <code>x'<sub>m,n</sub></code> the <i>n</i>-th positive zero of its derivative <code>J'<sub>m</sub>(x)</code>.</p>
+    <ul>
+      <li>TM<sub>mnp</sub> (E<sub>z</sub> &ne; 0, H<sub>z</sub> = 0):
+        <code>f = (c<sub>0</sub> / 2&pi;&radic;(&epsilon;<sub>r</sub>&mu;<sub>r</sub>)) &middot; &radic;((x<sub>m,n</sub>/R)&sup2; + (p&pi;/d)&sup2;)</code>,
+        indices <code>m &ge; 0</code>, <code>n &ge; 1</code>, <code>p &ge; 0</code>.</li>
+      <li>TE<sub>mnp</sub> (H<sub>z</sub> &ne; 0, E<sub>z</sub> = 0): same formula with <code>x<sub>m,n</sub></code> replaced by <code>x'<sub>m,n</sub></code>, indices <code>m &ge; 0</code>, <code>n &ge; 1</code>, <code>p &ge; 1</code>.</li>
+      <li>For <code>m &ge; 1</code> modes, the two orthogonal azimuthal orientations (cos m&phi;, sin m&phi;) are degenerate and counted once.</li>
+      <li>Fundamental mode crossover: <code>TM<sub>010</sub></code> is lowest when <code>d/R &lt; &pi;/&radic;(x<sub>0,1</sub>&sup2; &minus; x'<sub>1,1</sub>&sup2;) &approx; 2.03</code>; otherwise <code>TE<sub>111</sub></code> is lowest.</li>
+      <li>The classic "pillbox" mode <code>TM<sub>010</sub></code> has a frequency independent of <code>d</code>: <code>f<sub>010</sub> = c<sub>0</sub> x<sub>0,1</sub> / (2&pi; R &radic;(&epsilon;<sub>r</sub>&mu;<sub>r</sub>))</code> with <code>x<sub>0,1</sub> = 2.4048</code>.</li>
+      <li>TEM modes do not exist in a single-conductor closed cavity.</li>
+    </ul>
+    <p>First few Bessel zeros (used here): <code>x<sub>0,1</sub> = 2.4048</code>, <code>x<sub>1,1</sub> = 3.8317</code>, <code>x<sub>2,1</sub> = 5.1356</code>; <code>x'<sub>1,1</sub> = 1.8412</code>, <code>x'<sub>2,1</sub> = 3.0542</code>, <code>x'<sub>0,1</sub> = 3.8317</code>.</p>
+    <p style="margin-bottom:0;">Constant: <code>c<sub>0</sub> = 2.99792458 &times; 10<sup>8</sup> m/s</code>.</p>
+  </div>
+
+  <div class="card"><a href="rectangular-cavity.html">Rectangular cavity calculator</a></div>
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script>
+    const c0 = 2.99792458e8;
+    const lengthFactor = { m: 1, cm: 1e-2, mm: 1e-3 };
+
+    // Tabulated zeros of J_m(x) — used for TM modes. Indexed [m][n-1].
+    // m = 0..10, n = 1..8. Source: Abramowitz & Stegun, Table 9.5.
+    const J_zeros = [
+      [ 2.4048256, 5.5200781, 8.6537279, 11.791534, 14.930918, 18.071064, 21.211637, 24.352472],
+      [ 3.8317060, 7.0155867,10.173468, 13.323692, 16.470630, 19.615859, 22.760084, 25.903672],
+      [ 5.1356223, 8.4172441,11.619841, 14.795952, 17.959819, 21.116997, 24.270112, 27.420574],
+      [ 6.3801619, 9.7610231,13.015201, 16.223466, 19.409415, 22.582730, 25.748166, 28.908351],
+      [ 7.5883424,11.064709, 14.372537, 17.615966, 20.826933, 24.019018, 27.199087, 30.371007],
+      [ 8.7714838,12.338604, 15.700174, 18.980134, 22.217800, 25.430342, 28.626619, 31.811716],
+      [ 9.9361095,13.589290, 17.003820, 20.320789, 23.586084, 26.820152, 30.033722, 33.233042],
+      [11.086370 ,14.821269, 18.287582, 21.641541, 24.934927, 28.191189, 31.422794, 34.637089],
+      [12.225092 ,16.037774, 19.554536, 22.945173, 26.266814, 29.545660, 32.795801, 36.025615],
+      [13.354300 ,17.241221, 20.807047, 24.233885, 27.583748, 30.885379, 34.154378, 37.400099],
+      [14.475501 ,18.433464, 22.046985, 25.509451, 28.887375, 32.211856, 35.499909, 38.761807],
+    ];
+
+    // Tabulated zeros of J'_m(x) — used for TE modes. Indexed [m][n-1].
+    // Row m=0: J'_0 = -J_1, so zeros equal J_1 zeros (excluding 0).
+    const Jp_zeros = [
+      [ 3.8317060, 7.0155867,10.173468, 13.323692, 16.470630, 19.615859, 22.760084, 25.903672],
+      [ 1.8411838, 5.3314428, 8.5363163,11.706005, 14.863589, 18.015528, 21.164370, 24.311327],
+      [ 3.0542369, 6.7061331, 9.9694678,13.170371, 16.347522, 19.512913, 22.671582, 25.826037],
+      [ 4.2011889, 8.0152366,11.345924, 14.585848, 17.788748, 20.972450, 24.144898, 27.310058],
+      [ 5.3175311, 9.2823962,12.681908, 15.964107, 19.196029, 22.401032, 25.589760, 28.767836],
+      [ 6.4156164,10.519860 ,13.987188, 17.312842, 20.575514, 23.803581, 27.010301, 30.202832],
+      [ 7.5012661,11.734936 ,15.268181, 18.637443, 21.931715, 25.183925, 28.409776, 31.617133],
+      [ 8.5778364,12.932386 ,16.529366, 19.941853, 23.268052, 26.545032, 29.790748, 33.014193],
+      [ 9.6474217,14.115519 ,17.774012, 21.229071, 24.587197, 27.889269, 31.155329, 34.396252],
+      [10.711434 ,15.286738 ,19.004593, 22.501398, 25.891277, 29.218563, 32.505247, 35.764970],
+      [11.770877 ,16.447853 ,20.223031, 23.760715, 27.182021, 30.534504, 33.841965, 37.121582],
+    ];
+
+    function compute() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.classList.remove('error');
+
+      const R   = parseFloat(document.getElementById('R-value').value) * lengthFactor[document.getElementById('R-unit').value];
+      const d   = parseFloat(document.getElementById('d-value').value) * lengthFactor[document.getElementById('d-unit').value];
+      const eps_r = parseFloat(document.getElementById('eps-r').value);
+      const mu_r  = parseFloat(document.getElementById('mu-r').value);
+      const nModes = parseInt(document.getElementById('nmodes').value, 10);
+
+      for (const [k, v] of Object.entries({ R, d, eps_r, mu_r })) {
+        if (!Number.isFinite(v) || v <= 0) {
+          resultDiv.classList.add('error');
+          resultDiv.textContent = `Enter a positive value for ${k}.`;
+          return;
+        }
+      }
+      if (!Number.isInteger(nModes) || nModes < 1 || nModes > 200) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'Number of modes must be a positive integer up to 200.';
+        return;
+      }
+
+      const prefactor = c0 / (2 * Math.PI * Math.sqrt(eps_r * mu_r));
+      const mMax = J_zeros.length - 1;
+      const nMax = J_zeros[0].length;
+      // Scale p search range with d/R and requested mode count so we don't miss
+      // low-frequency longitudinal harmonics when d >> R.
+      const pMax = Math.max(8, Math.ceil(nModes / 4) + 4, Math.ceil(2 * d / R));
+
+      const modes = [];
+      for (let m = 0; m <= mMax; m++) {
+        for (let n = 1; n <= nMax; n++) {
+          const x_tm = J_zeros[m][n - 1];
+          const x_te = Jp_zeros[m][n - 1];
+          for (let p = 0; p <= pMax; p++) {
+            const kz2 = (p * Math.PI / d) ** 2;
+            // TM: p >= 0 allowed
+            const f_tm = prefactor * Math.sqrt((x_tm / R) ** 2 + kz2);
+            modes.push({ type: 'TM', m, n, p, f: f_tm });
+            // TE: requires p >= 1
+            if (p >= 1) {
+              const f_te = prefactor * Math.sqrt((x_te / R) ** 2 + kz2);
+              modes.push({ type: 'TE', m, n, p, f: f_te });
+            }
+          }
+        }
+      }
+
+      modes.sort((x, y) => x.f - y.f || (x.m + x.n + x.p) - (y.m + y.n + y.p));
+      const top = modes.slice(0, nModes);
+
+      const v_med = c0 / Math.sqrt(eps_r * mu_r);
+      const crossover = Math.PI / Math.sqrt(J_zeros[0][0] ** 2 - Jp_zeros[1][0] ** 2);
+      const dR = d / R;
+      const fundExpected = dR < crossover ? 'TM₀₁₀ (pillbox)' : 'TE₁₁₁';
+
+      let html = '';
+      html += `<h4>Cavity summary</h4>`;
+      html += `Radius R = ${(R * 1e3).toPrecision(4)} mm, length d = ${(d * 1e3).toPrecision(4)} mm, d/R = ${dR.toFixed(3)}<br>`;
+      html += `Phase velocity in medium: v = c<sub>0</sub>/&radic;(&epsilon;<sub>r</sub>&mu;<sub>r</sub>) = ${v_med.toExponential(6)} m/s<br>`;
+      html += `Predicted fundamental from d/R criterion (crossover at d/R &approx; ${crossover.toFixed(3)}): ${fundExpected}`;
+
+      html += `<h4 style="margin-top:1em;">Lowest ${top.length} modes</h4>`;
+      html += `<table class="modes"><thead><tr>
+        <th>#</th><th>Mode</th><th>m</th><th>n</th><th>p</th><th>f (GHz)</th><th>&lambda;<sub>0</sub> (mm)</th>
+      </tr></thead><tbody>`;
+
+      const fmin = top[0].f;
+      top.forEach((mode, i) => {
+        const lambda0_mm = c0 / mode.f * 1e3;
+        const isFund = Math.abs(mode.f - fmin) / fmin < 1e-9;
+        html += `<tr${isFund ? ' class="fund"' : ''}>`;
+        html += `<td>${i + 1}</td>`;
+        html += `<td class="lbl">${mode.type}<sub>${mode.m}${mode.n}${mode.p}</sub></td>`;
+        html += `<td>${mode.m}</td><td>${mode.n}</td><td>${mode.p}</td>`;
+        html += `<td>${(mode.f / 1e9).toFixed(4)}</td>`;
+        html += `<td>${lambda0_mm.toPrecision(5)}</td>`;
+        html += `</tr>`;
+      });
+      html += `</tbody></table>`;
+
+      const fundCount = top.filter(m => Math.abs(m.f - fmin) / fmin < 1e-9).length;
+      if (fundCount > 1) {
+        html += `<small>${fundCount} modes degenerate at the fundamental frequency ${(fmin / 1e9).toFixed(4)} GHz.</small>`;
+      }
+
+      resultDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
