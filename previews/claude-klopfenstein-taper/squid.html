@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQUID Calculator</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-top: 1em;
+    }
+    input {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.8em;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover { background: #388e3c; }
+    .result { margin-top: 1.5em; line-height: 2em; }
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1em;
+      margin-bottom: 0.1em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+    }
+    .radio-group {
+      margin-top: 1em;
+      padding: 0.8em;
+      background: #f8f8f8;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+    .radio-group .radio-label {
+      display: block;
+      width: auto;
+      margin-top: 0.4em;
+      font-weight: normal;
+      cursor: pointer;
+    }
+    .radio-group .radio-label input[type="radio"] {
+      display: inline;
+      width: auto;
+      margin-top: 0;
+      margin-right: 0.4em;
+    }
+    table {
+      margin-top: 2em;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 0.5em; text-align: left; }
+    th { background: #f0f0f0; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+    #squid-plot { margin-top: 1.5em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>SQUID Calculator</h2>
+    <p style="color:#555; margin-top:0.2em; font-size:0.95em;">
+      An asymmetric SQUID consists of two Josephson junctions with energies E<sub>J1</sub> &ge; E<sub>J2</sub>
+      in a superconducting loop. The effective Josephson energy is tunable by an external flux.
+    </p>
+
+    <div class="radio-group">
+      <strong>Calculation direction:</strong>
+      <label class="radio-label"><input type="radio" name="mode" value="junctions" checked>
+        Individual junction energies &rarr; sweet spots</label>
+      <label class="radio-label"><input type="radio" name="mode" value="sweetspots">
+        Sweet spot energies &rarr; individual junctions</label>
+    </div>
+
+    <!-- Mode: individual junctions -->
+    <div id="junctions-mode">
+      <label for="Ej1">Josephson energy E<sub>J1</sub> (larger junction) [GHz]:</label>
+      <input type="number" id="Ej1" step="any" placeholder="e.g. 15">
+
+      <label for="Ej2">Josephson energy E<sub>J2</sub> (smaller junction) [GHz]:</label>
+      <input type="number" id="Ej2" step="any" placeholder="e.g. 10">
+    </div>
+
+    <!-- Mode: sweet spots -->
+    <div id="sweetspots-mode" style="display:none">
+      <label for="Ejup">Upper sweet spot E<sub>J</sub><sup>upper</sup> at &Phi; = 0 [GHz]:</label>
+      <input type="number" id="Ejup" step="any" placeholder="e.g. 25">
+
+      <label for="Ejlow">Lower sweet spot E<sub>J</sub><sup>lower</sup> at &Phi; = &Phi;<sub>0</sub>/2 [GHz]:</label>
+      <input type="number" id="Ejlow" step="any" placeholder="e.g. 5">
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="output"></div>
+    <div id="squid-plot"></div>
+
+    <h3>Formulas</h3>
+    <table>
+      <tr><th>Quantity</th><th>Formula</th></tr>
+      <tr>
+        <td>E<sub>J</sub><sup>eff</sup>(&Phi;)</td>
+        <td>&radic;(E<sub>J1</sub>&sup2; + E<sub>J2</sub>&sup2; + 2E<sub>J1</sub>E<sub>J2</sub>&thinsp;cos(2&pi;&Phi;/&Phi;<sub>0</sub>))
+          &nbsp;=&nbsp; (E<sub>J1</sub>+E<sub>J2</sub>)&radic;(cos&sup2;(&pi;&Phi;/&Phi;<sub>0</sub>) + d&sup2;&thinsp;sin&sup2;(&pi;&Phi;/&Phi;<sub>0</sub>))</td>
+      </tr>
+      <tr>
+        <td>Asymmetry d</td>
+        <td>d = (E<sub>J1</sub> &minus; E<sub>J2</sub>) / (E<sub>J1</sub> + E<sub>J2</sub>) = E<sub>J</sub><sup>lower</sup> / E<sub>J</sub><sup>upper</sup></td>
+      </tr>
+      <tr>
+        <td>Upper sweet spot (&Phi; = 0)</td>
+        <td>E<sub>J</sub><sup>upper</sup> = E<sub>J1</sub> + E<sub>J2</sub></td>
+      </tr>
+      <tr>
+        <td>Lower sweet spot (&Phi; = &Phi;<sub>0</sub>/2)</td>
+        <td>E<sub>J</sub><sup>lower</sup> = |E<sub>J1</sub> &minus; E<sub>J2</sub>|</td>
+      </tr>
+      <tr>
+        <td>From sweet spots</td>
+        <td>E<sub>J1</sub> = (E<sub>J</sub><sup>upper</sup> + E<sub>J</sub><sup>lower</sup>)/2 &nbsp;&nbsp;
+            E<sub>J2</sub> = (E<sub>J</sub><sup>upper</sup> &minus; E<sub>J</sub><sup>lower</sup>)/2</td>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    document.querySelectorAll('input[name="mode"]').forEach(r => {
+      r.addEventListener('change', function () {
+        document.getElementById('junctions-mode').style.display  = this.value === 'junctions'  ? '' : 'none';
+        document.getElementById('sweetspots-mode').style.display = this.value === 'sweetspots' ? '' : 'none';
+        document.getElementById('output').innerHTML = '';
+        Plotly.purge('squid-plot');
+      });
+    });
+
+    function calculate() {
+      const mode   = document.querySelector('input[name="mode"]:checked').value;
+      const outDiv = document.getElementById('output');
+      let Ej1, Ej2, Ejup, Ejlow;
+
+      if (mode === 'junctions') {
+        const a = parseFloat(document.getElementById('Ej1').value);
+        const b = parseFloat(document.getElementById('Ej2').value);
+        if (isNaN(a) || isNaN(b) || a <= 0 || b <= 0) {
+          outDiv.innerText = 'Please enter valid positive E_J1 and E_J2.';
+          return;
+        }
+        Ej1  = Math.max(a, b);
+        Ej2  = Math.min(a, b);
+        Ejup = Ej1 + Ej2;
+        Ejlow = Ej1 - Ej2;
+      } else {
+        Ejup  = parseFloat(document.getElementById('Ejup').value);
+        Ejlow = parseFloat(document.getElementById('Ejlow').value);
+        if (isNaN(Ejup) || isNaN(Ejlow) || Ejup <= 0 || Ejlow < 0) {
+          outDiv.innerText = 'Please enter valid E_J\u1D58\u1D58\u1D49\u1D3F and E_J\u1D38\u1D52\u1D42\u1D49\u1D3F (both non-negative, upper > 0).';
+          return;
+        }
+        if (Ejlow > Ejup) {
+          outDiv.innerText = 'E\u1D38\u02E2\u02B3\u1D50\u1D48 must be \u2264 E\u1D38\u02E2\u02B3\u1D56\u1D56\u1D49\u1D3F.';
+          return;
+        }
+        Ej1  = (Ejup + Ejlow) / 2;
+        Ej2  = (Ejup - Ejlow) / 2;
+      }
+
+      const d = (Ej1 + Ej2) > 0 ? (Ej1 - Ej2) / (Ej1 + Ej2) : 0;
+      const symmetric = Ej1 === Ej2;
+
+      outDiv.innerHTML = `
+        <span class="section-label">Individual junction energies</span>
+        E<sub>J1</sub> (larger junction): ${Ej1.toExponential(6)} GHz<br>
+        E<sub>J2</sub> (smaller junction): ${Ej2.toExponential(6)} GHz<br>
+
+        <span class="section-label">Sweet spots</span>
+        E<sub>J</sub><sup>upper</sup> (&Phi; = 0): ${Ejup.toExponential(6)} GHz<br>
+        E<sub>J</sub><sup>lower</sup> (&Phi; = &Phi;<sub>0</sub>/2): ${Ejlow.toExponential(6)} GHz
+        ${symmetric ? '&nbsp;<span style="color:#2e7d32">(symmetric SQUID)</span>' : ''}<br>
+
+        <span class="section-label">Asymmetry</span>
+        d = (E<sub>J1</sub> &minus; E<sub>J2</sub>) / (E<sub>J1</sub> + E<sub>J2</sub>): ${d.toFixed(6)}<br>
+        Modulation ratio E<sub>J</sub><sup>lower</sup> / E<sub>J</sub><sup>upper</sup>: ${(Ejlow / Ejup).toFixed(6)}<br>
+      `;
+
+      plotSQUID(Ejup, Ejlow, d);
+    }
+
+    function plotSQUID(Ejup, Ejlow, d) {
+      const steps = 400;
+      const phiArr = [];
+      const EjArr  = [];
+
+      for (let i = 0; i <= steps; i++) {
+        const phi_ratio = -1 + 2 * i / steps;     // Φ/Φ₀ from -1 to +1
+        const phi = Math.PI * phi_ratio;            // πΦ/Φ₀
+        const Ej  = Ejup * Math.sqrt(
+          Math.cos(phi) ** 2 + d ** 2 * Math.sin(phi) ** 2
+        );
+        phiArr.push(phi_ratio);
+        EjArr.push(Ej);
+      }
+
+      const traces = [
+        {
+          x: phiArr, y: EjArr,
+          name: 'E\u2C7C\u1D49\u1D60\u1D60(\u03A6)',
+          type: 'scatter', mode: 'lines',
+          line: { color: '#1565c0', width: 2 }
+        },
+        // Upper sweet spot line
+        {
+          x: [-1, 1], y: [Ejup, Ejup],
+          name: 'E\u2C7C\u1D58\u1D56\u1D56\u1D49\u1D3F = ' + Ejup.toFixed(3) + ' GHz',
+          type: 'scatter', mode: 'lines',
+          line: { color: '#2e7d32', width: 1.5, dash: 'dot' }
+        },
+        // Lower sweet spot line
+        {
+          x: [-1, 1], y: [Ejlow, Ejlow],
+          name: 'E\u2C7C\u1D38\u1D52\u1D42\u1D49\u1D3F = ' + Ejlow.toFixed(3) + ' GHz',
+          type: 'scatter', mode: 'lines',
+          line: { color: '#b71c1c', width: 1.5, dash: 'dot' }
+        }
+      ];
+
+      Plotly.newPlot('squid-plot', traces, {
+        title: `SQUID effective E\u2C7C vs. flux  (d = ${(d).toFixed(4)})`,
+        xaxis: {
+          title: '\u03A6 / \u03A6\u2080',
+          zeroline: true,
+          dtick: 0.5,
+          range: [-1.05, 1.05]
+        },
+        yaxis: { title: 'E\u2C7C (GHz)', rangemode: 'tozero' },
+        margin: { t: 50 },
+        legend: { x: 0.02, y: 0.98 }
+      });
+    }
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>
