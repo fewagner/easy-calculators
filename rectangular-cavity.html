@@ -206,7 +206,16 @@
   </div>
 
   <div class="formulas">
-    <h3>Formulas</h3>
+    <h3>Modes: TE, TM, and TEM</h3>
+    <p>In a hollow conducting structure (waveguide or cavity), the electromagnetic field decomposes into modes classified by which field component is parallel to the chosen longitudinal direction &mdash; here the z (= c) axis.</p>
+    <ul>
+      <li><b>TE (transverse electric)</b>: the electric field has no longitudinal component (E<sub>z</sub> = 0); only the magnetic field has a non-zero H<sub>z</sub>. The transverse E lines lie in the xy plane. Example: TE<sub>101</sub> has E pointing along y, varying as one half-cosine along x and one half-cosine along z.</li>
+      <li><b>TM (transverse magnetic)</b>: the magnetic field has no longitudinal component (H<sub>z</sub> = 0); only the electric field has a non-zero E<sub>z</sub>. Example: TM<sub>110</sub> has E pointing along z, varying as one half-sine along x and one half-sine along y, with H circulating in the xy plane.</li>
+      <li><b>TEM (transverse electromagnetic)</b>: both E<sub>z</sub> = 0 and H<sub>z</sub> = 0 &mdash; the field is purely transverse, like a plane wave. TEM solutions require two or more <i>separated</i> conductors (coax, parallel plate, stripline) so that a static-like transverse potential pattern can be set up between them. A closed rectangular cavity has a single connected conductor (its walls), so it cannot support TEM &mdash; only TE and TM appear in the table.</li>
+    </ul>
+    <p>The indices (m, n, p) count the number of half-wavelengths of the standing-wave pattern along (x, y, z). TE<sub>101</sub> thus has one half-wave along x, none along y, one along z.</p>
+
+    <h3 style="margin-top:1.5em;">Formulas</h3>
     <ul>
       <li>Resonant frequency (TE<sub>mnp</sub> and TM<sub>mnp</sub>, same formula):
         <code>f<sub>mnp</sub> = (c<sub>0</sub> / 2&radic;(&epsilon;<sub>r</sub> &mu;<sub>r</sub>)) &middot; &radic;((m/a)&sup2; + (n/b)&sup2; + (p/c)&sup2;)</code></li>

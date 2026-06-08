@@ -196,7 +196,21 @@
   </div>
 
   <div class="formulas">
-    <h3>Formulas</h3>
+    <h3>Modes: TE, TM, and TEM</h3>
+    <p>In a hollow conducting structure (waveguide or cavity), the electromagnetic field decomposes into modes classified by which field component is parallel to the longitudinal direction &mdash; here the cylinder axis z.</p>
+    <ul>
+      <li><b>TE (transverse electric)</b>: E<sub>z</sub> = 0 everywhere; only the magnetic field has a longitudinal component. The wall boundary condition fixes the transverse pattern through the zeros of <code>J'<sub>m</sub>(x)</code>.</li>
+      <li><b>TM (transverse magnetic)</b>: H<sub>z</sub> = 0 everywhere; only the electric field has a longitudinal component. The wall condition <code>E<sub>z</sub>(r=R) = 0</code> fixes the transverse pattern through the zeros of <code>J<sub>m</sub>(x)</code>. The famous TM<sub>010</sub> "pillbox" mode has E<sub>z</sub> uniform along z and a <code>J<sub>0</sub>(x<sub>0,1</sub> r/R)</code> radial profile, vanishing only at <code>r = R</code>.</li>
+      <li><b>TEM (transverse electromagnetic)</b>: both E<sub>z</sub> = 0 and H<sub>z</sub> = 0 &mdash; the field is purely transverse. TEM requires two or more <i>separated</i> conductors (coax, parallel plate, stripline) so that a static-like transverse potential pattern can be set up between them. A closed cylindrical cavity has a single connected conductor (its walls), so TEM does not exist here &mdash; only TE and TM appear in the table.</li>
+    </ul>
+    <p>The three indices in a cylindrical cavity label mean:</p>
+    <ul>
+      <li><b>m</b>: azimuthal index &mdash; the field varies as <code>cos(m&phi;)</code> or <code>sin(m&phi;)</code> around the axis (m = 0, 1, 2, &hellip;).</li>
+      <li><b>n</b>: radial index &mdash; selects the <i>n</i>-th positive zero of <code>J<sub>m</sub></code> (for TM) or <code>J'<sub>m</sub></code> (for TE), n = 1, 2, 3, &hellip;.</li>
+      <li><b>p</b>: longitudinal index &mdash; counts half-wavelengths along the cylinder axis. TM allows <code>p = 0</code> (no z-dependence &mdash; this is the pillbox case); TE requires <code>p &ge; 1</code>.</li>
+    </ul>
+
+    <h3 style="margin-top:1.5em;">Formulas</h3>
     <p>Let <code>x<sub>m,n</sub></code> be the <i>n</i>-th positive zero of the Bessel function <code>J<sub>m</sub>(x)</code>, and <code>x'<sub>m,n</sub></code> the <i>n</i>-th positive zero of its derivative <code>J'<sub>m</sub>(x)</code>.</p>
     <ul>
       <li>TM<sub>mnp</sub> (E<sub>z</sub> &ne; 0, H<sub>z</sub> = 0):
