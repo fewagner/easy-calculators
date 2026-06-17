@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parabolic Cap Reflector Geometry</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 560px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .var-row {
+      display: grid;
+      grid-template-columns: 2em 1fr 3em;
+      gap: 0.5em;
+      align-items: center;
+      margin-top: 0.5em;
+    }
+    .var-row .sym {
+      font-style: italic;
+      font-size: 1.05em;
+      text-align: right;
+    }
+    .var-row input {
+      margin-top: 0;
+      min-width: 0;
+    }
+    .var-row .unit {
+      color: #555;
+      font-size: 0.9em;
+      text-align: left;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.2em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.95em;
+      white-space: pre-line;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    .computed { color: #1565c0; }
+    .given { color: #2e7d32; }
+    .derived { color: #555; }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+    }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 560px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 560px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Parabolic Cap Reflector</h2>
+    <p class="intro">A parabolic cap reflector is a section of a paraboloid of revolution, characterized by its focal length f, sag h, aperture radius a, rim half-angle &phi; (measured from the focal point), and curved surface area A. Enter exactly two of the five quantities; the remaining three are computed.</p>
+
+    <!-- Sketch -->
+    <svg viewBox="0 0 440 340" style="width:100%;max-width:440px;display:block;margin:1em auto 0.5em;" aria-label="Parabolic cap geometry sketch">
+      <!-- Cap interior fill -->
+      <path d="M 150 218 Q 220 262 290 218 L 290 218 L 150 218 Z" fill="#fff3e0" stroke="none"/>
+
+      <!-- Rim plane (dashed) -->
+      <line x1="120" y1="218" x2="320" y2="218" stroke="#888" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Paraboloid cross-section (exact quadratic Bezier — this IS the parabola z = r²/(4f) for f = 55.68 px) -->
+      <path d="M 150 218 Q 220 262 290 218" fill="none" stroke="#e07b00" stroke-width="2.5"/>
+
+      <!-- Axis (dotted) -->
+      <line x1="220" y1="110" x2="220" y2="280" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+      <!-- Apex marker (V) -->
+      <circle cx="220" cy="240" r="2.8" fill="#222"/>
+      <text x="226" y="252" font-size="11" fill="#222" font-family="Arial,sans-serif">V (apex)</text>
+
+      <!-- Focal point marker (F) -->
+      <circle cx="220" cy="184" r="3" fill="#c62828"/>
+      <text x="226" y="180" font-size="11" fill="#c62828" font-family="Arial,sans-serif">F (focal point)</text>
+
+      <!-- f dimension (vertical, right of axis, from V to F) -->
+      <line x1="244" y1="184" x2="244" y2="240" stroke="#1565c0" stroke-width="1.6"/>
+      <line x1="239" y1="184" x2="249" y2="184" stroke="#1565c0" stroke-width="1.6"/>
+      <line x1="239" y1="240" x2="249" y2="240" stroke="#1565c0" stroke-width="1.6"/>
+      <text x="252" y="216" font-size="16" font-style="italic" font-weight="bold" fill="#0d47a1" font-family="Arial,sans-serif">f</text>
+
+      <!-- h dimension (vertical, left of cap, from V level up to rim plane) -->
+      <line x1="130" y1="218" x2="130" y2="240" stroke="#2e7d32" stroke-width="1.6"/>
+      <line x1="125" y1="218" x2="135" y2="218" stroke="#2e7d32" stroke-width="1.6"/>
+      <line x1="125" y1="240" x2="135" y2="240" stroke="#2e7d32" stroke-width="1.6"/>
+      <text x="116" y="234" font-size="15" font-style="italic" font-weight="bold" fill="#1b5e20" font-family="Arial,sans-serif">h</text>
+
+      <!-- a dimension (horizontal, just above rim plane, from axis to right rim) -->
+      <line x1="220" y1="208" x2="290" y2="208" stroke="#6a1b9a" stroke-width="1.6"/>
+      <line x1="220" y1="203" x2="220" y2="213" stroke="#6a1b9a" stroke-width="1.6"/>
+      <line x1="290" y1="203" x2="290" y2="213" stroke="#6a1b9a" stroke-width="1.6"/>
+      <text x="252" y="201" font-size="15" font-style="italic" font-weight="bold" fill="#4a148c" font-family="Arial,sans-serif">a</text>
+
+      <!-- φ angle indicator at focal point -->
+      <!-- Line from F to right rim (helper, dotted) -->
+      <line x1="220" y1="184" x2="290" y2="218" stroke="#888" stroke-width="0.8" stroke-dasharray="2,2"/>
+      <!-- Arc from axis-down direction at F to rim direction at F -->
+      <path d="M 220 209 A 25 25 0 0 1 242.5 195" fill="none" stroke="#c62828" stroke-width="1.6"/>
+      <text x="232" y="207" font-size="15" font-style="italic" font-weight="bold" fill="#b71c1c" font-family="Arial,sans-serif">&phi;</text>
+
+      <!-- A label on cap -->
+      <text x="180" y="234" text-anchor="middle" font-size="14" font-style="italic" font-weight="bold" fill="#e07b00" font-family="Arial,sans-serif">A</text>
+
+      <!-- Legend -->
+      <g font-family="Arial,sans-serif" font-size="11" fill="#333">
+        <text x="20" y="288"><tspan font-style="italic" font-weight="bold" fill="#0d47a1">f</tspan> = focal length (apex V &rarr; focal point F)</text>
+        <text x="20" y="304"><tspan font-style="italic" font-weight="bold" fill="#1b5e20">h</tspan> = sag (apex &rarr; rim plane)</text>
+        <text x="20" y="320"><tspan font-style="italic" font-weight="bold" fill="#4a148c">a</tspan> = aperture radius; <tspan font-style="italic" font-weight="bold" fill="#b71c1c">&phi;</tspan> = rim half-angle from F; <tspan font-style="italic" font-weight="bold" fill="#e07b00">A</tspan> = curved surface area</text>
+      </g>
+    </svg>
+
+    <!-- Unit selectors -->
+    <label for="length-unit">Length unit:</label>
+    <select id="length-unit">
+      <option value="m">m (metres)</option>
+      <option value="cm" selected>cm (centimetres)</option>
+      <option value="mm">mm (millimetres)</option>
+    </select>
+
+    <label for="angle-unit">Angle unit:</label>
+    <select id="angle-unit">
+      <option value="deg" selected>degrees</option>
+      <option value="rad">radians</option>
+    </select>
+
+    <label style="margin-top:1.2em;">Enter exactly two quantities (leave the others blank):</label>
+
+    <div class="var-row">
+      <span class="sym">f =</span>
+      <input type="number" id="in-f" step="any" placeholder="focal length">
+      <span class="unit" id="unit-f">cm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">h =</span>
+      <input type="number" id="in-h" step="any" placeholder="cap sag (depth)">
+      <span class="unit" id="unit-h">cm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">a =</span>
+      <input type="number" id="in-a" step="any" placeholder="aperture radius">
+      <span class="unit" id="unit-a">cm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">&phi; =</span>
+      <input type="number" id="in-phi" step="any" placeholder="rim half-angle">
+      <span class="unit" id="unit-phi">deg</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">A =</span>
+      <input type="number" id="in-A" step="any" placeholder="surface area">
+      <span class="unit" id="unit-A">cm&#178;</span>
+    </div>
+
+    <button onclick="computeCap()">Compute</button>
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <p>Paraboloid of revolution with apex at origin and axis along z: <code>z = r&sup2; / (4f)</code>. Focal point at <code>(0, 0, f)</code>.</p>
+    <ul>
+      <li>Sag &harr; aperture &harr; focal length: <code>a&sup2; = 4 f h</code>, so <code>h = a&sup2;/(4f)</code>, <code>f = a&sup2;/(4h)</code>, <code>a = 2&radic;(f h)</code>.</li>
+      <li>Rim half-angle (from focal point): <code>tan(&phi;/2) = a/(2f) = D/(4f)</code> where <code>D = 2a</code>. Equivalently <code>&phi; = 2 arctan(a/(2f))</code>.</li>
+      <li>Focal ratio (f-number): <code>f/D = f/(2a) = 1 / (4 tan(&phi;/2))</code>.</li>
+      <li>Curved surface area: <code>A = (&pi;/(3f)) &middot; [(4f&sup2;+a&sup2;)<sup>3/2</sup> &minus; 8 f<sup>3</sup>]</code>,
+        equivalently <code>A = (8&pi;/3) &radic;f &middot; [(f+h)<sup>3/2</sup> &minus; f<sup>3/2</sup>]</code>.
+        Shallow limit (a &lt;&lt; f): <code>A &rarr; &pi; a&sup2;</code> (flat-disk area).</li>
+      <li>Closed-form pairs: every combination except (h, A) and (a, A) is direct. Those two are solved numerically for f by bisection on a strictly monotonic function.</li>
+    </ul>
+    <p style="margin-bottom:0;">Validity: only <code>A &gt; &pi; a&sup2;</code> admits a real cap (curved surface cannot be smaller than its flat aperture). The (h, A) pair always has a solution for <code>A &gt; 0</code>.</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script>
+    const lengthFactors = { m: 1, cm: 1e-2, mm: 1e-3 };
+
+    function refreshUnitLabels() {
+      const u  = document.getElementById('length-unit').value;
+      const au = document.getElementById('angle-unit').value;
+      document.getElementById('unit-f').textContent   = u;
+      document.getElementById('unit-h').textContent   = u;
+      document.getElementById('unit-a').textContent   = u;
+      document.getElementById('unit-phi').textContent = au;
+      document.getElementById('unit-A').innerHTML     = u + '&#178;';
+    }
+    document.getElementById('length-unit').addEventListener('change', refreshUnitLabels);
+    document.getElementById('angle-unit').addEventListener('change', refreshUnitLabels);
+
+    function readField(id) {
+      const v = document.getElementById(id).value.trim();
+      if (v === '') return undefined;
+      const x = parseFloat(v);
+      if (!isFinite(x)) return NaN;
+      return x;
+    }
+
+    function showError(msg) {
+      const r = document.getElementById('result');
+      r.style.display = 'block';
+      r.classList.add('error');
+      r.textContent = msg;
+    }
+
+    // Bisection on a strictly monotonic function f over (lo, hi).
+    function bisect(g, lo, hi, tol = 1e-14, maxIter = 200) {
+      let glo = g(lo), ghi = g(hi);
+      if (glo === 0) return lo;
+      if (ghi === 0) return hi;
+      if (glo * ghi > 0) throw new Error('No solution in the searched range.');
+      for (let i = 0; i < maxIter; i++) {
+        const mid = 0.5 * (lo + hi);
+        const gmid = g(mid);
+        if (Math.abs(gmid) < tol || (hi - lo) / Math.max(mid, 1) < tol) return mid;
+        if (glo * gmid < 0) { hi = mid; ghi = gmid; }
+        else { lo = mid; glo = gmid; }
+      }
+      return 0.5 * (lo + hi);
+    }
+
+    function surfaceArea(f, a) {
+      return (Math.PI / (3 * f)) * (Math.pow(4 * f * f + a * a, 1.5) - 8 * f * f * f);
+    }
+
+    function computeCap() {
+      const lengthUnit = document.getElementById('length-unit').value;
+      const angleUnit  = document.getElementById('angle-unit').value;
+      const Lf = lengthFactors[lengthUnit];
+      const Af = Lf * Lf;
+      const Tf = (angleUnit === 'deg') ? Math.PI / 180 : 1;
+
+      const raw = {
+        f:   readField('in-f'),
+        h:   readField('in-h'),
+        a:   readField('in-a'),
+        phi: readField('in-phi'),
+        A:   readField('in-A'),
+      };
+      for (const k of Object.keys(raw)) {
+        if (Number.isNaN(raw[k])) { showError('Invalid number in field ' + k + '.'); return; }
+      }
+
+      const provided = {};
+      for (const k of Object.keys(raw)) if (raw[k] !== undefined) provided[k] = raw[k];
+      const keys = Object.keys(provided);
+      if (keys.length !== 2) {
+        showError('Please enter exactly two values (you entered ' + keys.length + ').');
+        return;
+      }
+
+      const SI = {};
+      for (const k of keys) {
+        const v = provided[k];
+        if (v <= 0) { showError(k + ' must be positive.'); return; }
+        if (k === 'phi') SI.phi = v * Tf;
+        else if (k === 'A') SI.A = v * Af;
+        else SI[k] = v * Lf;
+      }
+      if (SI.phi !== undefined && (SI.phi <= 0 || SI.phi >= Math.PI)) {
+        showError('φ must be in (0, 180°) — equivalently (0, π) rad.');
+        return;
+      }
+
+      let { f, h, a, phi, A } = SI;
+      const has = (k) => SI[k] !== undefined;
+
+      try {
+        if (has('f') && has('h')) {
+          a = 2 * Math.sqrt(f * h);
+        } else if (has('f') && has('a')) {
+          h = a * a / (4 * f);
+        } else if (has('f') && has('phi')) {
+          const t = Math.tan(phi / 2);
+          a = 2 * f * t;
+          h = a * a / (4 * f);
+        } else if (has('f') && has('A')) {
+          const RHS = 3 * f * A / Math.PI + 8 * f * f * f;
+          const a_sq = Math.pow(RHS, 2/3) - 4 * f * f;
+          if (a_sq <= 0) throw new Error('Surface area A is too small for the given focal length f.');
+          a = Math.sqrt(a_sq);
+          h = a * a / (4 * f);
+        } else if (has('h') && has('a')) {
+          f = a * a / (4 * h);
+        } else if (has('h') && has('phi')) {
+          const t = Math.tan(phi / 2);
+          if (t === 0) throw new Error('φ = 0 gives an infinite focal length.');
+          f = h / (t * t);
+          a = 2 * f * t;
+        } else if (has('h') && has('A')) {
+          // A(f) = (8π/3) √f [(f+h)^{3/2} − f^{3/2}], monotonic increasing from 0 to ∞.
+          const g = (fv) => (8 * Math.PI / 3) * Math.sqrt(fv) *
+                            (Math.pow(fv + h, 1.5) - Math.pow(fv, 1.5)) - A;
+          let lo = 1e-12, hi = Math.max(h, A / (Math.PI * h)) || 1;
+          while (g(hi) < 0 && hi < 1e30) hi *= 2;
+          if (g(hi) < 0) throw new Error('Could not bracket f for (h, A); inputs likely out of range.');
+          f = bisect(g, lo, hi);
+          a = 2 * Math.sqrt(f * h);
+        } else if (has('a') && has('phi')) {
+          const t = Math.tan(phi / 2);
+          if (t === 0) throw new Error('φ = 0 gives an infinite focal length.');
+          f = a / (2 * t);
+          h = a * a / (4 * f);
+        } else if (has('a') && has('A')) {
+          if (A <= Math.PI * a * a) {
+            throw new Error('A must be strictly greater than π·a² (the flat-aperture lower bound).');
+          }
+          // A(f) for fixed a is monotonic decreasing from ∞ (f → 0) down to π a² (f → ∞).
+          const g = (fv) => surfaceArea(fv, a) - A;
+          let lo = 1e-12, hi = a;
+          while (g(hi) > 0 && hi < 1e30) hi *= 2;
+          f = bisect(g, lo, hi);
+          h = a * a / (4 * f);
+        } else if (has('phi') && has('A')) {
+          const t = Math.tan(phi / 2);
+          if (t === 0) throw new Error('φ = 0 gives an infinite focal length.');
+          // A(f) = (8πf²/3) [(1+t²)^{3/2} − 1] ⇒ f = √(3A / (8π·[(1+t²)^{3/2} − 1]))
+          const factor = Math.pow(1 + t * t, 1.5) - 1;
+          const f_sq = 3 * A / (8 * Math.PI * factor);
+          f = Math.sqrt(f_sq);
+          a = 2 * f * t;
+          h = a * a / (4 * f);
+        } else {
+          throw new Error('Unsupported combination of inputs.');
+        }
+      } catch (e) {
+        showError(e.message);
+        return;
+      }
+
+      // Fill in any remaining
+      if (a === undefined)   a = 2 * Math.sqrt(f * h);
+      if (h === undefined)   h = a * a / (4 * f);
+      if (f === undefined)   f = a * a / (4 * h);
+      if (phi === undefined) phi = 2 * Math.atan(a / (2 * f));
+      if (A === undefined)   A = surfaceArea(f, a);
+
+      if (!(f > 0) || !(h > 0) || !(a > 0) || !(phi > 0) || !(A > 0)) {
+        showError('Could not derive a valid parabolic cap from those inputs.');
+        return;
+      }
+
+      // Convert to user units
+      const out = {
+        f: f / Lf,
+        h: h / Lf,
+        a: a / Lf,
+        phi: phi / Tf,
+        A: A / Af,
+      };
+      const D_user = (2 * a) / Lf;
+      const fD = f / (2 * a);   // f/D, dimensionless
+
+      const lu  = lengthUnit;
+      const lu2 = lengthUnit + '²';
+      const au  = angleUnit;
+      const givenSet = new Set(keys);
+
+      function fmtRow(sym, key, val, unit) {
+        const cls = givenSet.has(key) ? 'given' : 'computed';
+        const tag = givenSet.has(key) ? '(input)    ' : '(computed) ';
+        return `<span class="${cls}">${tag} ${sym} = ${val.toExponential(6)} ${unit}</span>`;
+      }
+      function fmtDerived(sym, val, unit) {
+        return `<span class="derived">(derived)  ${sym} = ${val.toExponential(6)} ${unit}</span>`;
+      }
+
+      const r = document.getElementById('result');
+      r.classList.remove('error');
+      r.style.display = 'block';
+      r.innerHTML = [
+        fmtRow('f', 'f',   out.f,   lu),
+        fmtRow('h', 'h',   out.h,   lu),
+        fmtRow('a', 'a',   out.a,   lu),
+        fmtRow('φ', 'phi', out.phi, au),
+        fmtRow('A', 'A',   out.A,   lu2),
+        fmtDerived('D = 2a', D_user, lu),
+        fmtDerived('f/D    ', fD, '   (focal ratio / f-number)'),
+      ].join('\n');
+    }
+
+    refreshUnitLabels();
+  </script>
+
+</body>
+</html>
