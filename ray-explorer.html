@@ -124,7 +124,7 @@
         <span class="sw" style="background:#3aa0ff"></span>lens surface &nbsp;&nbsp;
         <span class="sw" style="background:#e53935"></span>qubit absorber &nbsp;&bull;&nbsp;
         <span style="color:#e53935">&#9679;</span> absorbed.
-        Line opacity = remaining ray intensity (fades with each lossy bounce).
+        Line opacity = (view-fade per bounce)<sup>(reflection count)</sup>; set the view-fade slider near 1 to disable visual fading.
       </div>
     </div>
     <div class="controls">
@@ -147,11 +147,11 @@
       <label class="chk"><input type="checkbox" id="ar" checked> AR coating on lens (3% residual)</label>
       <label class="chk"><input type="checkbox" id="branch"> show secondary reflections (partial / leak)</label>
       <div class="row" style="margin-top:12px"><label>View fade per bounce<span class="val" id="vfadeV"></span></label>
-        <input type="range" id="vfade" min="0.3" max="1" step="0.05" value="0.9">
-        <small>visualisation only: extra opacity multiplier per reflection (1.0 = no extra fade)</small></div>
+        <input type="range" id="vfade" min="1" max="7" step="0.05" value="3">
+        <small>logarithmic; slider value s &rarr; vfade = 1 &minus; 10<sup>&minus;s</sup>. Near 7 = essentially no fade.</small></div>
       <div class="row"><label>Skip first N reflections<span class="val" id="minbV"></span></label>
-        <input type="range" id="minb" min="0" max="20" step="1" value="0">
-        <small>0 = show all; higher hides early segments so only the diffuse field after many bounces is drawn</small></div>
+        <input type="range" id="minb" min="0" max="3" step="0.01" value="0">
+        <small>logarithmic; up to ~1000. 0 = show all; higher hides early segments so only the diffuse field remains.</small></div>
     </div>
   </div>
 
@@ -399,14 +399,18 @@
 
   function draw(){
     const th = +$('theta').value, f = +$('freq').value, fan = +$('fan').value;
-    const nfan = +$('nfan').value, vfade = +$('vfade').value, minb = +$('minb').value;
+    const nfan = +$('nfan').value;
+    const vfadeSlider = +$('vfade').value;
+    const vfade = 1 - Math.pow(10, -vfadeSlider);                     // log-scaled: s=3 → 0.999
+    const minbSlider = +$('minb').value;
+    const minb = Math.max(0, Math.round(Math.pow(10, minbSlider)) - 1); // log-scaled: s=3 → 999
     const branch = $('branch').checked ? 2 : 0;
     P.R_mat = +$('rmat').value; P.R_gp = +$('rgp').value; P.AR = $('ar').checked;
     $('thetaV').textContent = th.toFixed(0) + '°';
     $('freqV').textContent = f.toFixed(0) + ' GHz';
     $('fanV').textContent = '×' + fan.toFixed(0);
     $('nfanV').textContent = nfan.toString();
-    $('vfadeV').textContent = vfade.toFixed(2);
+    $('vfadeV').textContent = vfade.toFixed(7);
     $('minbV').textContent = minb.toString();
     $('rmatV').textContent = P.R_mat.toFixed(4);
     $('rgpV').textContent = P.R_gp.toFixed(2);
@@ -433,7 +437,11 @@
       if (g.b < minb) continue;                                       // hide early bounces
       if (g.absorb){ ctx.fillStyle = '#e53935';
         ctx.beginPath(); ctx.arc(sx(g.x1), sy(g.z1), 3, 0, 7); ctx.fill(); continue; }
-      const al = Math.max(0.07, Math.min(1, g.i * Math.pow(vfade, g.b)));
+      // Opacity is now solely a function of the view-fade slider and the
+      // accumulated reflection count; physics-based losses (g.i, from R_mat,
+      // Fresnel/AR, and R_gp) no longer affect rendering, so that vfade ≈ 1
+      // really means "no fade". They still drive the trace's early termination.
+      const al = Math.max(0.05, Math.min(1, Math.pow(vfade, g.b)));
       ctx.strokeStyle = g.med === 1 ? 'rgba(255,140,0,' + al + ')'   // silicon = amber
                                     : 'rgba(40,120,230,' + al + ')'; // vacuum  = blue
       ctx.beginPath(); ctx.moveTo(sx(g.x0), sy(g.z0)); ctx.lineTo(sx(g.x1), sy(g.z1)); ctx.stroke();
