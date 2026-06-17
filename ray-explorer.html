@@ -137,12 +137,21 @@
       <div class="row"><label>Diffraction fan (view only)<span class="val" id="fanV"></span></label>
         <input type="range" id="fan" min="1" max="12" step="1" value="4">
         <small>exaggerates &sigma;<sub>&theta;</sub> so the cone is visible</small></div>
+      <div class="row"><label>Rays per fan side<span class="val" id="nfanV"></span></label>
+        <input type="range" id="nfan" min="1" max="21" step="1" value="9">
+        <small>1 = single ray, more = denser fan (slower)</small></div>
       <div class="row"><label>Wall reflectivity R<sub>mat</sub><span class="val" id="rmatV"></span></label>
         <input type="range" id="rmat" min="0.99" max="1" step="0.0005" value="0.9999"></div>
       <div class="row"><label>Ground reflectivity R<sub>gp</sub><span class="val" id="rgpV"></span></label>
         <input type="range" id="rgp" min="0" max="1" step="0.05" value="0.9"></div>
       <label class="chk"><input type="checkbox" id="ar" checked> AR coating on lens (3% residual)</label>
       <label class="chk"><input type="checkbox" id="branch"> show secondary reflections (partial / leak)</label>
+      <div class="row" style="margin-top:12px"><label>View fade per bounce<span class="val" id="vfadeV"></span></label>
+        <input type="range" id="vfade" min="0.3" max="1" step="0.05" value="0.9">
+        <small>visualisation only: extra opacity multiplier per reflection (1.0 = no extra fade)</small></div>
+      <div class="row"><label>Skip first N reflections<span class="val" id="minbV"></span></label>
+        <input type="range" id="minb" min="0" max="20" step="1" value="0">
+        <small>0 = show all; higher hides early segments so only the diffuse field after many bounces is drawn</small></div>
     </div>
   </div>
 
@@ -267,8 +276,10 @@
     return (hz >= G.R - 1e-6 && hz <= G.R + G.H_CAV + 1e-6) ? t : Infinity;
   }
 
-  // ---- trace one ray; push {x0,z0,x1,z1,med,i,absorb?} into segs ----
-  function traceRay(o, d, med, inten, branch, segs, R_ant){
+  // ---- trace one ray; push {x0,z0,x1,z1,med,i,b,absorb?} into segs ----
+  // nBounce: bounce index to assign to this trace's first segment.
+  function traceRay(o, d, med, inten, branch, segs, R_ant, nBounce){
+    if (nBounce === undefined) nBounce = 0;
     for (let step = 0; step < 90; step++){
       if (inten < 0.01) return;
       let cand = [[tEllipse(o,d),'el'], [tPlane(o,d,G.R),'zR'],
@@ -279,7 +290,8 @@
       for (const [t, s] of cand) if (t < tmin){ tmin = t; surf = s; }
       if (!isFinite(tmin)) return;                       // escape (should not happen, sealed)
       const h = [o[0] + tmin*d[0], o[1] + tmin*d[1]];
-      segs.push({x0:o[0], z0:o[1], x1:h[0], z1:h[1], med, i:inten});
+      const bIdx = nBounce + step;
+      segs.push({x0:o[0], z0:o[1], x1:h[0], z1:h[1], med, i:inten, b: bIdx});
 
       if (surf === 'dish'){
         const n = norm([-h[0], G.R - h[1]]);             // concave mirror, normal -> centre
@@ -291,12 +303,12 @@
         d = reflect(d, [h[0] > 0 ? -1 : 1, 0]); inten *= P.R_mat; o = off(h, d);
       } else if (surf === 'zR'){
         const ax = Math.abs(h[0]);
-        if (ax < R_ant){ segs.push({x0:h[0], z0:h[1], x1:h[0], z1:h[1], med, i:inten, absorb:true});
+        if (ax < R_ant){ segs.push({x0:h[0], z0:h[1], x1:h[0], z1:h[1], med, i:inten, b: bIdx, absorb:true});
                          return; }                        // qubit absorbs -> done
         else if (ax < G.R_flat){                          // porous ground plane
           if (branch > 0)                                 // transmitted fraction -> cross medium
             traceRay(off(h, d), [d[0], d[1]], med === 0 ? 1 : 0,
-                     inten*(1 - P.R_gp), branch - 1, segs, R_ant);
+                     inten*(1 - P.R_gp), branch - 1, segs, R_ant, bIdx + 1);
           d = reflect(d, [0, d[1] > 0 ? -1 : 1]); inten *= P.R_gp; o = off(h, d);
         } else if (ax < G.R){                              // lid / cavity-floor mirror
           d = reflect(d, [0, d[1] > 0 ? -1 : 1]); inten *= P.R_mat; o = off(h, d);
@@ -310,7 +322,7 @@
         else {
           const ct = Math.sqrt(k), Rf = P.AR ? G.R_AR : fresnel(n1, n2, ci, ct);
           if (branch > 0){ const dr = reflect(d, n);      // partial reflection
-            traceRay(off(h, dr), dr, med, inten*Rf, branch - 1, segs, R_ant); }
+            traceRay(off(h, dr), dr, med, inten*Rf, branch - 1, segs, R_ant, bIdx + 1); }
           d = norm([eta*d[0] + (eta*ci - ct)*n[0], eta*d[1] + (eta*ci - ct)*n[1]]);
           inten *= (1 - Rf); med = med === 0 ? 1 : 0; o = off(h, d);
         }
@@ -318,12 +330,12 @@
     }
   }
 
-  function build(thetaDeg, fghz, fanMul, branch){
+  function build(thetaDeg, fghz, fanMul, branch, nFan){
     const th = thetaDeg*Math.PI/180;
     const lam = G.C0/(fghz*1e9)*1e3;                       // mm
     const sigma = 0.437*lam/G.R;                           // rad
     const R_ant = lam/(2*Math.PI*Math.sqrt(G.eps_eff));    // mm
-    const nFan = 9, rays = [];
+    const rays = [];
     for (const side of [1, -1]){
       const p = [side*G.R*Math.sin(th), G.R*(1 - Math.cos(th))];
       const base = norm([-side*Math.sin(th), Math.cos(th)]);   // aim at CoC (0,R)
@@ -387,11 +399,15 @@
 
   function draw(){
     const th = +$('theta').value, f = +$('freq').value, fan = +$('fan').value;
+    const nfan = +$('nfan').value, vfade = +$('vfade').value, minb = +$('minb').value;
     const branch = $('branch').checked ? 2 : 0;
     P.R_mat = +$('rmat').value; P.R_gp = +$('rgp').value; P.AR = $('ar').checked;
     $('thetaV').textContent = th.toFixed(0) + '°';
     $('freqV').textContent = f.toFixed(0) + ' GHz';
     $('fanV').textContent = '×' + fan.toFixed(0);
+    $('nfanV').textContent = nfan.toString();
+    $('vfadeV').textContent = vfade.toFixed(2);
+    $('minbV').textContent = minb.toString();
     $('rmatV').textContent = P.R_mat.toFixed(4);
     $('rgpV').textContent = P.R_gp.toFixed(2);
 
@@ -404,7 +420,7 @@
       ctx.fillStyle = '#999'; ctx.fillText(z + '', 6, sy(z) + 3); }
     ctx.fillText('z (mm)', 6, padT + 4);
 
-    const out = build(th, f, fan, branch);
+    const out = build(th, f, fan, branch, nfan);
     drawGeom(out.R_ant);
 
     // emission point marker
@@ -414,9 +430,10 @@
     // rays
     ctx.lineWidth = 1.4;
     for (const segs of out.rays) for (const g of segs){
+      if (g.b < minb) continue;                                       // hide early bounces
       if (g.absorb){ ctx.fillStyle = '#e53935';
         ctx.beginPath(); ctx.arc(sx(g.x1), sy(g.z1), 3, 0, 7); ctx.fill(); continue; }
-      const al = Math.max(0.07, Math.min(1, g.i));
+      const al = Math.max(0.07, Math.min(1, g.i * Math.pow(vfade, g.b)));
       ctx.strokeStyle = g.med === 1 ? 'rgba(255,140,0,' + al + ')'   // silicon = amber
                                     : 'rgba(40,120,230,' + al + ')'; // vacuum  = blue
       ctx.beginPath(); ctx.moveTo(sx(g.x0), sy(g.z0)); ctx.lineTo(sx(g.x1), sy(g.z1)); ctx.stroke();
@@ -429,7 +446,7 @@
       ' &micro;m (red) &nbsp;|&nbsp; emission point r = ' + out.p[0].toFixed(1) + ' mm';
   }
 
-  ['theta','freq','fan','rmat','rgp'].forEach(id => $(id).addEventListener('input', draw));
+  ['theta','freq','fan','nfan','rmat','rgp','vfade','minb'].forEach(id => $(id).addEventListener('input', draw));
   ['branch','ar'].forEach(id => $(id).addEventListener('change', draw));
   window.addEventListener('resize', () => { resize(); draw(); });
   function resize(){ const r = cv.parentElement.getBoundingClientRect();
