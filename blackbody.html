@@ -22,11 +22,23 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    label, input, button {
+    label, input, button, select {
       display: block;
       width: 100%;
       margin-top: 1em;
     }
+    .row2 {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row2 input, .row2 select {
+      margin-top: 0;
+      min-width: 0;
+    }
+    .row2 input { flex: 1 1 auto; }
+    .row2 select { flex: 0 0 5.5em; }
+    small { color: #666; display: block; margin-top: 0.2em; }
     button {
       background: #4CAF50;
       color: white;
@@ -68,66 +80,143 @@
     <label for="temperature">Temperature (K):</label>
     <input type="number" id="temperature" placeholder="e.g., 3000" step="any">
 
+    <label for="area-value">Emitting area:</label>
+    <div class="row2">
+      <input type="number" id="area-value" placeholder="e.g., 1" step="any" value="1">
+      <select id="area-unit">
+        <option value="m2" selected>m²</option>
+        <option value="cm2">cm²</option>
+        <option value="mm2">mm²</option>
+      </select>
+    </div>
+
+    <label for="emissivity">Emissivity ε:</label>
+    <input type="number" id="emissivity" step="any" min="0" max="1" value="1">
+    <small>ε = 1 − R, where R is the reflection coefficient. Perfect blackbody → ε = 1.</small>
+
     <button onclick="plotBlackbodySpectrum()">Plot Spectrum</button>
 
     <div id="plot"></div>
+    <div id="plot2" style="margin-top:1em;"></div>
     <div class="result" id="blackbody-info"></div>
   </div>
 
   <script>
+    const AREA_FACTOR = { m2: 1, cm2: 1e-4, mm2: 1e-6 };
+
     function plotBlackbodySpectrum() {
       const T = parseFloat(document.getElementById('temperature').value);
-      if (isNaN(T) || T <= 0) {
+      const areaVal = parseFloat(document.getElementById('area-value').value);
+      const areaUnit = document.getElementById('area-unit').value;
+      const eps = parseFloat(document.getElementById('emissivity').value);
+
+      if (!Number.isFinite(T) || T <= 0) {
         alert("Please enter a valid positive temperature in Kelvin.");
         return;
       }
+      if (!Number.isFinite(areaVal) || areaVal <= 0) {
+        alert("Please enter a positive emitting area.");
+        return;
+      }
+      if (!Number.isFinite(eps) || eps < 0 || eps > 1) {
+        alert("Emissivity ε must be between 0 and 1.");
+        return;
+      }
 
-      const h = 6.62607015e-34;
-      const c = 2.99792458e8;
-      const kB = 1.380649e-23;
+      const A = areaVal * AREA_FACTOR[areaUnit];     // m²
+
+      const h     = 6.62607015e-34;
+      const c     = 2.99792458e8;
+      const kB    = 1.380649e-23;
       const sigma = 5.670374419e-8;
+      const eV_J  = 1.602176634e-19;
 
       // Wien's displacement law in frequency: nu_peak = 2.82144 * kB * T / h
-      const freqPeak = 2.821439372 * kB * T / h;
-      const lambdaPeak = c / freqPeak;
-      const energyPeak_eV = (h * freqPeak) / 1.602176634e-19;
-      const totalRadiatedPower = sigma * Math.pow(T, 4);
+      const freqPeak       = 2.821439372 * kB * T / h;
+      const lambdaPeak     = c / freqPeak;
+      const energyPeak_eV  = (h * freqPeak) / eV_J;
+      const totalPower     = eps * A * sigma * Math.pow(T, 4);   // W (Stefan–Boltzmann, scaled)
 
-      const frequencies = [];
-      const radiances = [];
+      // -------- first plot: spectral power output P(ν, T) = ε · A · π · B(ν, T)  [W/Hz] --------
+      const frequencies   = [];
+      const spectralPower = [];
 
       const freqMin = 0.01 * freqPeak;
       const freqMax = 5 * freqPeak;
-      const N = 500;
-      const step = (freqMax - freqMin) / N;
+      const N1 = 500;
+      const stepF = (freqMax - freqMin) / N1;
 
-      for (let nu = freqMin; nu <= freqMax; nu += step) {
-        const B = (2 * h * nu**3 / c**2) / (Math.exp(h * nu / (kB * T)) - 1);
+      for (let i = 0; i <= N1; i++) {
+        const nu = freqMin + i * stepF;
+        const B = (2 * h * Math.pow(nu, 3) / (c * c)) / (Math.exp(h * nu / (kB * T)) - 1);
         frequencies.push(nu);
-        radiances.push(B);
+        spectralPower.push(eps * A * Math.PI * B);
       }
 
-      const trace = {
-        x: frequencies,
-        y: radiances,
-        type: 'scatter',
-        mode: 'lines',
-        name: `T = ${T} K`
+      const trace1 = {
+        x: frequencies, y: spectralPower,
+        type: 'scatter', mode: 'lines',
+        line: { color: '#1565c0' },
+        name: `T = ${T} K`,
       };
-
-      const layout = {
-        title: `Blackbody Radiation Spectrum (T = ${T} K)`,
-        xaxis: { title: 'Frequency (Hz)', range: [freqMin, freqMax], exponentformat: 'power', showexponent: 'all' },
-        yaxis: { title: 'Spectral Radiance (W·sr⁻¹·m⁻²·Hz⁻¹)' }
+      const layout1 = {
+        title: `Spectral power output  (T = ${T} K,  ε = ${eps},  A = ${areaVal} ${areaUnit.replace('2','²')})`,
+        xaxis: { title: 'Frequency ν (Hz)', range: [freqMin, freqMax], exponentformat: 'power', showexponent: 'all' },
+        yaxis: { title: 'dP/dν (W/Hz)', exponentformat: 'power', showexponent: 'all' },
       };
+      Plotly.newPlot('plot', [trace1], layout1);
 
-      Plotly.newPlot('plot', [trace], layout);
+      // -------- second plot: photons/s emitted above threshold energy E_min --------
+      // Photon flux per area per Hz from a hemisphere:  π B(ν,T)/(hν) = (2π ν²/c²)/(exp(hν/kT)−1)
+      // Total photons/s above E_min from area A with emissivity ε:
+      //   N(E_min) = ε A (2π/c²)(kT/h)³ · ∫_{x_min}^∞ x²/(e^x − 1) dx,    x_min = E_min/kT.
+      const kT = kB * T;
+      const Npts = 400;
+      const xLo  = 1e-4, xHi = 60;
+      const lo   = Math.log10(xLo), hi = Math.log10(xHi);
+      const xs = [], g = [];
+      for (let i = 0; i <= Npts; i++) {
+        const x = Math.pow(10, lo + (hi - lo) * i / Npts);
+        xs.push(x);
+        g.push(x * x / (Math.exp(x) - 1));
+      }
+      // Cumulative trapezoidal integration from the top. Add the exact
+      // asymptotic tail ∫_{xs[Npts]}^∞ x²·e^{-x} dx = (a²+2a+2)·e^{-a} so the
+      // log y-axis stays positive at the highest threshold sample.
+      const Icum = new Array(Npts + 1);
+      const aN = xs[Npts];
+      Icum[Npts] = (aN * aN + 2 * aN + 2) * Math.exp(-aN);
+      for (let i = Npts - 1; i >= 0; i--) {
+        Icum[i] = Icum[i + 1] + 0.5 * (xs[i + 1] - xs[i]) * (g[i] + g[i + 1]);
+      }
+
+      const prefactor = eps * A * 2 * Math.PI * Math.pow(kT, 3) / (c * c * Math.pow(h, 3));
+      const E_min_eV   = xs.map(x => x * kT / eV_J);
+      const photonRate = Icum.map(I => prefactor * I);
+
+      const trace2 = {
+        x: E_min_eV, y: photonRate,
+        type: 'scatter', mode: 'lines',
+        line: { color: '#e07b00' },
+        name: 'photons/s above E_min',
+      };
+      const layout2 = {
+        title: 'Photon emission rate above a threshold energy',
+        xaxis: { title: 'Threshold energy E_min (eV)', type: 'log', exponentformat: 'power', showexponent: 'all' },
+        yaxis: { title: 'Photons per second above E_min', type: 'log', exponentformat: 'power', showexponent: 'all' },
+      };
+      Plotly.newPlot('plot2', [trace2], layout2);
+
+      const totalPhotonRate = prefactor * Icum[0];   // ≈ photons/s above ~0
+      const kT_eV = kT / eV_J;
 
       document.getElementById('blackbody-info').innerHTML = `
-        Peak Frequency (νₚ): ${freqPeak.toExponential(6)} Hz<br>
-        Corresponding Wavelength (c/νₚ): ${lambdaPeak.toExponential(6)} m<br>
-        Energy at Peak: ${energyPeak_eV.toExponential(6)} eV<br>
-        Total Radiated Power: ${totalRadiatedPower.toExponential(6)} W/m²
+        Peak frequency νₚ: ${freqPeak.toExponential(6)} Hz<br>
+        Peak wavelength c/νₚ: ${lambdaPeak.toExponential(6)} m<br>
+        Energy at peak hνₚ: ${energyPeak_eV.toExponential(6)} eV<br>
+        Thermal energy scale k<sub>B</sub>T: ${kT_eV.toExponential(6)} eV<br>
+        Total radiated power ε·σ·T⁴·A: ${totalPower.toExponential(6)} W<br>
+        Total photon emission rate (E<sub>min</sub> → 0): ${totalPhotonRate.toExponential(6)} photons/s
       `;
     }
   </script>
