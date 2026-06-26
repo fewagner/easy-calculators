@@ -192,10 +192,32 @@
     into the walls before that can happen &mdash; which is why wall reflectivity is the dominant
     lever for collection.</p>
 
-    <p style="font-size:12px;color:#888;margin-top:14px">A projected 3-D view for intuition; the
-    quantitative results come from the full 3-D Monte-Carlo in
-    <code>dac_hemisphere_mc.py</code>. Geometry constants here are read live from the simulation
-    modules, so this picture cannot drift from the model.</p>
+    <p><b>What does &ldquo;show secondary reflections (partial / leak)&rdquo; do?</b>
+    At every surface that physically <i>splits</i> a ray into two paths, the tracer can either
+    follow only the dominant outgoing path (default) or fork off the partial side-path as a
+    separate, lower-intensity ray. Ticking the box enables the side-paths. There are two such
+    surfaces in this model:</p>
+    <ul>
+      <li><b>Silicon lens dome and flat.</b> Each crossing is governed by Fresnel: a fraction
+        <code>R<sub>F</sub></code> of the amplitude reflects and the rest transmits. With the
+        AR coating on (default), this residual is forced to <code>3&nbsp;%</code> per crossing;
+        without it, the full Fresnel formula is used. Off &mdash; only the transmitted ray
+        continues. On &mdash; the calculator additionally emits the partially-reflected ray
+        at intensity <code>R<sub>F</sub> &middot; i<sub>incoming</sub></code> and traces it
+        separately, so you can see ghost reflections bouncing back into the silicon and the
+        cavity.</li>
+      <li><b>Porous ground plane</b> (the perforated metal around the qubit absorber). The
+        plane reflects a fraction <code>R<sub>gp</sub></code> of the rays back toward the lens
+        and transmits the rest into the metal cavity behind it. Off &mdash; only the reflected
+        path is shown. On &mdash; the transmitted "leak" path is also traced at intensity
+        <code>(1 &minus; R<sub>gp</sub>) &middot; i<sub>incoming</sub></code>, switching
+        medium as it crosses (vacuum &harr; silicon).</li>
+    </ul>
+    <p>In both cases the physics is identical whether the box is ticked or not &mdash; the
+    tracer's bookkeeping of energy on the primary path already accounts for the lost amplitude.
+    The toggle is purely a <i>visualisation</i> switch: it makes the partially-reflected and
+    leaked sub-rays visible so you can see where the energy goes, at the cost of a denser canvas.
+    Secondary paths are capped at two levels of forking so the recursion doesn't run away.</p>
   </section>
 
   <div class="card"><a href="index.html">Back</a></div>
