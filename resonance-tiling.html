@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resonance Tiling of a Frequency Range</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 6em;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row input, .row select { margin-top: 0; min-width: 0; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    button.secondary {
+      background: #007bff;
+      margin-top: 0.8em;
+    }
+    button.secondary:hover { background: #0056b3; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-size: 0.92em;
+      line-height: 1.55;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    .big { font-size: 1.35em; font-weight: bold; color: #1565c0; }
+    table.centers {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.6em;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.88em;
+    }
+    table.centers th, table.centers td {
+      padding: 0.3em 0.5em;
+      text-align: right;
+      border-bottom: 1px solid #e3ebe3;
+    }
+    table.centers th { background: #eef4ee; font-weight: 600; text-align: center; }
+    table.centers tr.skip td {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+      background: #fafafa;
+    }
+    .table-wrap { max-height: 340px; overflow-y: auto; overflow-x: auto; margin-top: 0.6em; }
+    #plot-zoom, #plot-map { margin-top: 1.2em; width: 100%; height: 350px; }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 660px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      .two-col { grid-template-columns: 1fr; gap: 0; }
+      #plot-zoom, #plot-map { height: 280px; }
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Resonance Tiling of a Frequency Range</h2>
+    <p class="intro">How many Lorentzian resonances of quality factor Q are needed to cover a frequency band without gaps, and where should their centres sit? Because the linewidth <code>&Delta;f = f<sub>0</sub>/Q</code> grows in proportion to the centre frequency, the optimal placement is <b>geometric (logarithmic)</b>, not uniform: each centre is a fixed <i>ratio</i> above the previous one.</p>
+
+    <!-- Sketch: three overlapping Lorentzians crossing at half power -->
+    <svg viewBox="0 0 440 170" style="width:100%;max-width:440px;display:block;margin:1em auto 0.5em;" aria-label="Overlapping Lorentzians crossing at half power">
+      <!-- Axes -->
+      <line x1="40" y1="140" x2="415" y2="140" stroke="#444" stroke-width="1.2"/>
+      <line x1="40" y1="20"  x2="40"  y2="140" stroke="#444" stroke-width="1.2"/>
+      <text x="425" y="144" text-anchor="end" font-size="11" fill="#444" font-family="Arial,sans-serif">f</text>
+      <!-- Peak level line -->
+      <line x1="40" y1="35" x2="415" y2="35" stroke="#bbb" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <text x="34" y="39" text-anchor="end" font-size="10" fill="#666" font-family="Arial,sans-serif">1</text>
+      <!-- Half-power line -->
+      <line x1="40" y1="87.5" x2="415" y2="87.5" stroke="#c62828" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="34" y="91" text-anchor="end" font-size="10" fill="#c62828" font-family="Arial,sans-serif">½</text>
+      <!-- Three Lorentzians; peaks at x=130, 220, 310, crossing at half power midway -->
+      <path d="M 55 139 Q 100 138 112 120 Q 124 92 130 35 Q 136 92 148 120 Q 160 138 205 139"
+            fill="none" stroke="#1565c0" stroke-width="1.8" opacity="0.85"/>
+      <path d="M 145 139 Q 190 138 202 120 Q 214 92 220 35 Q 226 92 238 120 Q 250 138 295 139"
+            fill="none" stroke="#e07b00" stroke-width="1.8" opacity="0.85"/>
+      <path d="M 235 139 Q 280 138 292 120 Q 304 92 310 35 Q 316 92 328 120 Q 340 138 385 139"
+            fill="none" stroke="#2e7d32" stroke-width="1.8" opacity="0.85"/>
+      <!-- Crossover markers -->
+      <circle cx="175" cy="87.5" r="3" fill="#c62828"/>
+      <circle cx="265" cy="87.5" r="3" fill="#c62828"/>
+      <!-- Centre ticks -->
+      <line x1="130" y1="140" x2="130" y2="146" stroke="#1565c0" stroke-width="1.6"/>
+      <line x1="220" y1="140" x2="220" y2="146" stroke="#e07b00" stroke-width="1.6"/>
+      <line x1="310" y1="140" x2="310" y2="146" stroke="#2e7d32" stroke-width="1.6"/>
+      <text x="130" y="158" text-anchor="middle" font-size="11" font-style="italic" fill="#1565c0" font-family="Arial,sans-serif">f₁</text>
+      <text x="220" y="158" text-anchor="middle" font-size="11" font-style="italic" fill="#e07b00" font-family="Arial,sans-serif">f₂</text>
+      <text x="310" y="158" text-anchor="middle" font-size="11" font-style="italic" fill="#2e7d32" font-family="Arial,sans-serif">f₃</text>
+      <text x="220" y="16" text-anchor="middle" font-size="11" fill="#c62828" font-family="Arial,sans-serif">neighbours cross at half power &rarr; no gap in coverage</text>
+    </svg>
+
+    <h4 style="margin-top:1.2em;">Frequency range to cover</h4>
+    <div class="two-col">
+      <div>
+        <label for="fmin">Lower edge f<sub>min</sub>:</label>
+        <div class="row">
+          <input type="number" id="fmin" step="any" value="100">
+          <select id="fmin-unit">
+            <option value="Hz">Hz</option>
+            <option value="kHz">kHz</option>
+            <option value="MHz">MHz</option>
+            <option value="GHz" selected>GHz</option>
+            <option value="THz">THz</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="fmax">Upper edge f<sub>max</sub>:</label>
+        <div class="row">
+          <input type="number" id="fmax" step="any" value="1000">
+          <select id="fmax-unit">
+            <option value="Hz">Hz</option>
+            <option value="kHz">kHz</option>
+            <option value="MHz">MHz</option>
+            <option value="GHz" selected>GHz</option>
+            <option value="THz">THz</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <label for="Q">Quality factor Q of each resonance:</label>
+    <input type="number" id="Q" step="any" value="100">
+    <small>Linewidth of a resonance centred at f<sub>0</sub> is FWHM = f<sub>0</sub>/Q. Must be &gt; 0.5.</small>
+
+    <label for="alpha">Required crossover level between neighbours:</label>
+    <select id="alpha">
+      <option value="0.5" selected>0.5 &mdash; half power (FWHM overlap)</option>
+      <option value="0.7071">0.707 &mdash; &minus;1.5 dB (tighter)</option>
+      <option value="0.9">0.9 &mdash; near-flat response (much tighter)</option>
+      <option value="0.25">0.25 &mdash; &minus;6 dB (looser)</option>
+      <option value="0.1">0.1 &mdash; &minus;10 dB (much looser)</option>
+    </select>
+    <small>The response of the combined comb never drops below this fraction of a single peak. 0.5 is the FWHM-overlap criterion.</small>
+
+    <button onclick="compute()">Compute</button>
+    <button class="secondary" id="csv-btn" onclick="downloadCSV()" style="display:none;">Download all centre frequencies as CSV</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+    <div id="plot-zoom"></div>
+    <div id="plot-map"></div>
+    <div id="table-area"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+
+    <p><b>Lorentzian lineshape.</b> A resonance of centre frequency f<sub>0</sub> and quality factor Q has the normalised response</p>
+    <ul>
+      <li><code>L(f) = 1 / [ 1 + (2Q (f &minus; f<sub>0</sub>) / f<sub>0</sub>)&sup2; ]</code></li>
+      <li>Full width at half maximum: <code>&Delta;f = f<sub>0</sub> / Q</code>, i.e. the half-power points sit at <code>f<sub>0</sub>(1 &plusmn; 1/2Q)</code>.</li>
+      <li>More generally, the band where <code>L &ge; &alpha;</code> is <code>f<sub>0</sub>(1 &plusmn; k)</code> with
+        <code>k = &radic;((1&minus;&alpha;)/&alpha;) / (2Q)</code>. For &alpha; = ½ this reduces to <code>k = 1/(2Q)</code>.</li>
+    </ul>
+
+    <p><b>Why the spacing is geometric.</b> The linewidth is proportional to the centre frequency, so a resonance at 1 THz is ten times wider than one at 100 GHz. Uniform spacing would therefore be wasteful at the top of the band and leave gaps at the bottom. Demanding that the upper band edge of resonance n coincide with the lower band edge of resonance n+1,</p>
+    <ul>
+      <li><code>f<sub>n</sub>(1 + k) = f<sub>n+1</sub>(1 &minus; k)</code> &nbsp;&rArr;&nbsp;
+        <code>f<sub>n+1</sub> / f<sub>n</sub> = r = (1 + k)/(1 &minus; k)</code>, a constant <i>ratio</i>.</li>
+      <li>For &alpha; = ½: <code>r = (2Q + 1)/(2Q &minus; 1)</code>.</li>
+      <li>The centres therefore form a geometric progression &mdash; equally spaced on a logarithmic frequency axis.</li>
+    </ul>
+
+    <p><b>Number of resonances.</b> Covering <code>[f<sub>min</sub>, f<sub>max</sub>]</code> requires</p>
+    <ul>
+      <li><code>N = &lceil; ln(f<sub>max</sub>/f<sub>min</sub>) / ln r &rceil;</code></li>
+      <li>Large-Q limit (&alpha; = ½): <code>ln r &asymp; 1/Q</code>, so <code>N &asymp; Q &middot; ln(f<sub>max</sub>/f<sub>min</sub>)</code>.
+        One octave needs about <code>0.693 Q</code> resonances, one decade about <code>2.303 Q</code>.</li>
+    </ul>
+
+    <p><b>Placement.</b> Rounding N up leaves a little slack, which is spread evenly in log-frequency. Two limits fix the end resonances: the first centre may sit no <i>higher</i> than <code>A = f<sub>min</sub>/(1&minus;k)</code> (otherwise its lower band edge would leave a gap below f<sub>min</sub>), and the last centre no <i>lower</i> than <code>B = f<sub>max</sub>/(1+k)</code>. Pinning both and distributing the rest geometrically gives</p>
+    <ul>
+      <li><code>f<sub>1</sub> = A = f<sub>min</sub>/(1 &minus; k)</code>, &nbsp; <code>f<sub>N</sub> = B = f<sub>max</sub>/(1 + k)</code></li>
+      <li><code>&rho; = (B/A)<sup>1/(N&minus;1)</sup></code>, which is guaranteed <code>&le; r</code> because <code>N &ge; ln(span)/ln r</code></li>
+      <li><code>f<sub>n</sub> = f<sub>1</sub> &middot; &rho;<sup>(n&minus;1)</sup></code>, &nbsp; n = 1 &hellip; N</li>
+      <li>The band of the first resonance then starts exactly at f<sub>min</sub> and that of the last ends exactly at f<sub>max</sub>, so the envelope touches &alpha; at the two range edges and stays above it everywhere in between.</li>
+      <li>If a single resonance already suffices (span &le; r, so N = 1) it is placed at <code>&radic;(A&middot;B)</code>, centring the available slack.</li>
+    </ul>
+    <p style="color:#555;font-size:0.9em">Note that the naive choice <code>&rho; = span<sup>1/N</sup></code> with centres at the geometric midpoints of equal log-bins does <i>not</i> work: the upper edge requires <code>&radic;&rho; &le; 1+k</code>, which is a stricter condition than <code>&rho; &le; r</code>, and the top of the range ends up slightly uncovered.</p>
+
+    <p><b>Comparison with uniform spacing.</b> If instead you spaced the centres uniformly, you would have to use the <i>narrowest</i> linewidth (the one at f<sub>min</sub>) everywhere, needing
+    <code>N<sub>uniform</sub> = &lceil; Q (f<sub>max</sub>/f<sub>min</sub> &minus; 1) &rceil;</code> resonances. For a decade that is 9 Q instead of 2.3 Q &mdash; a factor of about 4 wasted.</p>
+
+    <p style="margin-bottom:0;color:#555">Note: the criterion here is that the <i>envelope</i> (the maximum over all resonances) never falls below &alpha;. If instead you coherently sum overlapping resonances the combined response is slightly higher in the gaps, so this placement is the conservative choice.</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script>
+    const FREQ_FACTOR = { Hz: 1, kHz: 1e3, MHz: 1e6, GHz: 1e9, THz: 1e12 };
+    const CSV_MAX = 200000;          // refuse to build a bigger CSV than this
+    let lastRun = null;              // {N, fmin, rho, unit, unitFactor, Q, k}
+
+    // Lorentzian response of a resonance centred at f0 with quality factor Q.
+    function lorentz(f, f0, Q) {
+      const x = 2 * Q * (f - f0) / f0;
+      return 1 / (1 + x * x);
+    }
+
+    // Centre frequency of resonance n (1-based), in SI Hz.
+    function centre(n, f1, rho) {
+      return f1 * Math.pow(rho, n - 1);
+    }
+
+    // Envelope = max over all resonances, evaluated cheaply by only checking
+    // the handful of resonances whose centres are nearest to f.
+    function envelope(f, f1, rho, N, Q) {
+      if (N === 1 || !(rho > 1)) return lorentz(f, f1, Q);
+      const approx = Math.log(f / f1) / Math.log(rho) + 1;
+      let lo = Math.floor(approx) - 2, hi = Math.ceil(approx) + 2;
+      lo = Math.max(1, Math.min(N, lo));
+      hi = Math.max(1, Math.min(N, hi));
+      let best = 0;
+      for (let n = lo; n <= hi; n++) {
+        const v = lorentz(f, centre(n, f1, rho), Q);
+        if (v > best) best = v;
+      }
+      return best;
+    }
+
+    function fmtFreq(f_Hz, unitFactor, digits) {
+      return (f_Hz / unitFactor).toPrecision(digits || 8);
+    }
+
+    function compute() {
+      const rDiv = document.getElementById('result');
+      rDiv.style.display = 'block';
+      rDiv.classList.remove('error');
+      document.getElementById('csv-btn').style.display = 'none';
+
+      const fminUnit = document.getElementById('fmin-unit').value;
+      const fmaxUnit = document.getElementById('fmax-unit').value;
+      const fmin = parseFloat(document.getElementById('fmin').value) * FREQ_FACTOR[fminUnit];
+      const fmax = parseFloat(document.getElementById('fmax').value) * FREQ_FACTOR[fmaxUnit];
+      const Q = parseFloat(document.getElementById('Q').value);
+      const alpha = parseFloat(document.getElementById('alpha').value);
+
+      const fail = (msg) => {
+        rDiv.classList.add('error');
+        rDiv.textContent = msg;
+        Plotly.purge('plot-zoom');
+        Plotly.purge('plot-map');
+        document.getElementById('table-area').innerHTML = '';
+        lastRun = null;
+      };
+
+      if (!Number.isFinite(fmin) || fmin <= 0) return fail('Enter a positive lower edge f_min.');
+      if (!Number.isFinite(fmax) || fmax <= 0) return fail('Enter a positive upper edge f_max.');
+      if (fmax <= fmin) return fail('f_max must be greater than f_min.');
+      if (!Number.isFinite(Q) || Q <= 0) return fail('Enter a positive quality factor Q.');
+
+      // Half-band half-width as a fraction of the centre frequency.
+      const k = Math.sqrt((1 - alpha) / alpha) / (2 * Q);
+      if (k >= 1) {
+        return fail(
+          `With Q = ${Q} and a crossover level of ${alpha}, the required band of a single ` +
+          `resonance reaches down to zero frequency (k = ${k.toFixed(3)} ≥ 1). ` +
+          `Tiling is then ill-defined — increase Q above ${(Math.sqrt((1 - alpha) / alpha) / 2).toFixed(3)} ` +
+          `or lower the crossover level.`);
+      }
+
+      const r = (1 + k) / (1 - k);                       // maximum allowed ratio
+      const span = fmax / fmin;
+      const N = Math.ceil(Math.log(span) / Math.log(r));
+
+      // Placement. The first centre may sit no higher than A (else its lower
+      // half-power edge would leave a gap below f_min); the last centre may sit
+      // no lower than B. For N >= 2 we pin the two end resonances to those
+      // limits and distribute the remaining slack evenly in log-frequency.
+      const A = fmin / (1 - k);
+      const B = fmax / (1 + k);
+      let f1, rho;
+      if (N <= 1) {
+        f1 = Math.sqrt(A * B);                           // single resonance, slack centred
+        rho = 1;
+      } else {
+        f1 = A;
+        rho = Math.pow(B / A, 1 / (N - 1));              // actual ratio used (≤ r)
+      }
+
+      // Display unit: use the lower-edge unit for everything so the table is comparable.
+      const unitFactor = FREQ_FACTOR[fminUnit];
+      const unitName = fminUnit;
+
+      lastRun = { N, f1, rho, Q, k, unitFactor, unitName };
+
+      // --- coverage check: minimum of the envelope across the whole range ---
+      const scan = Math.min(200000, Math.max(4000, 40 * N));
+      let dip = 1, dipF = fmin;
+      for (let i = 0; i <= scan; i++) {
+        const f = fmin * Math.pow(span, i / scan);
+        const v = envelope(f, f1, rho, N, Q);
+        if (v < dip) { dip = v; dipF = f; }
+      }
+
+      const N_uniform = Math.ceil(Q * (span - 1));
+      const fwhm_first = centre(1, f1, rho) / Q;
+      const fwhm_last = centre(N, f1, rho) / Q;
+
+      // --- summary ---
+      let html = '';
+      html += `<div>Resonances required: <span class="big">N = ${N}</span></div>`;
+      html += `<h4 style="margin-top:0.9em;">Spacing</h4>`;
+      if (N > 1) {
+        html += `Ratio between neighbouring centres: <b>&rho; = ${rho.toFixed(8)}</b> `;
+        html += `(fractional step ${((rho - 1) * 100).toPrecision(4)} % per resonance)<br>`;
+        html += `Maximum ratio allowed by the crossover criterion: r = ${r.toFixed(8)}<br>`;
+      } else {
+        html += `A single resonance already covers the whole range (span ${span.toPrecision(5)} &le; r = ${r.toFixed(6)}).<br>`;
+      }
+      html += `First centre f<sub>1</sub> = ${fmtFreq(centre(1, f1, rho), unitFactor)} ${unitName}, `;
+      html += `last centre f<sub>${N}</sub> = ${fmtFreq(centre(N, f1, rho), unitFactor)} ${unitName}<br>`;
+      html += `FWHM at the bottom: ${fmtFreq(fwhm_first, unitFactor, 6)} ${unitName}; `;
+      html += `at the top: ${fmtFreq(fwhm_last, unitFactor, 6)} ${unitName}`;
+
+      html += `<h4 style="margin-top:0.9em;">Coverage check</h4>`;
+      html += `Minimum envelope level across the range: <b>${dip.toFixed(5)}</b> `;
+      html += `(${(10 * Math.log10(dip)).toFixed(2)} dB) at ${fmtFreq(dipF, unitFactor, 6)} ${unitName}, `;
+      html += `target &ge; ${alpha} ${dip >= alpha * (1 - 1e-3) ? '&check;' : '&#10007;'}<br>`;
+      html += `<small>(at very large Q the scan is limited by double precision, so a deficit in the last few digits is numerical, not a real gap.)</small>`;
+      html += `Band of the first resonance starts at ${fmtFreq(centre(1, f1, rho) * (1 - k), unitFactor)} ${unitName} `;
+      html += `(&le; f<sub>min</sub> &check;)<br>`;
+      html += `Band of the last resonance ends at ${fmtFreq(centre(N, f1, rho) * (1 + k), unitFactor)} ${unitName} `;
+      html += `(&ge; f<sub>max</sub> &check;)`;
+
+      html += `<h4 style="margin-top:0.9em;">Comparison</h4>`;
+      html += `Large-Q estimate N &asymp; Q&middot;ln(f<sub>max</sub>/f<sub>min</sub>) = ${(Q * Math.log(span)).toFixed(1)}<br>`;
+      html += `Uniform (non-optimal) spacing would need N<sub>uniform</sub> = ${N_uniform} `;
+      html += `&mdash; a factor ${(N_uniform / N).toFixed(2)} more.`;
+
+      rDiv.innerHTML = html;
+
+      drawZoom(f1, rho, N, Q, alpha, unitFactor, unitName);
+      drawMap(f1, rho, N, Q, k, unitFactor, unitName);
+      buildTable(f1, rho, N, Q, k, unitFactor, unitName);
+
+      if (N <= CSV_MAX) document.getElementById('csv-btn').style.display = 'block';
+    }
+
+    // Zoomed view of a few neighbouring resonances in the middle of the band.
+    function drawZoom(f1, rho, N, Q, alpha, unitFactor, unitName) {
+      const nShow = Math.min(N, 6);
+      const nStart = Math.max(1, Math.floor((N - nShow) / 2) + 1);
+      const nEnd = Math.min(N, nStart + nShow - 1);
+
+      const fLo = centre(nStart, f1, rho) * (1 - 3 / Q);
+      const fHi = centre(nEnd, f1, rho) * (1 + 3 / Q);
+      const M = 1200;
+      const fs = [];
+      for (let i = 0; i <= M; i++) fs.push(fLo + (fHi - fLo) * i / M);
+
+      const traces = [];
+      for (let n = nStart; n <= nEnd; n++) {
+        const f0 = centre(n, f1, rho);
+        traces.push({
+          x: fs.map(f => f / unitFactor),
+          y: fs.map(f => lorentz(f, f0, Q)),
+          mode: 'lines',
+          name: `n = ${n}`,
+          line: { width: 1.2 },
+          hoverinfo: 'skip',
+          showlegend: false,
+        });
+      }
+      traces.push({
+        x: fs.map(f => f / unitFactor),
+        y: fs.map(f => envelope(f, f1, rho, N, Q)),
+        mode: 'lines',
+        name: 'envelope (max)',
+        line: { color: '#111', width: 2.4 },
+      });
+
+      const layout = {
+        title: { text: `Neighbouring resonances near the middle of the band (n = ${nStart}…${nEnd})`, font: { size: 13 } },
+        xaxis: { title: `Frequency (${unitName})`, gridcolor: '#eee' },
+        yaxis: { title: 'Normalised response', range: [0, 1.08], gridcolor: '#eee' },
+        margin: { l: 60, r: 20, t: 50, b: 50 },
+        plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+        shapes: [{
+          type: 'line', xref: 'paper', x0: 0, x1: 1,
+          yref: 'y', y0: alpha, y1: alpha,
+          line: { color: '#c62828', width: 1.2, dash: 'dash' },
+        }],
+        annotations: [{
+          x: 0.01, y: alpha, xref: 'paper', yref: 'y',
+          text: `crossover target ${alpha}`, showarrow: false,
+          font: { color: '#c62828', size: 11 }, xanchor: 'left', yanchor: 'bottom',
+        }],
+        legend: { x: 0.99, y: 0.99, xanchor: 'right', yanchor: 'top' },
+      };
+      Plotly.newPlot('plot-zoom', traces, layout, { responsive: true, displaylogo: false });
+    }
+
+    // Centre frequency versus resonance index, with the half-power band shaded.
+    function drawMap(f1, rho, N, Q, k, unitFactor, unitName) {
+      const maxPts = 2000;
+      const stride = Math.max(1, Math.ceil(N / maxPts));
+      const idx = [], ctr = [], lo = [], hi = [];
+      for (let n = 1; n <= N; n += stride) {
+        const f0 = centre(n, f1, rho);
+        idx.push(n);
+        ctr.push(f0 / unitFactor);
+        lo.push(f0 * (1 - k) / unitFactor);
+        hi.push(f0 * (1 + k) / unitFactor);
+      }
+      if (idx[idx.length - 1] !== N) {
+        const f0 = centre(N, f1, rho);
+        idx.push(N); ctr.push(f0 / unitFactor);
+        lo.push(f0 * (1 - k) / unitFactor); hi.push(f0 * (1 + k) / unitFactor);
+      }
+
+      const traces = [
+        { x: idx, y: hi, mode: 'lines', name: 'upper half-power edge',
+          line: { color: '#9ec5e8', width: 1 } },
+        { x: idx, y: lo, mode: 'lines', name: 'lower half-power edge',
+          line: { color: '#9ec5e8', width: 1 }, fill: 'tonexty', fillcolor: 'rgba(21,101,192,0.15)' },
+        { x: idx, y: ctr, mode: 'lines', name: 'centre frequency',
+          line: { color: '#1565c0', width: 2 } },
+      ];
+
+      const layout = {
+        title: { text: 'Centre frequency vs resonance index (geometric progression)', font: { size: 13 } },
+        xaxis: { title: 'Resonance index n', gridcolor: '#eee' },
+        yaxis: { title: `Frequency (${unitName})`, type: 'log', gridcolor: '#eee' },
+        margin: { l: 70, r: 20, t: 50, b: 50 },
+        plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+        legend: { orientation: 'h', y: -0.22 },
+      };
+      Plotly.newPlot('plot-map', traces, layout, { responsive: true, displaylogo: false });
+    }
+
+    function buildTable(f1, rho, N, Q, k, unitFactor, unitName) {
+      const HEAD = 25, TAIL = 25;
+      const rows = [];
+      const addRow = (n) => {
+        const f0 = centre(n, f1, rho);
+        rows.push(
+          `<tr><td>${n}</td>` +
+          `<td>${(f0 / unitFactor).toPrecision(9)}</td>` +
+          `<td>${(f0 / Q / unitFactor).toPrecision(6)}</td>` +
+          `<td>${(f0 * (1 - k) / unitFactor).toPrecision(9)}</td>` +
+          `<td>${(f0 * (1 + k) / unitFactor).toPrecision(9)}</td></tr>`
+        );
+      };
+
+      if (N <= HEAD + TAIL + 1) {
+        for (let n = 1; n <= N; n++) addRow(n);
+      } else {
+        for (let n = 1; n <= HEAD; n++) addRow(n);
+        rows.push(`<tr class="skip"><td colspan="5">… ${N - HEAD - TAIL} further resonances omitted — use the CSV download for the full list …</td></tr>`);
+        for (let n = N - TAIL + 1; n <= N; n++) addRow(n);
+      }
+
+      document.getElementById('table-area').innerHTML =
+        `<h4 style="margin-top:1.2em;">Centre frequencies (${unitName})</h4>` +
+        `<div class="table-wrap"><table class="centers"><thead><tr>` +
+        `<th>n</th><th>centre f<sub>n</sub></th><th>FWHM</th><th>band lower</th><th>band upper</th>` +
+        `</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    }
+
+    function downloadCSV() {
+      if (!lastRun) return;
+      const { N, f1, rho, Q, k, unitFactor, unitName } = lastRun;
+      if (N > CSV_MAX) return;
+      const lines = [`index,centre_${unitName},fwhm_${unitName},band_lower_${unitName},band_upper_${unitName}`];
+      for (let n = 1; n <= N; n++) {
+        const f0 = centre(n, f1, rho);
+        lines.push([
+          n,
+          (f0 / unitFactor).toPrecision(12),
+          (f0 / Q / unitFactor).toPrecision(12),
+          (f0 * (1 - k) / unitFactor).toPrecision(12),
+          (f0 * (1 + k) / unitFactor).toPrecision(12),
+        ].join(','));
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `resonance-centres-Q${Q}-N${N}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
