@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Winston Cone (CPC) Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 560px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .var-row {
+      display: grid;
+      grid-template-columns: 4em 1fr 3em;
+      gap: 0.5em;
+      align-items: center;
+      margin-top: 0.5em;
+    }
+    .var-row .sym {
+      font-style: italic;
+      font-size: 1.0em;
+      text-align: right;
+    }
+    .var-row input { margin-top: 0; min-width: 0; }
+    .var-row .unit { color: #555; font-size: 0.9em; text-align: left; }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.2em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.95em;
+      white-space: pre-line;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    .computed { color: #1565c0; }
+    .given { color: #2e7d32; }
+    .derived { color: #555; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 560px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Winston Cone (CPC) Calculator</h2>
+    <p class="intro">A 3D Winston cone (compound parabolic concentrator with circular cross-section) is fixed by any two of: acceptance half-angle &theta;, entrance diameter d<sub>in</sub>, exit diameter d<sub>out</sub>, and length L. Enter exactly two; the remaining two — together with concentration ratio and aperture areas — are computed.</p>
+
+    <!-- Sketch -->
+    <svg viewBox="0 0 440 280" style="width:100%;max-width:440px;display:block;margin:1em auto 0.5em;" aria-label="Winston cone cross section">
+      <!-- Cone body fill (entrance at top, wide; exit at bottom, narrow) -->
+      <path d="M 160 30 Q 160 134 190 186 L 250 186 Q 280 134 280 30 Z"
+            fill="#fff3e0" stroke="none"/>
+
+      <!-- Walls: parabolic, drawn as quadratic Bezier whose tangent is parallel
+           to the cone axis at the wide entrance and tilted by θ at the narrow exit. -->
+      <path d="M 280 30 Q 280 134 250 186" fill="none" stroke="#1565c0" stroke-width="2.2"/>
+      <path d="M 160 30 Q 160 134 190 186" fill="none" stroke="#1565c0" stroke-width="2.2"/>
+
+      <!-- Entrance and exit apertures (dashed) -->
+      <line x1="160" y1="30"  x2="280" y2="30"  stroke="#888" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="190" y1="186" x2="250" y2="186" stroke="#888" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Vertical symmetry axis -->
+      <line x1="220" y1="20" x2="220" y2="200" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+      <!-- d_in dimension above entrance (the wide end) -->
+      <line x1="160" y1="18" x2="280" y2="18" stroke="#222" stroke-width="1.2"/>
+      <line x1="160" y1="13" x2="160" y2="23" stroke="#222" stroke-width="1.6"/>
+      <line x1="280" y1="13" x2="280" y2="23" stroke="#222" stroke-width="1.6"/>
+      <text x="220" y="12" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">d<tspan baseline-shift="sub" font-size="10">in</tspan></text>
+
+      <!-- d_out dimension below exit (the narrow end) -->
+      <line x1="190" y1="200" x2="250" y2="200" stroke="#222" stroke-width="1.2"/>
+      <line x1="190" y1="195" x2="190" y2="205" stroke="#222" stroke-width="1.6"/>
+      <line x1="250" y1="195" x2="250" y2="205" stroke="#222" stroke-width="1.6"/>
+      <text x="220" y="216" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">d<tspan baseline-shift="sub" font-size="10">out</tspan></text>
+
+      <!-- L dimension on the right -->
+      <line x1="305" y1="30"  x2="305" y2="186" stroke="#2e7d32" stroke-width="1.4"/>
+      <line x1="300" y1="30"  x2="310" y2="30"  stroke="#2e7d32" stroke-width="1.6"/>
+      <line x1="300" y1="186" x2="310" y2="186" stroke="#2e7d32" stroke-width="1.6"/>
+      <text x="313" y="112" font-size="14" font-style="italic" font-weight="bold" fill="#1b5e20" font-family="Arial,sans-serif">L</text>
+
+      <!-- Acceptance angle theta at the exit edge:
+           wall tangent at exit (250,186) going back into cone is direction
+           ((280-250),(134-186))/|.| = (0.5, -0.866), i.e. 30° from axis -->
+      <!-- helper: axis dotted line going up from exit corner -->
+      <line x1="250" y1="186" x2="250" y2="151" stroke="#999" stroke-width="0.8" stroke-dasharray="2,2"/>
+      <!-- Arc from axis direction to wall tangent direction (sweep clockwise in SVG) -->
+      <path d="M 250 156 A 30 30 0 0 1 265 160.02" fill="none" stroke="#c62828" stroke-width="1.6"/>
+      <text x="261" y="170" font-size="14" font-style="italic" font-weight="bold" fill="#b71c1c" font-family="Arial,sans-serif">&#952;</text>
+
+      <!-- Legend -->
+      <g font-family="Arial,sans-serif" font-size="11" fill="#333">
+        <text x="20" y="240"><tspan font-style="italic" font-weight="bold" fill="#b71c1c">&#952;</tspan> = acceptance half-angle (wall tilt at the exit)</text>
+        <text x="20" y="256"><tspan font-style="italic" font-weight="bold">d<tspan baseline-shift="sub" font-size="9">in</tspan></tspan> = entrance diameter (wide end), <tspan font-style="italic" font-weight="bold">d<tspan baseline-shift="sub" font-size="9">out</tspan></tspan> = exit diameter (narrow end)</text>
+        <text x="20" y="272"><tspan font-style="italic" font-weight="bold" fill="#1b5e20">L</tspan> = cone length along axis. Wall is tangent to the axis at the entrance.</text>
+      </g>
+    </svg>
+
+    <label for="length-unit">Length unit:</label>
+    <select id="length-unit">
+      <option value="m">m (metres)</option>
+      <option value="cm">cm (centimetres)</option>
+      <option value="mm" selected>mm (millimetres)</option>
+    </select>
+
+    <label for="angle-unit">Angle unit:</label>
+    <select id="angle-unit">
+      <option value="deg" selected>degrees</option>
+      <option value="rad">radians</option>
+    </select>
+
+    <label style="margin-top:1.2em;">Enter exactly two quantities (leave the others blank):</label>
+
+    <div class="var-row">
+      <span class="sym">&#952; =</span>
+      <input type="number" id="in-theta" step="any" placeholder="acceptance half-angle">
+      <span class="unit" id="unit-theta">deg</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">d<sub>in</sub> =</span>
+      <input type="number" id="in-din" step="any" placeholder="entrance diameter">
+      <span class="unit" id="unit-din">mm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">d<sub>out</sub> =</span>
+      <input type="number" id="in-dout" step="any" placeholder="exit diameter">
+      <span class="unit" id="unit-dout">mm</span>
+    </div>
+    <div class="var-row">
+      <span class="sym">L =</span>
+      <input type="number" id="in-L" step="any" placeholder="cone length">
+      <span class="unit" id="unit-L">mm</span>
+    </div>
+
+    <button onclick="computeWinston()">Compute</button>
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    const lengthFactors = { m: 1, cm: 1e-2, mm: 1e-3 };
+
+    function refreshUnitLabels() {
+      const u = document.getElementById('length-unit').value;
+      const au = document.getElementById('angle-unit').value;
+      document.getElementById('unit-theta').textContent = au;
+      document.getElementById('unit-din').textContent = u;
+      document.getElementById('unit-dout').textContent = u;
+      document.getElementById('unit-L').textContent = u;
+    }
+    document.getElementById('length-unit').addEventListener('change', refreshUnitLabels);
+    document.getElementById('angle-unit').addEventListener('change', refreshUnitLabels);
+
+    function readField(id) {
+      const v = document.getElementById(id).value.trim();
+      if (v === '') return undefined;
+      const x = parseFloat(v);
+      if (!isFinite(x)) return NaN;
+      return x;
+    }
+
+    function showError(msg) {
+      const r = document.getElementById('result');
+      r.style.display = 'block';
+      r.classList.add('error');
+      r.textContent = msg;
+    }
+
+    // Bisection on a strictly monotonic function f over (lo, hi).
+    function bisect(f, lo, hi, tol = 1e-12, maxIter = 200) {
+      let flo = f(lo), fhi = f(hi);
+      if (flo === 0) return lo;
+      if (fhi === 0) return hi;
+      if (flo * fhi > 0) throw new Error('No solution found for the requested geometry.');
+      for (let i = 0; i < maxIter; i++) {
+        const mid = 0.5 * (lo + hi);
+        const fmid = f(mid);
+        if (Math.abs(fmid) < tol || (hi - lo) < tol) return mid;
+        if (flo * fmid < 0) { hi = mid; fhi = fmid; }
+        else { lo = mid; flo = fmid; }
+      }
+      return 0.5 * (lo + hi);
+    }
+
+    function computeWinston() {
+      const lengthUnit = document.getElementById('length-unit').value;
+      const angleUnit = document.getElementById('angle-unit').value;
+      const Lf = lengthFactors[lengthUnit];
+      const Af = Lf * Lf;
+      const Tf = (angleUnit === 'deg') ? Math.PI / 180 : 1;
+
+      const raw = {
+        theta: readField('in-theta'),
+        d_in:  readField('in-din'),
+        d_out: readField('in-dout'),
+        L:     readField('in-L'),
+      };
+      for (const k of Object.keys(raw)) {
+        if (Number.isNaN(raw[k])) { showError('Invalid number in field ' + k + '.'); return; }
+      }
+
+      const provided = {};
+      for (const k of Object.keys(raw)) if (raw[k] !== undefined) provided[k] = raw[k];
+      const keys = Object.keys(provided);
+      if (keys.length !== 2) {
+        showError('Please enter exactly two values (you entered ' + keys.length + ').');
+        return;
+      }
+
+      // Convert to SI
+      const SI = {};
+      for (const k of keys) {
+        const v = provided[k];
+        if (v <= 0) { showError(k + ' must be positive.'); return; }
+        if (k === 'theta') SI.theta = v * Tf;
+        else SI[k] = v * Lf;
+      }
+      if (SI.theta !== undefined) {
+        if (SI.theta <= 0 || SI.theta >= Math.PI / 2) {
+          showError('θ must be in (0, 90°) — equivalently (0, π/2 rad).');
+          return;
+        }
+      }
+
+      let { theta, d_in, d_out, L } = SI;
+      const has = (k) => SI[k] !== undefined;
+
+      try {
+        if (has('theta') && has('d_in')) {
+          d_out = d_in * Math.sin(theta);
+        } else if (has('theta') && has('d_out')) {
+          d_in = d_out / Math.sin(theta);
+        } else if (has('theta') && has('L')) {
+          // L = d_out (1+sinθ)cosθ / (2 sin²θ)
+          const s = Math.sin(theta), c = Math.cos(theta);
+          d_out = 2 * L * s * s / ((1 + s) * c);
+          d_in = d_out / s;
+        } else if (has('d_in') && has('d_out')) {
+          if (d_out > d_in) throw new Error('Exit diameter must not exceed entrance diameter.');
+          theta = Math.asin(d_out / d_in);
+        } else if (has('d_in') && has('L')) {
+          // L = d_in (1+sinθ)cosθ / (2 sinθ)   [strictly decreasing in θ]
+          const target = L / d_in;
+          const f = (t) => (1 + Math.sin(t)) * Math.cos(t) / (2 * Math.sin(t)) - target;
+          theta = bisect(f, 1e-9, Math.PI / 2 - 1e-9);
+          d_out = d_in * Math.sin(theta);
+        } else if (has('d_out') && has('L')) {
+          // L = d_out (1+sinθ)cosθ / (2 sin²θ)   [strictly decreasing in θ]
+          const target = L / d_out;
+          const f = (t) => (1 + Math.sin(t)) * Math.cos(t) / (2 * Math.sin(t) * Math.sin(t)) - target;
+          theta = bisect(f, 1e-9, Math.PI / 2 - 1e-9);
+          d_in = d_out / Math.sin(theta);
+        } else {
+          throw new Error('Unsupported combination of inputs.');
+        }
+      } catch (e) {
+        showError(e.message);
+        return;
+      }
+
+      if (L === undefined) {
+        const s = Math.sin(theta), c = Math.cos(theta);
+        L = d_out * (1 + s) * c / (2 * s * s);
+      }
+
+      if (!(theta > 0) || !(theta < Math.PI / 2) ||
+          !(d_in > 0) || !(d_out > 0) || !(L > 0)) {
+        showError('Could not derive a valid Winston-cone geometry from those inputs.');
+        return;
+      }
+
+      // Concentration and areas
+      const C = 1 / Math.pow(Math.sin(theta), 2);
+      const A_in = Math.PI * d_in * d_in / 4;
+      const A_out = Math.PI * d_out * d_out / 4;
+
+      // Convert back to user units
+      const out = {
+        theta: theta / Tf,
+        d_in: d_in / Lf,
+        d_out: d_out / Lf,
+        L: L / Lf,
+        A_in: A_in / Af,
+        A_out: A_out / Af,
+        C: C,
+      };
+
+      const lu = lengthUnit;
+      const lu2 = lengthUnit + '²';
+      const au = angleUnit;
+      const givenSet = new Set(keys);
+
+      function fmtRow(sym, key, val, unit) {
+        const cls = givenSet.has(key) ? 'given' : 'computed';
+        const tag = givenSet.has(key) ? '(input)    ' : '(computed) ';
+        return `<span class="${cls}">${tag} ${sym} = ${val.toExponential(6)} ${unit}</span>`;
+      }
+      function fmtDerived(sym, val, unit) {
+        return `<span class="derived">(derived)  ${sym} = ${val.toExponential(6)} ${unit}</span>`;
+      }
+
+      const r = document.getElementById('result');
+      r.classList.remove('error');
+      r.style.display = 'block';
+      r.innerHTML = [
+        fmtRow('θ',     'theta', out.theta, au),
+        fmtRow('d_in',  'd_in',  out.d_in,  lu),
+        fmtRow('d_out', 'd_out', out.d_out, lu),
+        fmtRow('L',     'L',     out.L,     lu),
+        fmtDerived('A_in ', out.A_in,  lu2),
+        fmtDerived('A_out', out.A_out, lu2),
+        fmtDerived('C    ', out.C, '   (= 1/sin²θ, 3D thermodynamic limit)'),
+      ].join('\n');
+    }
+
+    refreshUnitLabels();
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>

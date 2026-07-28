@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klopfenstein Taper Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 640px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 6em;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row input, .row select { margin-top: 0; min-width: 0; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-size: 0.92em;
+      line-height: 1.5;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    #plot { margin-top: 1.5em; width: 100%; height: 380px; }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 640px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      .two-col { grid-template-columns: 1fr; gap: 0; }
+      #plot { height: 300px; }
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 640px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+    details.help {
+      margin-top: 0.4em;
+      padding: 0.5em 0.9em;
+      background: #f4f8fd;
+      border: 1px solid #d6e6f5;
+      border-radius: 6px;
+      font-size: 0.9em;
+      line-height: 1.45;
+    }
+    details.help summary {
+      cursor: pointer;
+      color: #1565c0;
+      font-weight: 600;
+    }
+    details.help[open] summary { margin-bottom: 0.5em; }
+    details.help ul { padding-left: 1.2em; margin: 0.4em 0; }
+    details.help li { margin: 0.35em 0; }
+    details.help p { margin: 0.4em 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Klopfenstein Taper</h2>
+    <p class="intro">Reflection of a smooth impedance taper between a cavity of entrance diameter d<sub>1</sub> and exit diameter d<sub>2</sub>, compared with a simple linear taper. The Klopfenstein profile gives the lowest passband reflection for a given length (or equivalently, the shortest length for a given maximum ripple). Plot is |&Gamma;| in dB vs taper length L at the chosen design frequency.</p>
+
+    <!-- Sketch: side view of taper with both profiles overlaid -->
+    <svg viewBox="0 0 380 200" style="width:100%;max-width:380px;display:block;margin:1em auto 0.5em;" aria-label="Taper profile sketch">
+      <!-- Klopfenstein fill (light) -->
+      <path d="M 60 35 C 180 35 180 75 300 75 L 300 125 C 180 125 180 165 60 165 Z" fill="#e8f0fa" stroke="none"/>
+      <!-- Linear profile lines (dashed red) -->
+      <line x1="60" y1="35"  x2="300" y2="75"  stroke="#c62828" stroke-width="1.6" stroke-dasharray="5,3"/>
+      <line x1="60" y1="165" x2="300" y2="125" stroke="#c62828" stroke-width="1.6" stroke-dasharray="5,3"/>
+      <!-- Klopfenstein S-curve walls (solid blue) -->
+      <path d="M 60 35  C 180 35 180 75 300 75"  fill="none" stroke="#1565c0" stroke-width="2"/>
+      <path d="M 60 165 C 180 165 180 125 300 125" fill="none" stroke="#1565c0" stroke-width="2"/>
+      <!-- End caps -->
+      <line x1="60"  y1="35"  x2="60"  y2="165" stroke="#444" stroke-width="1.2"/>
+      <line x1="300" y1="75"  x2="300" y2="125" stroke="#444" stroke-width="1.2"/>
+      <!-- d1 dimension (left) -->
+      <line x1="45" y1="35"  x2="45" y2="165" stroke="#222" stroke-width="1"/>
+      <line x1="40" y1="35"  x2="50" y2="35"  stroke="#222" stroke-width="1.4"/>
+      <line x1="40" y1="165" x2="50" y2="165" stroke="#222" stroke-width="1.4"/>
+      <text x="30" y="103" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">d<tspan baseline-shift="sub" font-size="10">1</tspan></text>
+      <!-- d2 dimension (right) -->
+      <line x1="315" y1="75"  x2="315" y2="125" stroke="#222" stroke-width="1"/>
+      <line x1="310" y1="75"  x2="320" y2="75"  stroke="#222" stroke-width="1.4"/>
+      <line x1="310" y1="125" x2="320" y2="125" stroke="#222" stroke-width="1.4"/>
+      <text x="332" y="103" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">d<tspan baseline-shift="sub" font-size="10">2</tspan></text>
+      <!-- L dimension (bottom) -->
+      <line x1="60"  y1="183" x2="300" y2="183" stroke="#222" stroke-width="1"/>
+      <line x1="60"  y1="178" x2="60"  y2="188" stroke="#222" stroke-width="1.4"/>
+      <line x1="300" y1="178" x2="300" y2="188" stroke="#222" stroke-width="1.4"/>
+      <text x="180" y="198" text-anchor="middle" font-size="13" font-style="italic" font-weight="bold" fill="#111" font-family="Arial,sans-serif">L</text>
+      <!-- Legend swatches -->
+      <line x1="245" y1="15" x2="265" y2="15" stroke="#1565c0" stroke-width="2"/>
+      <text x="269" y="19" font-size="10" fill="#1565c0" font-family="Arial,sans-serif">Klopfenstein</text>
+      <line x1="245" y1="28" x2="265" y2="28" stroke="#c62828" stroke-width="1.6" stroke-dasharray="5,3"/>
+      <text x="269" y="32" font-size="10" fill="#c62828" font-family="Arial,sans-serif">Linear</text>
+    </svg>
+
+    <div class="two-col">
+      <div>
+        <label for="d1-value">Entrance diameter d<sub>1</sub>:</label>
+        <div class="row">
+          <input type="number" id="d1-value" step="any" placeholder="e.g. 20">
+          <select id="d1-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+      </div>
+      <div>
+        <label for="d2-value">Exit diameter d<sub>2</sub>:</label>
+        <div class="row">
+          <input type="number" id="d2-value" step="any" placeholder="e.g. 5">
+          <select id="d2-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+      </div>
+    </div>
+
+    <label for="exponent">Impedance vs diameter scaling Z &prop; d<sup>n</sup>:</label>
+    <select id="exponent">
+      <option value="-2" selected>n = &minus;2 (acoustic horn / lightpipe; area-inverse)</option>
+      <option value="-1">n = &minus;1 (impedance inverse-linear in diameter)</option>
+      <option value="1">n = +1 (linear in diameter)</option>
+      <option value="2">n = +2 (proportional to area)</option>
+    </select>
+    <small>Cavity impedance ratio is Z<sub>2</sub>/Z<sub>1</sub> = (d<sub>2</sub>/d<sub>1</sub>)<sup>n</sup>. Only the ratio enters the reflection calculation.</small>
+    <details class="help">
+      <summary>What is n? How do I pick it?</summary>
+      <p>n parameterises how the wave (or characteristic) impedance Z scales with the cavity diameter d. Klopfenstein's analysis is impedance-based, so the diameter-to-impedance mapping is a modelling choice that depends on <i>what</i> the cavity is carrying.</p>
+      <ul>
+        <li><b>EM wave in a conducting-walled (waveguide) cavity, in vacuum or filled with a dielectric &mdash; the typical "microwave cavity" case</b>: above cutoff, the wave impedance Z<sub>TE</sub> = &eta;/&radic;(1&minus;(f<sub>c</sub>/f)&sup2;) is approximately the intrinsic impedance &eta; = &radic;(&mu;/&epsilon;) (= &eta;<sub>0</sub>/&radic;&epsilon;<sub>r</sub> in a dielectric), <i>independent of the cavity diameter</i>. So <b>n &asymp; 0</b> and the smooth geometric taper introduces almost no impedance step. The reflection at such a transition is dominated by mode-matching and edge effects rather than impedance mismatch, and this Klopfenstein calculation is not the right model. The result of the calculator in this case is "no useful reflection prediction"; use full-wave simulation or mode-matching instead. (Closer to cutoff, where f<sub>c</sub> &prop; 1/d makes Z rise sharply for small d, an effective frequency-dependent n &gt; 0 appears, but this calculator's single-n model is still only a rough guide.)</li>
+        <li><b>Acoustic horn or multi-mode optical/THz lightpipe</b>: Z = &rho;v/A &prop; 1/d&sup2;. <b>n = &minus;2</b> (the default). This is Klopfenstein's classical regime.</li>
+        <li><b>TEM line such as coax with the inner/outer ratio held constant</b>: Z = (&eta;/2&pi;) ln(b/a) is independent of absolute size, so <b>n = 0</b>.</li>
+        <li><b>Coax where only one conductor is tapered, or microstrip with a tapered width</b>: Z depends logarithmically on the geometry, not as a clean power law; pick n by fitting Z vs d numerically over the range of interest, or use a stepped transformer.</li>
+      </ul>
+      <p>Bottom line for the user's typical case: if you are tapering a conductor-walled microwave waveguide between two diameters and the wave is well above cutoff, the impedance model behind this calculator does not apply. Use it for acoustic / multi-mode lightpipe-style geometries, or as a side-by-side comparison of the Klopfenstein vs linear <i>shape</i> for an assumed impedance step.</p>
+    </details>
+
+    <div class="two-col">
+      <div>
+        <label for="freq">Design frequency f:</label>
+        <div class="row">
+          <input type="number" id="freq" step="any" value="5">
+          <select id="freq-unit"><option value="MHz">MHz</option><option value="GHz" selected>GHz</option><option value="THz">THz</option></select>
+        </div>
+      </div>
+      <div>
+        <label for="wave-speed">Wave speed v (m/s):</label>
+        <input type="number" id="wave-speed" step="any" value="2.99792458e8">
+        <small>Defaults to c<sub>0</sub>. Use c<sub>0</sub>/&radic;&epsilon;<sub>r</sub> for a dielectric-filled taper.</small>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label for="gm-db">Klopfenstein target max ripple &Gamma;<sub>m</sub>:</label>
+        <div class="row">
+          <input type="number" id="gm-db" step="any" value="-30">
+          <select disabled><option>dB</option></select>
+        </div>
+      </div>
+      <div>
+        <label for="lmax">Length range to plot, L<sub>max</sub>:</label>
+        <div class="row">
+          <input type="number" id="lmax" step="any" placeholder="auto">
+          <select id="lmax-unit"><option value="m">m</option><option value="cm">cm</option><option value="mm" selected>mm</option></select>
+        </div>
+        <small>Leave blank for auto (10 wavelengths).</small>
+      </div>
+    </div>
+
+    <button onclick="compute()">Compute</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+    <div id="plot"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <p>Let <code>Z<sub>1</sub>, Z<sub>2</sub></code> be the impedances at the entrance and exit, obtained from the diameters via the chosen scaling <code>Z &prop; d<sup>n</sup></code>, so <code>Z<sub>2</sub>/Z<sub>1</sub> = (d<sub>2</sub>/d<sub>1</sub>)<sup>n</sup></code>.</p>
+    <p>In the small-reflection approximation the lumped step reflection is <code>&Gamma;<sub>0</sub> = &frac12; ln(Z<sub>2</sub>/Z<sub>1</sub>)</code>. Phase along the taper of length <code>L</code> at design frequency <code>f</code> with wave speed <code>v</code>: <code>&theta; = &beta;L</code>, <code>&beta; = 2&pi;f/v</code>.</p>
+    <ul>
+      <li><b>Linear taper</b> (diameter changes linearly): <code>|&Gamma;<sub>lin</sub>(&theta;)| = |&Gamma;<sub>0</sub>| &middot; |sin&theta;/&theta;|</code>. Envelope decays like 1/<code>&theta;</code>.</li>
+      <li><b>Klopfenstein taper</b> with design max-ripple <code>&Gamma;<sub>m</sub></code>: define <code>A = arccosh(|&Gamma;<sub>0</sub>|/&Gamma;<sub>m</sub>)</code>. Then
+        <ul>
+          <li>For <code>&theta; &ge; A</code> (passband): <code>|&Gamma;<sub>K</sub>(&theta;)| = |&Gamma;<sub>0</sub>| &middot; |cos&radic;(&theta;&sup2;&minus;A&sup2;)| / cosh&nbsp;A</code>, bounded by <code>&Gamma;<sub>m</sub></code>.</li>
+          <li>For <code>&theta; &lt; A</code> (stopband): <code>|&Gamma;<sub>K</sub>(&theta;)| = |&Gamma;<sub>0</sub>| &middot; cosh&radic;(A&sup2;&minus;&theta;&sup2;) / cosh&nbsp;A</code>.</li>
+        </ul>
+        Passband cutoff: <code>L<sub>pb</sub> = A&middot;v/(2&pi;f) = A&lambda;/(2&pi;)</code>.
+      </li>
+      <li>Transmission (lossless): <code>|T|&sup2; = 1 &minus; |&Gamma;|&sup2;</code>, so the insertion loss in dB is <code>10 log<sub>10</sub>(1 &minus; |&Gamma;|&sup2;)</code>.</li>
+      <li>Underlying Z(z) profile (not plotted here): <code>ln(Z(z)/&radic;(Z<sub>1</sub>Z<sub>2</sub>)) = (&Gamma;<sub>0</sub>/cosh&nbsp;A) &middot; A&sup2; &phi;(2z/L &minus; 1, A)</code> with <code>&phi;(x,A) = &int;<sub>0</sub><sup>x</sup> I<sub>1</sub>(A&radic;(1&minus;y&sup2;))/(A&radic;(1&minus;y&sup2;)) dy</code>.</li>
+    </ul>
+    <h3 style="margin-top:1.5em;">Limits of validity &amp; what to do for large transitions</h3>
+    <p>Both the Klopfenstein and the linear-taper formulas come from a perturbation expansion in the local reflection coefficient. They are quantitative while <code>|&Gamma;<sub>0</sub>| = &frac12;|ln(Z<sub>2</sub>/Z<sub>1</sub>)|</code> stays roughly below 0.5. Beyond that, two assumptions break down:</p>
+    <ul>
+      <li>The expressions add up single (first-order) reflections coherently and ignore multiple reflections inside the taper; for a large step, the multiply-reflected paths become as large as the direct ones, so simply summing the first-order term mis-estimates the answer.</li>
+      <li>The analysis treats the taper as a 1D transmission line with a single propagating mode. A large cross-section change excites higher-order modes that aren't part of the model, so |&Gamma;| from the formulas no longer represents the physical reflection.</li>
+    </ul>
+    <p>For large impedance steps, or for the typical case of a single-mode waveguide opening into a much larger (multi-mode) cavity, more appropriate approaches are:</p>
+    <ul>
+      <li><b>Stepped quarter-wave transformer</b> (binomial or Chebyshev, Pozar &sect;5.6&ndash;5.7) &mdash; a chain of discrete &lambda;/4 sections handles arbitrary impedance ratios with each step analysed exactly.</li>
+      <li><b>Mode-matching method</b> &mdash; expand the field in modes at each cross-section and enforce boundary conditions at the interfaces. Standard for waveguide step junctions and multi-mode transitions.</li>
+      <li><b>Full-wave numerical simulation</b> (HFSS, CST, COMSOL, openEMS) &mdash; solves Maxwell's equations on the 3D geometry without any of the small-reflection or single-mode assumptions.</li>
+      <li><b>Coupling apertures (irises), pins, or loops</b> &mdash; for a waveguide entering a large cavity, the standard engineering practice is not a smooth geometric taper but a deliberate small-aperture or probe coupling whose dimensions set the external coupling strength directly. The Klopfenstein analysis assumes a single mode propagates throughout, which fails when the cavity supports many modes.</li>
+      <li><b>Corrugated or stepped horn antennas</b> &mdash; for free-space couplings, designed horns achieve low reflection over wide bandwidths via engineered mode control rather than impedance tapering.</li>
+    </ul>
+    <p style="margin-bottom:0;">Reference: R. W. Klopfenstein, "A transmission line taper of improved design," Proc. IRE 44, 31 (1956); see also Pozar, Microwave Engineering &sect;5.8.</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script>
+    const c0 = 2.99792458e8;
+    const lengthFactor = { m: 1, cm: 1e-2, mm: 1e-3 };
+    const freqFactor   = { MHz: 1e6, GHz: 1e9, THz: 1e12 };
+
+    function compute() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.classList.remove('error');
+
+      const d1 = parseFloat(document.getElementById('d1-value').value) * lengthFactor[document.getElementById('d1-unit').value];
+      const d2 = parseFloat(document.getElementById('d2-value').value) * lengthFactor[document.getElementById('d2-unit').value];
+      const n  = parseFloat(document.getElementById('exponent').value);
+      const f  = parseFloat(document.getElementById('freq').value) * freqFactor[document.getElementById('freq-unit').value];
+      const v  = parseFloat(document.getElementById('wave-speed').value);
+      const Gm_dB = parseFloat(document.getElementById('gm-db').value);
+
+      for (const [k, x] of Object.entries({ d1, d2, f, v })) {
+        if (!Number.isFinite(x) || x <= 0) {
+          resultDiv.classList.add('error');
+          resultDiv.textContent = `Enter a positive value for ${k}.`;
+          Plotly.purge('plot');
+          return;
+        }
+      }
+      if (!Number.isFinite(Gm_dB) || Gm_dB >= 0) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'Target max ripple Γ_m must be negative (in dB).';
+        Plotly.purge('plot');
+        return;
+      }
+      if (d1 === d2) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'No impedance step: d1 = d2.';
+        Plotly.purge('plot');
+        return;
+      }
+
+      const Z_ratio = Math.pow(d2 / d1, n);             // Z2 / Z1
+      const Gamma0  = 0.5 * Math.log(Z_ratio);          // signed
+      const absG0   = Math.abs(Gamma0);
+      const Gamma0_dB = 20 * Math.log10(absG0);
+
+      const Gm = Math.pow(10, Gm_dB / 20);              // linear
+      if (Gm >= absG0) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent =
+          `Target ripple |Γ_m| (${Gm.toExponential(3)}) is not smaller than |Γ_0| (${absG0.toExponential(3)}, ${Gamma0_dB.toFixed(2)} dB). Pick a more negative Γ_m.`;
+        Plotly.purge('plot');
+        return;
+      }
+
+      const A = Math.acosh(absG0 / Gm);                 // dimensionless
+      const beta = 2 * Math.PI * f / v;                 // 1/m
+      const lambda = v / f;                             // m
+      const Lpb = A / beta;                             // m
+      const Lpb_mm = Lpb * 1e3;
+
+      // Auto length range
+      let Lmax_mm;
+      const lmaxRaw = document.getElementById('lmax').value.trim();
+      if (lmaxRaw === '') {
+        Lmax_mm = (lambda * 4) * 1e3;                   // 4 wavelengths
+      } else {
+        Lmax_mm = parseFloat(lmaxRaw) * lengthFactor[document.getElementById('lmax-unit').value] * 1e3;
+        if (!Number.isFinite(Lmax_mm) || Lmax_mm <= 0) {
+          resultDiv.classList.add('error');
+          resultDiv.textContent = 'L_max must be positive (or leave blank for auto).';
+          Plotly.purge('plot');
+          return;
+        }
+      }
+
+      // Generate plot data
+      const N = 800;
+      const Larr = [], gK = [], gL = [], gK_dB = [], gL_dB = [];
+      const FLOOR = -100;
+      for (let i = 0; i <= N; i++) {
+        const L_mm = Lmax_mm * i / N;
+        const L = L_mm * 1e-3;
+        const theta = beta * L;
+
+        let gk;
+        if (theta >= A) {
+          gk = absG0 * Math.abs(Math.cos(Math.sqrt(theta * theta - A * A))) / Math.cosh(A);
+        } else {
+          gk = absG0 * Math.cosh(Math.sqrt(A * A - theta * theta)) / Math.cosh(A);
+        }
+
+        let gl;
+        if (theta < 1e-12) {
+          gl = absG0;
+        } else {
+          gl = absG0 * Math.abs(Math.sin(theta) / theta);
+        }
+
+        Larr.push(L_mm);
+        gK.push(gk);
+        gL.push(gl);
+        gK_dB.push(gk > 0 ? Math.max(20 * Math.log10(gk), FLOOR) : FLOOR);
+        gL_dB.push(gl > 0 ? Math.max(20 * Math.log10(gl), FLOOR) : FLOOR);
+      }
+
+      // Result summary
+      let html = '<h4>Impedance step</h4>';
+      html += `d<sub>2</sub>/d<sub>1</sub> = ${(d2/d1).toPrecision(5)}, Z<sub>2</sub>/Z<sub>1</sub> = ${Z_ratio.toPrecision(5)}<br>`;
+      html += `&Gamma;<sub>0</sub> = &frac12; ln(Z<sub>2</sub>/Z<sub>1</sub>) = ${Gamma0.toExponential(4)}  (${Gamma0_dB.toFixed(2)} dB)<br>`;
+      if (absG0 > 0.5) {
+        html += `<small style="color:#b71c1c">Note: |&Gamma;<sub>0</sub>| = ${absG0.toFixed(3)} &gt; 0.5; the small-reflection approximation underlying both Klopfenstein and linear-taper formulas is no longer quantitative for this large an impedance step. Treat the curves below as indicative.</small><br>`;
+      }
+
+      html += '<h4 style="margin-top:1em;">Klopfenstein design</h4>';
+      html += `Target ripple &Gamma;<sub>m</sub> = ${Gm.toExponential(3)} (${Gm_dB.toFixed(2)} dB)<br>`;
+      html += `A = arccosh(|&Gamma;<sub>0</sub>|/&Gamma;<sub>m</sub>) = ${A.toFixed(4)}<br>`;
+      html += `Wavelength at f = ${(f/1e9).toFixed(4)} GHz: &lambda; = ${(lambda*1e3).toPrecision(5)} mm<br>`;
+      html += `Passband cutoff length L<sub>pb</sub> = A&lambda;/(2&pi;) = ${Lpb_mm.toPrecision(5)} mm. For L &gt; L<sub>pb</sub>, |&Gamma;<sub>K</sub>| stays below &Gamma;<sub>m</sub>.`;
+
+      // Find first zero (null) of Klopfenstein for L > Lpb: cos√(θ²−A²)=0 → √(θ²−A²)=π/2 → θ=√(A²+π²/4)
+      const theta_null = Math.sqrt(A * A + Math.PI * Math.PI / 4);
+      const Lnull_mm = (theta_null / beta) * 1e3;
+      html += `<br>First Klopfenstein null at L &asymp; ${Lnull_mm.toPrecision(5)} mm (&theta; = &radic;(A&sup2;+&pi;&sup2;/4) = ${theta_null.toFixed(3)}).`;
+      // Linear taper: first zero of sin(θ) at θ=π
+      const Lzero_lin_mm = (Math.PI / beta) * 1e3;
+      html += `<br>Linear-taper first null at L = &lambda;/2 = ${Lzero_lin_mm.toPrecision(5)} mm.`;
+
+      resultDiv.innerHTML = html;
+
+      // Plot
+      const tracesK = {
+        x: Larr, y: gK_dB,
+        mode: 'lines',
+        name: 'Klopfenstein',
+        line: { color: '#1565c0', width: 2 },
+        hovertemplate: 'L = %{x:.3f} mm<br>|Γ| = %{y:.2f} dB<extra>Klopfenstein</extra>',
+      };
+      const tracesL = {
+        x: Larr, y: gL_dB,
+        mode: 'lines',
+        name: 'Linear',
+        line: { color: '#c62828', width: 1.6, dash: 'dash' },
+        hovertemplate: 'L = %{x:.3f} mm<br>|Γ| = %{y:.2f} dB<extra>Linear</extra>',
+      };
+
+      const shapes = [
+        // Γm horizontal ref line
+        {
+          type: 'line',
+          xref: 'paper', x0: 0, x1: 1,
+          yref: 'y', y0: Gm_dB, y1: Gm_dB,
+          line: { color: '#1565c0', width: 1, dash: 'dot' },
+        },
+        // Γ0 horizontal ref line
+        {
+          type: 'line',
+          xref: 'paper', x0: 0, x1: 1,
+          yref: 'y', y0: Gamma0_dB, y1: Gamma0_dB,
+          line: { color: '#555', width: 1, dash: 'dot' },
+        },
+        // Passband cutoff Lpb vertical line
+        {
+          type: 'line',
+          xref: 'x', x0: Lpb_mm, x1: Lpb_mm,
+          yref: 'paper', y0: 0, y1: 1,
+          line: { color: '#1565c0', width: 1, dash: 'dot' },
+        },
+      ];
+      const annotations = [
+        { x: 0.02, y: Gm_dB, xref: 'paper', yref: 'y', text: 'Γ_m', showarrow: false, font: { color: '#1565c0', size: 11 }, xanchor: 'left', yanchor: 'bottom' },
+        { x: 0.02, y: Gamma0_dB, xref: 'paper', yref: 'y', text: 'Γ_0', showarrow: false, font: { color: '#555', size: 11 }, xanchor: 'left', yanchor: 'bottom' },
+        { x: Lpb_mm, y: 0.98, xref: 'x', yref: 'paper', text: ' L_pb', showarrow: false, font: { color: '#1565c0', size: 11 }, xanchor: 'left', yanchor: 'top' },
+      ];
+
+      const layout = {
+        title: { text: `Reflection vs taper length at f = ${(f/1e9).toFixed(3)} GHz`, font: { size: 13 } },
+        xaxis: { title: 'Taper length L (mm)', gridcolor: '#eee', range: [0, Lmax_mm] },
+        yaxis: { title: '|Γ|  (dB)', gridcolor: '#eee', range: [Math.max(FLOOR, Math.min(-80, Gm_dB - 20)), 5] },
+        margin: { l: 60, r: 20, t: 50, b: 50 },
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff',
+        showlegend: true,
+        legend: { x: 0.99, y: 0.99, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.85)', bordercolor: '#ccc', borderwidth: 1 },
+        shapes,
+        annotations,
+      };
+
+      Plotly.newPlot('plot', [tracesK, tracesL], layout, { responsive: true, displaylogo: false });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPW Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+      font-weight: normal;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .input-row input {
+      flex: 1;
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .input-row select, select {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      background: white;
+    }
+    input[type=number] {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      width: 100%;
+    }
+    .radio-group {
+      display: flex;
+      gap: 2em;
+      margin-top: 0.5em;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin-top: 1.5em;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.8em;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover { background: #388e3c; }
+    .result { margin-top: 1.5em; line-height: 2em; }
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-top: 1em;
+      margin-bottom: 0.1em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+    }
+    table { margin-top: 2em; width: 100%; border-collapse: collapse; }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 0.5em; text-align: left; }
+    th { background: #f0f0f0; }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+    .warn { color: #c62828; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Coplanar Waveguide (CPW) Calculator</h2>
+    <p style="color:#555; margin-top:0; font-size:0.95em;">Quasi-static conformal-mapping analysis (Ghione &amp; Naldi 1987). Valid when W, S &Lt; &lambda;.</p>
+
+    <!-- Cross-section sketch -->
+    <svg viewBox="0 0 530 240" style="width:100%;max-width:530px;display:block;margin:1.5em auto 0.5em;" aria-label="CPW cross-section">
+
+      <!-- Air region -->
+      <rect x="48" y="22" width="420" height="82" fill="#e8f4ff" stroke="#b8c8dd" stroke-width="0.6"/>
+      <text x="258" y="66" text-anchor="middle" fill="#445566" font-size="13" font-family="Arial,sans-serif">Air</text>
+
+      <!-- Substrate -->
+      <rect x="48" y="117" width="420" height="78" fill="#dde8d4" stroke="#aabb99" stroke-width="0.8"/>
+      <text x="258" y="161" text-anchor="middle" fill="#334433" font-size="14" font-family="Arial,sans-serif">Substrate &#160;(&#949;<tspan baseline-shift="sub" font-size="11">r</tspan>)</text>
+
+      <!-- Left ground plane -->
+      <rect x="48" y="104" width="126" height="13" fill="#4a5568"/>
+      <text x="111" y="99" text-anchor="middle" fill="#334" font-size="11" font-family="Arial,sans-serif">GND</text>
+
+      <!-- Right ground plane -->
+      <rect x="356" y="104" width="112" height="13" fill="#4a5568"/>
+      <text x="412" y="99" text-anchor="middle" fill="#334" font-size="11" font-family="Arial,sans-serif">GND</text>
+
+      <!-- Center trace -->
+      <rect x="210" y="104" width="100" height="13" fill="#c8a000" stroke="#99770088" stroke-width="0.5"/>
+      <text x="260" y="99" text-anchor="middle" fill="#553300" font-size="11" font-family="Arial,sans-serif">Trace</text>
+
+      <!-- Back ground plane (toggled by JS) -->
+      <g id="svg-backgnd">
+        <rect x="48" y="195" width="420" height="9" fill="#4a5568"/>
+        <text x="258" y="218" text-anchor="middle" fill="#334" font-size="11" font-family="Arial,sans-serif">Back ground plane</text>
+      </g>
+
+      <!-- Dotted guide lines -->
+      <line x1="174" y1="75" x2="174" y2="104" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <line x1="210" y1="89" x2="210" y2="104" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <line x1="310" y1="89" x2="310" y2="104" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <line x1="356" y1="75" x2="356" y2="104" stroke="#999" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+      <!-- Dimension W: y=87, x 210→310 -->
+      <line x1="210" y1="87" x2="310" y2="87" stroke="#222" stroke-width="1.2"/>
+      <line x1="210" y1="82" x2="210" y2="92" stroke="#222" stroke-width="1.6"/>
+      <line x1="310" y1="82" x2="310" y2="92" stroke="#222" stroke-width="1.6"/>
+      <text x="260" y="84" text-anchor="middle" fill="#111" font-size="13" font-style="italic" font-family="Arial,sans-serif">W</text>
+
+      <!-- Dimension S left: y=74, x 174→210 -->
+      <line x1="174" y1="74" x2="210" y2="74" stroke="#222" stroke-width="1.2"/>
+      <line x1="174" y1="69" x2="174" y2="79" stroke="#222" stroke-width="1.6"/>
+      <line x1="210" y1="69" x2="210" y2="79" stroke="#222" stroke-width="1.6"/>
+      <text x="192" y="69" text-anchor="middle" fill="#111" font-size="13" font-style="italic" font-family="Arial,sans-serif">S</text>
+
+      <!-- Dimension S right: y=74, x 310→356 -->
+      <line x1="310" y1="74" x2="356" y2="74" stroke="#222" stroke-width="1.2"/>
+      <line x1="310" y1="69" x2="310" y2="79" stroke="#222" stroke-width="1.6"/>
+      <line x1="356" y1="69" x2="356" y2="79" stroke="#222" stroke-width="1.6"/>
+      <text x="333" y="69" text-anchor="middle" fill="#111" font-size="13" font-style="italic" font-family="Arial,sans-serif">S</text>
+
+      <!-- Dimension h: vertical, x=485, y 117→195 -->
+      <line x1="485" y1="117" x2="485" y2="195" stroke="#222" stroke-width="1.2"/>
+      <line x1="480" y1="117" x2="490" y2="117" stroke="#222" stroke-width="1.6"/>
+      <line x1="480" y1="195" x2="490" y2="195" stroke="#222" stroke-width="1.6"/>
+      <text x="498" y="160" text-anchor="start" fill="#111" font-size="13" font-style="italic" font-family="Arial,sans-serif">h</text>
+    </svg>
+
+    <!-- Inputs -->
+    <label>Relative dielectric constant &#949;<sub>r</sub>:</label>
+    <div class="input-row">
+      <input type="number" id="eps_r" step="any" placeholder="e.g. 11.45">
+      <select onchange="applyPreset(this.value)" style="min-width:160px">
+        <option value="">&#8212; preset material &#8212;</option>
+        <option value="11.45">Silicon (11.45)</option>
+        <option value="9.4">Sapphire (9.4)</option>
+        <option value="3.9">SiO&#8322; (3.9)</option>
+        <option value="12.9">GaAs (12.9)</option>
+        <option value="11.7">Ge (11.7)</option>
+        <option value="1.0">Air (1.0)</option>
+      </select>
+    </div>
+
+    <label for="W_um">Trace width W [&#956;m]:</label>
+    <input type="number" id="W_um" step="any" placeholder="e.g. 10">
+
+    <label for="S_um">Gap width S [&#956;m]:</label>
+    <input type="number" id="S_um" step="any" placeholder="e.g. 6">
+
+    <label for="h_um">Substrate thickness h [&#956;m]:</label>
+    <input type="number" id="h_um" step="any" placeholder="e.g. 500">
+
+    <label style="margin-top:1.2em;">Back-side ground plane:</label>
+    <div class="radio-group">
+      <label><input type="radio" name="backgnd" value="no" checked> No &nbsp;(conventional CPW)</label>
+      <label><input type="radio" name="backgnd" value="yes"> Yes &nbsp;(conductor-backed CPW, CBCPW)</label>
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="output"></div>
+
+    <h3>Formulas</h3>
+    <table>
+      <tr><th>Quantity</th><th>Formula</th></tr>
+      <tr>
+        <td>Geometry modulus</td>
+        <td>k = W / (W + 2S) &nbsp;&nbsp; k&prime; = &radic;(1 &minus; k&sup2;)</td>
+      </tr>
+      <tr>
+        <td>Substrate factor k<sub>1</sub> &nbsp;(conventional)</td>
+        <td>k<sub>1</sub> = sinh(&pi;W / 4h) / sinh(&pi;(W + 2S) / 4h)</td>
+      </tr>
+      <tr>
+        <td>Substrate factor k<sub>2</sub> &nbsp;(CBCPW)</td>
+        <td>k<sub>2</sub> = tanh(&pi;W / 4h) / tanh(&pi;(W + 2S) / 4h)</td>
+      </tr>
+      <tr>
+        <td>&epsilon;<sub>eff</sub> &nbsp;(conventional CPW)</td>
+        <td>1 + (&epsilon;<sub>r</sub> &minus; 1) / 2 &nbsp;&times;&nbsp; [K(k<sub>1</sub>) / K(k<sub>1</sub>&prime;)] / [K(k) / K(k&prime;)]</td>
+      </tr>
+      <tr>
+        <td>&epsilon;<sub>eff</sub> &nbsp;(CBCPW)</td>
+        <td>[K(k)/K(k&prime;) + &epsilon;<sub>r</sub> K(k<sub>2</sub>)/K(k<sub>2</sub>&prime;)] / [K(k)/K(k&prime;) + K(k<sub>2</sub>)/K(k<sub>2</sub>&prime;)]</td>
+      </tr>
+      <tr>
+        <td>Z<sub>0</sub> &nbsp;(conventional CPW)</td>
+        <td>(30&pi; / &radic;&epsilon;<sub>eff</sub>) &times; K(k&prime;) / K(k)</td>
+      </tr>
+      <tr>
+        <td>Z<sub>0</sub> &nbsp;(CBCPW)</td>
+        <td>60&pi; / [&radic;&epsilon;<sub>eff</sub> &times; (K(k)/K(k&prime;) + K(k<sub>2</sub>)/K(k<sub>2</sub>&prime;))]</td>
+      </tr>
+      <tr>
+        <td>K(k)</td>
+        <td>Complete elliptic integral of the first kind &mdash; computed via arithmetic-geometric mean (AGM)</td>
+      </tr>
+      <tr>
+        <td>Phase velocity &amp; guided wavelength</td>
+        <td>v<sub>ph</sub> = c / &radic;&epsilon;<sub>eff</sub> &nbsp;&nbsp; &lambda;<sub>g</sub> = c / (f &radic;&epsilon;<sub>eff</sub>)</td>
+      </tr>
+      <tr>
+        <td>What is &epsilon;<sub>eff</sub>?</td>
+        <td>
+          The effective permittivity experienced by the propagating mode.
+          CPW fields extend into both the substrate (&epsilon;<sub>r</sub>) and the air (1),
+          so &epsilon;<sub>eff</sub> is a weighted average between them.
+          It determines phase velocity and guided wavelength.
+          For a thick substrate (W, S &Lt; h): &epsilon;<sub>eff</sub> &rarr; (1 + &epsilon;<sub>r</sub>) / 2.
+          For a thin substrate without back GND: &epsilon;<sub>eff</sub> &rarr; 1.
+          For a thin substrate with back GND: &epsilon;<sub>eff</sub> &rarr; &epsilon;<sub>r</sub>.
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    // Toggle back ground plane in sketch
+    document.querySelectorAll('input[name="backgnd"]').forEach(r => {
+      r.addEventListener('change', function () {
+        document.getElementById('svg-backgnd').style.display = this.value === 'yes' ? '' : 'none';
+      });
+    });
+    document.getElementById('svg-backgnd').style.display = 'none';  // initial: hidden
+
+    function applyPreset(val) {
+      if (val) document.getElementById('eps_r').value = val;
+    }
+
+    // Complete elliptic integral K(k) via arithmetic-geometric mean
+    function K_elliptic(k) {
+      if (k < 0 || k >= 1) return k >= 1 ? Infinity : NaN;
+      if (k === 0) return Math.PI / 2;
+      let a = 1.0, b = Math.sqrt(1.0 - k * k);
+      for (let i = 0; i < 120; i++) {
+        const an = (a + b) / 2;
+        const bn = Math.sqrt(a * b);
+        if (Math.abs(an - bn) < 1e-15 * an) { a = an; break; }
+        a = an; b = bn;
+      }
+      return Math.PI / (2 * a);
+    }
+
+    function calculate() {
+      const eps_r   = parseFloat(document.getElementById('eps_r').value);
+      const W_um    = parseFloat(document.getElementById('W_um').value);
+      const S_um    = parseFloat(document.getElementById('S_um').value);
+      const h_um    = parseFloat(document.getElementById('h_um').value);
+      const backgnd = document.querySelector('input[name="backgnd"]:checked').value;
+      const outDiv  = document.getElementById('output');
+
+      if (isNaN(eps_r) || eps_r < 1) {
+        outDiv.innerHTML = '<span class="warn">Please enter &#949;<sub>r</sub> &ge; 1.</span>'; return;
+      }
+      if (isNaN(W_um) || W_um <= 0 || isNaN(S_um) || S_um <= 0 || isNaN(h_um) || h_um <= 0) {
+        outDiv.innerHTML = '<span class="warn">Please enter positive values for W, S, and h.</span>'; return;
+      }
+
+      const W = W_um * 1e-6;   // convert μm → m (ratio only, units cancel)
+      const S = S_um * 1e-6;
+      const h = h_um * 1e-6;
+      const c = 299792458;     // m/s
+
+      // Base geometry (same for both modes)
+      const k0  = W / (W + 2 * S);
+      const k0p = Math.sqrt(1 - k0 * k0);
+      const K0  = K_elliptic(k0);
+      const K0p = K_elliptic(k0p);
+      const r0  = K0 / K0p;   // K(k)/K(k')
+
+      let eps_eff, Z0, k_s, kp_s, K_s, Kp_s, r_s;
+
+      if (backgnd === 'no') {
+        // ── Conventional CPW ────────────────────────────────────────
+        // k₁ = sinh(πW/4h) / sinh(π(W+2S)/4h)
+        k_s  = Math.sinh(Math.PI * W / (4 * h)) / Math.sinh(Math.PI * (W + 2 * S) / (4 * h));
+        k_s  = Math.min(k_s, 1 - 1e-12);
+        kp_s = Math.sqrt(1 - k_s * k_s);
+        K_s  = K_elliptic(k_s);
+        Kp_s = K_elliptic(kp_s);
+        r_s  = K_s / Kp_s;
+
+        eps_eff = 1 + (eps_r - 1) / 2 * r_s / r0;
+        Z0      = 30 * Math.PI / Math.sqrt(eps_eff) * K0p / K0;
+
+      } else {
+        // ── Conductor-backed CPW (CBCPW) ────────────────────────────
+        // k₂ = tanh(πW/4h) / tanh(π(W+2S)/4h)
+        k_s  = Math.tanh(Math.PI * W / (4 * h)) / Math.tanh(Math.PI * (W + 2 * S) / (4 * h));
+        k_s  = Math.min(k_s, 1 - 1e-12);
+        kp_s = Math.sqrt(1 - k_s * k_s);
+        K_s  = K_elliptic(k_s);
+        Kp_s = K_elliptic(kp_s);
+        r_s  = K_s / Kp_s;
+
+        eps_eff = (r0 + eps_r * r_s) / (r0 + r_s);
+        Z0      = 60 * Math.PI / (Math.sqrt(eps_eff) * (r0 + r_s));
+      }
+
+      const v_ph   = c / Math.sqrt(eps_eff);
+      const ref_ee = (1 + eps_r) / 2;   // thick-substrate reference
+
+      outDiv.innerHTML = `
+        <span class="section-label">Results &mdash; ${backgnd === 'no' ? 'Conventional CPW' : 'Conductor-backed CPW (CBCPW)'}</span>
+        <strong>Characteristic impedance Z<sub>0</sub>: ${Z0.toFixed(3)} &Omega;</strong><br>
+        <strong>Effective dielectric constant &epsilon;<sub>eff</sub>: ${eps_eff.toFixed(5)}</strong><br>
+        &emsp;Slowing factor &radic;&epsilon;<sub>eff</sub> = ${Math.sqrt(eps_eff).toFixed(5)}<br>
+        &emsp;Phase velocity v<sub>ph</sub> = c&thinsp;/&thinsp;&radic;&epsilon;<sub>eff</sub> = ${(v_ph / c * 100).toFixed(3)}&thinsp;% of c<br>
+        &emsp;Guided wavelength &lambda;<sub>g</sub> = &lambda;<sub>0</sub>&thinsp;/&thinsp;&radic;&epsilon;<sub>eff</sub> &nbsp;(e.g. at 5 GHz: ${(v_ph / 5e9 * 1e3).toFixed(2)} mm)<br>
+        &emsp;Thick-substrate reference &epsilon;<sub>eff</sub> &rarr; (1+&epsilon;<sub>r</sub>)/2 = ${ref_ee.toFixed(4)}<br>
+
+        <span class="section-label">Elliptic integral details</span>
+        k = W/(W+2S) = ${k0.toFixed(6)} &nbsp;&nbsp; k&prime; = ${k0p.toFixed(6)}<br>
+        K(k)/K(k&prime;) = ${r0.toFixed(6)}<br>
+        k<sub>${backgnd === 'no' ? '1' : '2'}</sub> (${backgnd === 'no' ? 'sinh' : 'tanh'} substrate factor) = ${k_s.toFixed(6)}<br>
+        K(k<sub>${backgnd === 'no' ? '1' : '2'}</sub>)/K(k<sub>${backgnd === 'no' ? '1' : '2'}</sub>&prime;) = ${r_s.toFixed(6)}<br>
+      `;
+    }
+  </script>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+</body>
+</html>
