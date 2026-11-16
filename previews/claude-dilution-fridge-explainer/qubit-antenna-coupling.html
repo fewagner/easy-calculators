@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qubit Antenna-Mode Coupling Efficiency</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 660px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8em;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-size: 0.92em;
+      line-height: 1.55;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    #plot-ec, #plot-z { margin-top: 1.2em; width: 100%; height: 340px; }
+    .hint {
+      background: #f4f8fd;
+      border-left: 3px solid #1565c0;
+      padding: 0.5em 0.8em;
+      margin-top: 0.5em;
+      font-size: 0.88em;
+      color: #234;
+    }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 660px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      .row2 { grid-template-columns: 1fr; gap: 0; }
+      #plot-ec, #plot-z { height: 280px; }
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 660px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Qubit Antenna-Mode Coupling Efficiency</h2>
+    <p class="intro">Coupling efficiency of pair-breaking radiation to the Josephson junction through the spurious antenna mode of a transmon qubit island. The junction is modelled as a real resistance R<sub>n</sub> in parallel with the self-capacitance C<sub>j</sub>; the radiation impedance Z<sub>rad</sub>(f) follows your chosen analytical model. e<sub>c</sub>(f) is computed from the standard conjugate-match condition. (Following Rafferty et al., arXiv:2103.06803.)</p>
+
+    <label for="model">Radiation-impedance model:</label>
+    <select id="model">
+      <option value="constant">Constant Re(Z<sub>rad</sub>)</option>
+      <option value="lorentzian" selected>Lorentzian (parallel-RLC) Z<sub>rad</sub>(f)</option>
+      <option value="dipole">3D half-wave dipole transmon</option>
+      <option value="aperture-loop">2D single-ended aperture loop (Babinet)</option>
+      <option value="folded-dipole">2D differential folded-dipole aperture</option>
+    </select>
+
+    <!-- Constant model -->
+    <div id="const-block" style="display:none;">
+      <label for="R0">Radiation resistance R<sub>0</sub> (Ω):</label>
+      <input type="number" id="R0" step="any" value="100">
+    </div>
+
+    <!-- Lorentzian / shape parameters -->
+    <div id="lorentz-block">
+      <div class="row2">
+        <div>
+          <label for="rpeak">Peak R<sub>peak</sub> (Ω):</label>
+          <input type="number" id="rpeak" step="any" value="150">
+        </div>
+        <div>
+          <label for="Q">Quality factor Q:</label>
+          <input type="number" id="Q" step="any" value="4">
+        </div>
+      </div>
+      <div id="f0-block">
+        <label for="f0">Resonance frequency f<sub>0</sub> (GHz):</label>
+        <input type="number" id="f0" step="any" value="200">
+      </div>
+      <div id="shape-inputs" style="display:none;">
+        <div class="row2">
+          <div id="length-block">
+            <label for="length">Dipole length L (μm):</label>
+            <input type="number" id="length" step="any" value="1500">
+          </div>
+          <div id="perimeter-block" style="display:none;">
+            <label for="perimeter">Island perimeter p (μm):</label>
+            <input type="number" id="perimeter" step="any" value="600">
+          </div>
+          <div>
+            <label for="eps-eff">Substrate ε<sub>eff</sub>:</label>
+            <input type="number" id="eps-eff" step="any" value="6">
+          </div>
+        </div>
+        <small>ε<sub>eff</sub> = ½(1 + ε<sub>r</sub>) ≈ 6 for Si/sapphire interfaces (use 1 for a 3D-cavity environment).</small>
+      </div>
+    </div>
+
+    <div class="hint" id="model-hint">
+      Lorentzian: <code>Z<sub>rad</sub>(f) = R<sub>peak</sub> / [1 + jQ(f/f<sub>0</sub> − f<sub>0</sub>/f)]</code>. Re(Z<sub>rad</sub>) peaks at f<sub>0</sub>.
+    </div>
+
+    <h4 style="margin-top:1.4em;">Junction parameters</h4>
+    <div class="row2">
+      <div>
+        <label for="Rn">Tunnel resistance R<sub>n</sub> (kΩ):</label>
+        <input type="number" id="Rn" step="any" value="7">
+      </div>
+      <div>
+        <label for="Cj">Self-capacitance C<sub>j</sub> (fF):</label>
+        <input type="number" id="Cj" step="any" value="9">
+      </div>
+    </div>
+    <small>Defaults from Rafferty et al. for an Xmon: R<sub>n</sub> = 7 kΩ, C<sub>j</sub> = 9 fF (gives τ = R<sub>n</sub>C<sub>j</sub> = 63 ps).</small>
+
+    <h4 style="margin-top:1.4em;">Frequency range for the plot</h4>
+    <div class="row2">
+      <div>
+        <label for="fmin">f<sub>min</sub> (GHz):</label>
+        <input type="number" id="fmin" step="any" value="100">
+      </div>
+      <div>
+        <label for="fmax">f<sub>max</sub> (GHz):</label>
+        <input type="number" id="fmax" step="any" value="1000">
+      </div>
+    </div>
+
+    <button onclick="compute()">Compute</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+    <div id="plot-ec"></div>
+    <div id="plot-z"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+
+    <p><b>Junction impedance.</b> Above the superconducting gap the junction acts as a real
+    tunnel resistance R<sub>n</sub> shunted by the self-capacitance C<sub>j</sub>. With
+    <code>τ = R<sub>n</sub> C<sub>j</sub></code> and <code>ω = 2πf</code>,</p>
+    <ul>
+      <li><code>Z<sub>j</sub>(ω) = R<sub>n</sub>(1 − jωτ) / (1 + ω²τ²)</code></li>
+      <li><code>Re Z<sub>j</sub> = R<sub>n</sub> / (1 + ω²τ²)</code>, <code>Im Z<sub>j</sub> = −ωτ R<sub>n</sub> / (1 + ω²τ²)</code></li>
+      <li>Conjugate <code>Z<sub>j</sub><sup>*</sup> = Re Z<sub>j</sub> + j |Im Z<sub>j</sub>|</code> (the target match impedance).</li>
+    </ul>
+
+    <p><b>Reflection coefficient and coupling efficiency.</b> Conjugate matching gives Γ = 0:</p>
+    <ul>
+      <li><code>Γ(f) = (Z<sub>rad</sub> − Z<sub>j</sub><sup>*</sup>) / (Z<sub>rad</sub> + Z<sub>j</sub>)</code></li>
+      <li>Power coupling efficiency <code>e<sub>c</sub>(f) = 1 − |Γ|²</code>.
+        Rafferty et al. write <code>e<sub>c</sub> = 1 − |Γ|</code> (an amplitude-style definition); this calculator uses the standard power form
+        so that <code>∫ e<sub>c</sub> df</code> directly gives the antenna noise bandwidth.</li>
+      <li><b>Antenna noise bandwidth:</b> <code>Δf<sub>N</sub> = ∫ e<sub>c</sub>(f) df</code>, integrated over the plotted frequency range.</li>
+    </ul>
+
+    <p><b>Radiation-impedance models.</b></p>
+    <ul>
+      <li><b>Constant:</b> <code>Z<sub>rad</sub>(f) = R<sub>0</sub></code> (purely real, frequency-independent). Use for a quick "what if" estimate.</li>
+      <li><b>Lorentzian (parallel-RLC equivalent):</b>
+        <code>Z<sub>rad</sub>(f) = R<sub>peak</sub> / [1 + j Q (f/f<sub>0</sub> − f<sub>0</sub>/f)]</code>.
+        Re Z<sub>rad</sub> peaks at f<sub>0</sub>; Im Z<sub>rad</sub> crosses zero at f<sub>0</sub> with negative slope (inductive below, capacitive above). FWHM ≈ f<sub>0</sub>/Q.</li>
+      <li><b>3D half-wave dipole (3D transmon).</b> Dipole of total length L in free space.
+        <code>f<sub>0</sub> = c<sub>0</sub> / (2L √ε<sub>eff</sub>)</code> with ε<sub>eff</sub> ≈ 1 inside a 3D cavity.
+        Classical thin-dipole peak resistance <code>R<sub>peak</sub> ≈ 73 Ω</code>; Q ≈ 4 captures the fundamental's bandwidth crudely.</li>
+      <li><b>2D single-ended aperture loop (Babinet).</b> Island embedded in a groundplane behaves like the aperture dual of a one-wavelength wire loop antenna at <code>f<sub>0</sub> = c<sub>0</sub> / (p √ε<sub>eff</sub>)</code>, where p is the island perimeter and ε<sub>eff</sub> ≈ ½(1 + ε<sub>r</sub>) ≈ 6 on Si/sapphire. From Babinet's principle <code>Z<sub>w</sub> Z<sub>a</sub> = η²/4 ≈ 35 531 Ω²</code>; with a one-wavelength wire loop having <code>R<sub>w</sub> ≈ 130–240 Ω</code> the aperture peak is <code>R<sub>peak</sub> ≈ 100–200 Ω</code>. Default 150 Ω, Q ≈ 4.</li>
+      <li><b>2D differential folded-dipole aperture.</b> Two-pad differential qubit is the aperture dual of a folded half-wave dipole. <code>f<sub>0</sub> = c<sub>0</sub> / (2L √ε<sub>eff</sub>)</code>. Folded-dipole wire has <code>R<sub>w</sub> ≈ 292 Ω</code>, so aperture <code>R<sub>peak</sub> = 35 531 / 292 ≈ 122 Ω</code> (Rafferty et al. simulate ≈80–150 Ω). Default 100 Ω, Q ≈ 4.</li>
+    </ul>
+
+    <p style="color:#555;font-size:0.9em">All three shape presets are textbook lumped approximations and ignore details that matter at the 5–20% level: finite trace thickness, substrate finite size, dielectric resonances, and proximity to ground tabs. For quantitative work use full-wave simulation (e.g. HFSS, CST, openEMS); see Rafferty et al. (Phys. Rev. Appl. 16, 054012, 2021 / arXiv:2103.06803) for the numerical Z<sub>rad</sub>(f) of several specific Xmon, differential, and 3D-transmon geometries.</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script>
+    const c0 = 2.99792458e8;
+
+    const modelSel  = document.getElementById('model');
+    const constBlk  = document.getElementById('const-block') || document.getElementById('const-block');
+    const constBlock = document.getElementById('const-block');
+    const lorentzBlk = document.getElementById('lorentz-block');
+    const f0Block    = document.getElementById('f0-block');
+    const shapeBlk   = document.getElementById('shape-inputs');
+    const lengthBlk  = document.getElementById('length-block');
+    const perimeterBlk = document.getElementById('perimeter-block');
+    const hint = document.getElementById('model-hint');
+
+    const HINTS = {
+      'constant': 'Constant: <code>Z<sub>rad</sub>(f) = R<sub>0</sub></code>. Quick sanity check; ignores reactance entirely.',
+      'lorentzian': 'Lorentzian: <code>Z<sub>rad</sub>(f) = R<sub>peak</sub> / [1 + jQ(f/f<sub>0</sub> − f<sub>0</sub>/f)]</code>. Re(Z<sub>rad</sub>) peaks at f<sub>0</sub>.',
+      'dipole': '3D half-wave dipole: <code>f<sub>0</sub> = c<sub>0</sub>/(2L√ε<sub>eff</sub>)</code>. Set ε<sub>eff</sub> ≈ 1 in a 3D cavity. Default R<sub>peak</sub> = 73 Ω from thin-dipole theory.',
+      'aperture-loop': '2D aperture loop (Babinet dual of a one-wavelength wire loop): <code>f<sub>0</sub> = c<sub>0</sub>/(p√ε<sub>eff</sub>)</code>, with p the island perimeter. Default R<sub>peak</sub> = 150 Ω, Q ≈ 4.',
+      'folded-dipole': '2D differential folded-dipole aperture: <code>f<sub>0</sub> = c<sub>0</sub>/(2L√ε<sub>eff</sub>)</code>. Default R<sub>peak</sub> = 100 Ω (Babinet from 292 Ω wire folded dipole), Q ≈ 4.'
+    };
+
+    function updateUI() {
+      const m = modelSel.value;
+      document.getElementById('const-block').style.display  = (m === 'constant') ? 'block' : 'none';
+      lorentzBlk.style.display = (m !== 'constant') ? 'block' : 'none';
+      const isShape = (m === 'dipole' || m === 'aperture-loop' || m === 'folded-dipole');
+      shapeBlk.style.display  = isShape ? 'block' : 'none';
+      f0Block.style.display   = isShape ? 'none'  : 'block';
+      lengthBlk.style.display = (m === 'dipole' || m === 'folded-dipole') ? 'block' : 'none';
+      perimeterBlk.style.display = (m === 'aperture-loop') ? 'block' : 'none';
+
+      // Suggest defaults for R_peak and ε_eff
+      if (m === 'dipole') {
+        document.getElementById('rpeak').value = 73;
+        document.getElementById('eps-eff').value = 1;
+      } else if (m === 'aperture-loop') {
+        document.getElementById('rpeak').value = 150;
+        document.getElementById('eps-eff').value = 6;
+      } else if (m === 'folded-dipole') {
+        document.getElementById('rpeak').value = 100;
+        document.getElementById('eps-eff').value = 6;
+      } else if (m === 'lorentzian') {
+        // leave whatever is there
+      }
+      hint.innerHTML = HINTS[m];
+    }
+    modelSel.addEventListener('change', updateUI);
+
+    function computeZrad(model) {
+      // returns a function f -> {re, im}
+      if (model === 'constant') {
+        const R0 = parseFloat(document.getElementById('R0').value);
+        if (!Number.isFinite(R0) || R0 <= 0) throw new Error('R₀ must be positive.');
+        return _ => ({re: R0, im: 0, f0: null, rpeak: R0});
+      }
+      const Rp = parseFloat(document.getElementById('rpeak').value);
+      const Q  = parseFloat(document.getElementById('Q').value);
+      if (!Number.isFinite(Rp) || Rp <= 0) throw new Error('R_peak must be positive.');
+      if (!Number.isFinite(Q)  || Q  <= 0) throw new Error('Q must be positive.');
+
+      let f0;
+      if (model === 'lorentzian') {
+        f0 = parseFloat(document.getElementById('f0').value) * 1e9;
+      } else {
+        const epsEff = parseFloat(document.getElementById('eps-eff').value);
+        if (!Number.isFinite(epsEff) || epsEff <= 0) throw new Error('ε_eff must be positive.');
+        if (model === 'dipole' || model === 'folded-dipole') {
+          const L = parseFloat(document.getElementById('length').value) * 1e-6;
+          if (!Number.isFinite(L) || L <= 0) throw new Error('Length L must be positive.');
+          f0 = c0 / (2 * L * Math.sqrt(epsEff));
+        } else if (model === 'aperture-loop') {
+          const p = parseFloat(document.getElementById('perimeter').value) * 1e-6;
+          if (!Number.isFinite(p) || p <= 0) throw new Error('Perimeter p must be positive.');
+          f0 = c0 / (p * Math.sqrt(epsEff));
+        }
+      }
+      if (!Number.isFinite(f0) || f0 <= 0) throw new Error('Could not compute f₀ from inputs.');
+
+      const fn = f => {
+        const x = f / f0 - f0 / f;
+        const denom = 1 + Q * Q * x * x;
+        return {re: Rp / denom, im: -Rp * Q * x / denom};
+      };
+      fn.f0 = f0; fn.rpeak = Rp; fn.Q = Q;
+      return fn;
+    }
+
+    function compute() {
+      const rDiv = document.getElementById('result');
+      rDiv.style.display = 'block';
+      rDiv.classList.remove('error');
+      try {
+        const model = modelSel.value;
+        const ZradFn = computeZrad(model);
+
+        const Rn = parseFloat(document.getElementById('Rn').value) * 1e3;     // Ω
+        const Cj = parseFloat(document.getElementById('Cj').value) * 1e-15;   // F
+        const fmin = parseFloat(document.getElementById('fmin').value) * 1e9;
+        const fmax = parseFloat(document.getElementById('fmax').value) * 1e9;
+        for (const [k, v] of Object.entries({Rn, Cj, fmin, fmax})) {
+          if (!Number.isFinite(v) || v <= 0) throw new Error(`${k} must be positive.`);
+        }
+        if (fmax <= fmin) throw new Error('f_max must be greater than f_min.');
+
+        const tau = Rn * Cj;
+        const Npts = 600;
+        const f_GHz = [], ec_arr = [], Zr_re = [], Zr_im = [], Zj_re = [], Zj_im_neg = [];
+
+        for (let i = 0; i <= Npts; i++) {
+          const f = fmin + (fmax - fmin) * i / Npts;
+          const omega = 2 * Math.PI * f;
+          const wt = omega * tau;
+          const denom = 1 + wt * wt;
+          const zj_re = Rn / denom;
+          const zj_im = -wt * Rn / denom;          // negative (capacitive)
+          // Conjugate Zj*
+          const zjs_re = zj_re;
+          const zjs_im = -zj_im;                   // positive (inductive)
+
+          const zr = ZradFn(f);
+          const num_re = zr.re - zjs_re;
+          const num_im = zr.im - zjs_im;
+          const den_re = zr.re + zj_re;
+          const den_im = zr.im + zj_im;
+          const den_mag2 = den_re * den_re + den_im * den_im;
+          const Gre = (num_re * den_re + num_im * den_im) / den_mag2;
+          const Gim = (num_im * den_re - num_re * den_im) / den_mag2;
+          const Gmag2 = Gre * Gre + Gim * Gim;
+          const ec = 1 - Gmag2;                    // power coupling
+
+          f_GHz.push(f / 1e9);
+          ec_arr.push(ec);
+          Zr_re.push(zr.re);
+          Zr_im.push(zr.im);
+          Zj_re.push(zj_re);
+          Zj_im_neg.push(-zj_im);
+        }
+
+        // Trapezoidal integral of ec over f for Δf_N
+        let dfN = 0;
+        const df = (fmax - fmin) / Npts;
+        for (let i = 0; i < Npts; i++) {
+          dfN += 0.5 * (ec_arr[i] + ec_arr[i + 1]) * df;
+        }
+
+        // Result summary
+        const ecMax = Math.max(...ec_arr);
+        const idxMax = ec_arr.indexOf(ecMax);
+        const fMaxEc = f_GHz[idxMax];
+        let html = '<h4>Summary</h4>';
+        html += `Antenna noise bandwidth Δf<sub>N</sub> = ∫ e<sub>c</sub> df = <b>${(dfN/1e9).toFixed(4)} GHz</b><br>`;
+        html += `Maximum e<sub>c</sub> in the plotted range: <b>${ecMax.toExponential(4)}</b> at f = ${fMaxEc.toFixed(2)} GHz<br>`;
+        html += `τ = R<sub>n</sub>C<sub>j</sub> = ${(tau*1e12).toFixed(3)} ps; ω<sub>RC</sub>/2π = 1/(2πτ) = ${(1/(2*Math.PI*tau)/1e9).toFixed(3)} GHz`;
+        if (ZradFn.f0) {
+          html += `<br>Z<sub>rad</sub> model: f<sub>0</sub> = ${(ZradFn.f0/1e9).toFixed(2)} GHz, R<sub>peak</sub> = ${ZradFn.rpeak.toFixed(2)} Ω, Q = ${ZradFn.Q}`;
+        }
+        rDiv.innerHTML = html;
+
+        // Plot ec
+        Plotly.newPlot('plot-ec', [{
+          x: f_GHz, y: ec_arr,
+          type: 'scatter', mode: 'lines',
+          line: { color: '#1565c0', width: 2 },
+          name: 'e<sub>c</sub>',
+        }], {
+          title: { text: 'Coupling efficiency  e_c(f) = 1 − |Γ|²', font: { size: 13 } },
+          xaxis: { title: 'Frequency f (GHz)' },
+          yaxis: { title: 'e_c (power)', rangemode: 'tozero' },
+          margin: { l: 60, r: 20, t: 50, b: 50 },
+          plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+        }, { responsive: true, displaylogo: false });
+
+        // Plot impedances
+        Plotly.newPlot('plot-z', [
+          { x: f_GHz, y: Zr_re,   mode: 'lines', name: 'Re(Z_rad)',  line: { color: '#1565c0', width: 2 } },
+          { x: f_GHz, y: Zr_im,   mode: 'lines', name: 'Im(Z_rad)',  line: { color: '#1565c0', dash: 'dash' } },
+          { x: f_GHz, y: Zj_re,   mode: 'lines', name: 'Re(Z_j)',    line: { color: '#c62828', width: 2 } },
+          { x: f_GHz, y: Zj_im_neg, mode: 'lines', name: '−Im(Z_j) (= conj match)', line: { color: '#c62828', dash: 'dash' } },
+        ], {
+          title: { text: 'Impedance components vs frequency', font: { size: 13 } },
+          xaxis: { title: 'Frequency f (GHz)' },
+          yaxis: { title: 'Impedance (Ω)' },
+          margin: { l: 60, r: 20, t: 50, b: 50 },
+          plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+          legend: { orientation: 'h', y: -0.2 },
+        }, { responsive: true, displaylogo: false });
+
+      } catch (e) {
+        rDiv.classList.add('error');
+        rDiv.textContent = e.message;
+      }
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>

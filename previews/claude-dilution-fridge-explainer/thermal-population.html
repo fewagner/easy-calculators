@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thermal State Population</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 520px;
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 { margin-top: 0; }
+    p.description { color: #555; margin-top: 0; line-height: 1.5; }
+
+    .field-label {
+      display: block;
+      margin-top: 1.2em;
+      color: #333;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.35em;
+    }
+    .input-row input[type="number"] {
+      flex: 1;
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .input-row select, select {
+      box-sizing: border-box;
+      padding: 0.4em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      background: white;
+      cursor: pointer;
+    }
+    button {
+      display: block;
+      width: 100%;
+      background: #0077cc;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.5em;
+    }
+    button:hover { background: #005fa3; }
+
+    /* Result bars */
+    .result-box {
+      margin-top: 1.5em;
+    }
+    .state-row {
+      margin-bottom: 1em;
+    }
+    .state-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.3em;
+      font-size: 0.95em;
+    }
+    .state-label .name { font-weight: bold; }
+    .state-label .pct  { color: #0077cc; font-weight: bold; }
+    .bar-track {
+      background: #e8edf2;
+      border-radius: 6px;
+      height: 18px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.35s ease;
+    }
+    .bar-ground  { background: #0077cc; }
+    .bar-excited { background: #e05c00; }
+
+    .ratio-line {
+      text-align: center;
+      margin-top: 0.8em;
+      font-size: 0.9em;
+      color: #555;
+    }
+    .kBT-line {
+      text-align: center;
+      margin-top: 0.4em;
+      font-size: 0.85em;
+      color: #888;
+    }
+
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+    }
+    .card a {
+      text-decoration: none;
+      font-size: 1.2em;
+      color: #0077cc;
+    }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Thermal State Population</h2>
+    <p class="description">
+      Boltzmann population of a two-level system with energy splitting &Delta;E
+      at temperature T.
+      The ground state has energy 0; the excited state has energy &Delta;E.
+    </p>
+
+    <label class="field-label">Energy splitting &Delta;E</label>
+    <div class="input-row">
+      <input type="number" id="energy" step="any" placeholder="e.g. 5" oninput="calculate()">
+      <select id="energy-unit" onchange="calculate()">
+        <optgroup label="Frequency (photon energy E = hf)">
+          <option value="THz">THz</option>
+          <option value="GHz" selected>GHz</option>
+          <option value="MHz">MHz</option>
+          <option value="kHz">kHz</option>
+          <option value="Hz">Hz</option>
+        </optgroup>
+        <optgroup label="Energy">
+          <option value="eV">eV</option>
+          <option value="meV">meV</option>
+          <option value="ueV">&mu;eV</option>
+          <option value="neV">neV</option>
+          <option value="J">J</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <label class="field-label">Temperature T</label>
+    <div class="input-row">
+      <input type="number" id="temp" step="any" placeholder="e.g. 20" oninput="calculate()">
+      <select id="temp-unit" onchange="calculate()">
+        <option value="K">K</option>
+        <option value="mK" selected>mK</option>
+      </select>
+    </div>
+
+    <div class="result-box" id="result-box" style="display:none">
+      <div class="state-row">
+        <div class="state-label">
+          <span class="name">Ground state |0&#x27E9;</span>
+          <span class="pct" id="pct-ground">—</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-ground" id="bar-ground" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="state-row">
+        <div class="state-label">
+          <span class="name">Excited state |1&#x27E9;</span>
+          <span class="pct" id="pct-excited">—</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-excited" id="bar-excited" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="ratio-line" id="ratio-line"></div>
+      <div class="kBT-line" id="kBT-line"></div>
+    </div>
+
+    <div id="error-msg" style="color:red; margin-top:1em; min-height:1.2em;"></div>
+  </div>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+
+  <script>
+    const h  = 6.62607015e-34;   // J·s
+    const kB = 1.380649e-23;     // J/K
+    const eV = 1.602176634e-19;  // J
+
+    // Convert input energy to Joules
+    function toJoules(value, unit) {
+      switch (unit) {
+        case 'THz': return h * value * 1e12;
+        case 'GHz': return h * value * 1e9;
+        case 'MHz': return h * value * 1e6;
+        case 'kHz': return h * value * 1e3;
+        case 'Hz':  return h * value;
+        case 'eV':  return eV * value;
+        case 'meV': return eV * value * 1e-3;
+        case 'ueV': return eV * value * 1e-6;
+        case 'neV': return eV * value * 1e-9;
+        case 'J':   return value;
+      }
+    }
+
+    function toKelvin(value, unit) {
+      return unit === 'mK' ? value * 1e-3 : value;
+    }
+
+    function formatPct(p) {
+      if (p >= 0.001) return (p * 100).toPrecision(4) + '%';
+      return (p * 100).toExponential(3) + '%';
+    }
+
+    function formatRatio(r) {
+      if (r >= 1e6)  return r.toExponential(3);
+      if (r >= 1000) return r.toPrecision(4);
+      if (r >= 0.001) return r.toPrecision(4);
+      return r.toExponential(3);
+    }
+
+    // Express kBT in the same unit as the input energy
+    function kBTinInputUnits(kBT_J, unit) {
+      switch (unit) {
+        case 'THz': return { val: kBT_J / (h * 1e12), lbl: 'THz' };
+        case 'GHz': return { val: kBT_J / (h * 1e9),  lbl: 'GHz' };
+        case 'MHz': return { val: kBT_J / (h * 1e6),  lbl: 'MHz' };
+        case 'kHz': return { val: kBT_J / (h * 1e3),  lbl: 'kHz' };
+        case 'Hz':  return { val: kBT_J / h,           lbl: 'Hz'  };
+        case 'eV':  return { val: kBT_J / eV,          lbl: 'eV'  };
+        case 'meV': return { val: kBT_J / (eV*1e-3),   lbl: 'meV' };
+        case 'ueV': return { val: kBT_J / (eV*1e-6),   lbl: '&mu;eV' };
+        case 'neV': return { val: kBT_J / (eV*1e-9),   lbl: 'neV' };
+        case 'J':   return { val: kBT_J,                lbl: 'J'   };
+      }
+    }
+
+    function calculate() {
+      const eVal   = parseFloat(document.getElementById('energy').value);
+      const eUnit  = document.getElementById('energy-unit').value;
+      const tVal   = parseFloat(document.getElementById('temp').value);
+      const tUnit  = document.getElementById('temp-unit').value;
+      const errDiv = document.getElementById('error-msg');
+      const resBox = document.getElementById('result-box');
+
+      errDiv.innerHTML = '';
+
+      if (isNaN(eVal) || isNaN(tVal)) { resBox.style.display = 'none'; return; }
+      if (eVal < 0) { errDiv.textContent = 'Energy splitting must be ≥ 0.'; resBox.style.display = 'none'; return; }
+      if (tVal <= 0) { errDiv.textContent = 'Temperature must be positive.'; resBox.style.display = 'none'; return; }
+
+      const E_J  = toJoules(eVal, eUnit);
+      const T_K  = toKelvin(tVal, tUnit);
+      const kBT  = kB * T_K;
+
+      const x = E_J / kBT;   // dimensionless: ΔE / kBT
+
+      // Boltzmann populations
+      // Z = 1 + exp(-x),  P0 = 1/Z,  P1 = exp(-x)/Z
+      let P0, P1;
+      if (x > 700) {
+        // exp(-x) underflows to 0 — ground state essentially 1
+        P0 = 1; P1 = 0;
+      } else {
+        const expTerm = Math.exp(-x);
+        const Z = 1 + expTerm;
+        P0 = 1 / Z;
+        P1 = expTerm / Z;
+      }
+
+      // Update UI
+      document.getElementById('pct-ground').textContent  = formatPct(P0);
+      document.getElementById('pct-excited').textContent = formatPct(P1);
+      document.getElementById('bar-ground').style.width  = (P0 * 100) + '%';
+      document.getElementById('bar-excited').style.width = (P1 * 100) + '%';
+
+      // Ratio P1/P0 = exp(-x)
+      const ratio = P1 / P0;
+      document.getElementById('ratio-line').innerHTML =
+        'P<sub>excited</sub> / P<sub>ground</sub> = e<sup>&minus;&Delta;E/k<sub>B</sub>T</sup> = ' +
+        formatRatio(ratio) + '&ensp;(&Delta;E / k<sub>B</sub>T = ' + x.toPrecision(4) + ')';
+
+      // Show kBT in input energy units
+      const kBTconv = kBTinInputUnits(kBT, eUnit);
+      document.getElementById('kBT-line').innerHTML =
+        'k<sub>B</sub>T = ' + kBTconv.val.toPrecision(4) + '&thinsp;' + kBTconv.lbl;
+
+      resBox.style.display = '';
+    }
+  </script>
+</body>
+</html>

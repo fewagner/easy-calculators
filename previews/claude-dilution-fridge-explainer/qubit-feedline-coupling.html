@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qubit–Feedline Coupling</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 600px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 6em;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row input, .row select, .row .unit-fixed { margin-top: 0; min-width: 0; }
+    .row .unit-fixed {
+      padding: 0.5em;
+      background: #f4f6f8;
+      border: 1px solid #ccd;
+      border-radius: 4px;
+      text-align: center;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-size: 0.92em;
+      line-height: 1.55;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    .warn {
+      color: #b71c1c;
+      font-weight: 600;
+    }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+    }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 600px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Qubit&ndash;Feedline Coupling</h2>
+    <p class="intro">For a qubit capacitively coupled to a transmission-line feedline, the photon decay rate into the feedline (the Purcell rate) is set by the qubit frequency f<sub>q</sub>, the coupling capacitance C<sub>c</sub>, the total qubit capacitance C<sub>&Sigma;</sub>, and the feedline characteristic impedance Z<sub>0</sub>. The calculator gives the decay rate, the external Q, and the Purcell-limited T<sub>1</sub>.</p>
+
+    <!-- Schematic -->
+    <svg viewBox="0 0 400 260" style="width:100%;max-width:400px;display:block;margin:1em auto 0.5em;" aria-label="Qubit capacitively coupled to feedline">
+      <!-- Feedline -->
+      <line x1="40"  y1="45" x2="360" y2="45" stroke="#1565c0" stroke-width="2.4"/>
+      <line x1="40"  y1="38" x2="50"  y2="38" stroke="#1565c0" stroke-width="1.2"/>
+      <line x1="40"  y1="38" x2="40"  y2="55" stroke="#1565c0" stroke-width="1.2"/>
+      <line x1="350" y1="38" x2="360" y2="38" stroke="#1565c0" stroke-width="1.2"/>
+      <line x1="360" y1="38" x2="360" y2="55" stroke="#1565c0" stroke-width="1.2"/>
+      <text x="200" y="28" text-anchor="middle" font-size="13" fill="#0d47a1" font-family="Arial,sans-serif">Feedline (Z<tspan baseline-shift="sub" font-size="10">0</tspan>)</text>
+
+      <!-- Wire down from feedline to C_c -->
+      <line x1="200" y1="45" x2="200" y2="75" stroke="#222" stroke-width="1.4"/>
+
+      <!-- C_c capacitor plates -->
+      <line x1="180" y1="78" x2="220" y2="78" stroke="#222" stroke-width="2"/>
+      <line x1="180" y1="88" x2="220" y2="88" stroke="#222" stroke-width="2"/>
+      <text x="230" y="86" font-size="14" font-style="italic" font-weight="bold" fill="#222" font-family="Arial,sans-serif">C<tspan baseline-shift="sub" font-size="10">c</tspan></text>
+
+      <!-- Wire from C_c down to qubit island node -->
+      <line x1="200" y1="88" x2="200" y2="125" stroke="#222" stroke-width="1.4"/>
+
+      <!-- Qubit island node (dot) -->
+      <circle cx="200" cy="125" r="3" fill="#222"/>
+      <text x="206" y="121" font-size="11" fill="#444" font-family="Arial,sans-serif">qubit island</text>
+
+      <!-- Branch out: left to C_Σ, right to Josephson junction -->
+      <line x1="160" y1="125" x2="240" y2="125" stroke="#222" stroke-width="1.4"/>
+
+      <!-- C_Σ branch (left) -->
+      <line x1="160" y1="125" x2="160" y2="148" stroke="#222" stroke-width="1.4"/>
+      <line x1="142" y1="151" x2="178" y2="151" stroke="#2e7d32" stroke-width="2.2"/>
+      <line x1="142" y1="161" x2="178" y2="161" stroke="#2e7d32" stroke-width="2.2"/>
+      <line x1="160" y1="161" x2="160" y2="200" stroke="#222" stroke-width="1.4"/>
+      <text x="116" y="160" font-size="14" font-style="italic" font-weight="bold" fill="#1b5e20" font-family="Arial,sans-serif">C<tspan baseline-shift="sub" font-size="10">&Sigma;</tspan></text>
+
+      <!-- Josephson junction branch (right) - represented as a box with an X -->
+      <line x1="240" y1="125" x2="240" y2="148" stroke="#222" stroke-width="1.4"/>
+      <rect x="230" y="148" width="20" height="20" fill="white" stroke="#c62828" stroke-width="1.6"/>
+      <line x1="230" y1="148" x2="250" y2="168" stroke="#c62828" stroke-width="1.6"/>
+      <line x1="250" y1="148" x2="230" y2="168" stroke="#c62828" stroke-width="1.6"/>
+      <line x1="240" y1="168" x2="240" y2="200" stroke="#222" stroke-width="1.4"/>
+      <text x="258" y="162" font-size="11" fill="#c62828" font-family="Arial,sans-serif">Josephson junction</text>
+
+      <!-- Ground bar (horizontal connection across the bottom of the qubit branches) -->
+      <line x1="140" y1="200" x2="260" y2="200" stroke="#222" stroke-width="1.6"/>
+      <!-- Ground symbol (decreasing horizontal lines below the bar) -->
+      <line x1="183" y1="207" x2="217" y2="207" stroke="#222" stroke-width="1.2"/>
+      <line x1="188" y1="213" x2="212" y2="213" stroke="#222" stroke-width="1.0"/>
+      <line x1="195" y1="219" x2="205" y2="219" stroke="#222" stroke-width="0.9"/>
+
+      <!-- Legend -->
+      <g font-family="Arial,sans-serif" font-size="11" fill="#333">
+        <text x="20" y="245">Capacitive coupling: feedline &harr; qubit through C<tspan font-style="italic">c</tspan>.</text>
+      </g>
+    </svg>
+
+    <label for="z0">Feedline impedance Z<sub>0</sub>:</label>
+    <div class="row">
+      <input type="number" id="z0" step="any" value="50">
+      <div class="unit-fixed">&Omega;</div>
+    </div>
+
+    <label for="fq-value">Qubit frequency f<sub>q</sub>:</label>
+    <div class="row">
+      <input type="number" id="fq-value" step="any" value="5">
+      <select id="fq-unit">
+        <option value="MHz">MHz</option>
+        <option value="GHz" selected>GHz</option>
+        <option value="THz">THz</option>
+      </select>
+    </div>
+
+    <label for="cc-value">Coupling capacitance C<sub>c</sub> (qubit &harr; feedline):</label>
+    <div class="row">
+      <input type="number" id="cc-value" step="any" placeholder="e.g. 2">
+      <select id="cc-unit">
+        <option value="aF">aF</option>
+        <option value="fF" selected>fF</option>
+        <option value="pF">pF</option>
+        <option value="nF">nF</option>
+      </select>
+    </div>
+
+    <label for="cs-value">Total qubit capacitance C<sub>&Sigma;</sub> (qubit to all environment):</label>
+    <div class="row">
+      <input type="number" id="cs-value" step="any" placeholder="e.g. 80">
+      <select id="cs-unit">
+        <option value="aF">aF</option>
+        <option value="fF" selected>fF</option>
+        <option value="pF">pF</option>
+        <option value="nF">nF</option>
+      </select>
+    </div>
+    <small>C<sub>&Sigma;</sub> should include every shunt capacitance the qubit sees (junction self-capacitance, shunt pad capacitance, and the coupling capacitance C<sub>c</sub> itself).</small>
+
+    <button onclick="compute()">Compute</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <p>The qubit, with total shunt capacitance C<sub>&Sigma;</sub>, behaves at its transition frequency &omega;<sub>q</sub> = 2&pi; f<sub>q</sub> like an LC oscillator with effective characteristic impedance <code>Z<sub>q</sub> = 1/(&omega;<sub>q</sub> C<sub>&Sigma;</sub>)</code>. The coupling capacitor C<sub>c</sub> taps a small fraction of that voltage onto the feedline of impedance Z<sub>0</sub>; the feedline absorbs the power as a real load.</p>
+    <p>Treating C<sub>c</sub> and Z<sub>0</sub> as a series load with admittance <code>Y = j&omega;C<sub>c</sub>/(1 + j&omega;C<sub>c</sub>Z<sub>0</sub>)</code> and expanding for weak coupling <code>&omega;<sub>q</sub>C<sub>c</sub>Z<sub>0</sub> &lt;&lt; 1</code>:</p>
+    <ul>
+      <li>Real part of load admittance: <code>Re Y &asymp; &omega;<sub>q</sub>&sup2; C<sub>c</sub>&sup2; Z<sub>0</sub></code>.</li>
+      <li><b>Decay (coupling) rate</b>: <code>&kappa; = Re Y / C<sub>&Sigma;</sub> = &omega;<sub>q</sub>&sup2; C<sub>c</sub>&sup2; Z<sub>0</sub> / C<sub>&Sigma;</sub></code> (rad/s).</li>
+      <li><b>External quality factor</b>: <code>Q<sub>ext</sub> = &omega;<sub>q</sub> / &kappa; = C<sub>&Sigma;</sub> / (&omega;<sub>q</sub> C<sub>c</sub>&sup2; Z<sub>0</sub>)</code>.</li>
+      <li><b>Purcell-limited relaxation time</b>: <code>T<sub>1</sub><sup>Purcell</sup> = 1/&kappa;</code> (this is the T<sub>1</sub> floor from the feedline alone; intrinsic / other channels are not included).</li>
+      <li><b>Participation ratio</b>: the voltage division on the coupling capacitor is <code>C<sub>c</sub>/C<sub>&Sigma;</sub></code>; the rate scales as that ratio squared.</li>
+    </ul>
+    <p>The weak-coupling expansion is quantitative while <code>&omega;<sub>q</sub> C<sub>c</sub> Z<sub>0</sub> &lt;&lt; 1</code>. For typical transmons (5 GHz, 50 &Omega;), this means <code>C<sub>c</sub> &lt;&lt; 1/( 2&pi;&middot;5&times;10<sup>9</sup>&middot;50) &asymp; 0.6 pF &asymp; 640 fF</code> &mdash; nearly always satisfied. The calculator flags violations explicitly.</p>
+    <p style="margin-bottom:0;">Reference: Koch et al., "Charge-insensitive qubit design derived from the Cooper pair box," Phys. Rev. A 76, 042319 (2007); Blais et al., "Circuit quantum electrodynamics," Rev. Mod. Phys. 93, 025005 (2021).</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script>
+    const freqFactor = { MHz: 1e6, GHz: 1e9, THz: 1e12 };
+    const capFactor  = { aF: 1e-18, fF: 1e-15, pF: 1e-12, nF: 1e-9 };
+
+    function compute() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.classList.remove('error');
+
+      const Z0 = parseFloat(document.getElementById('z0').value);
+      const fq = parseFloat(document.getElementById('fq-value').value) * freqFactor[document.getElementById('fq-unit').value];
+      const Cc = parseFloat(document.getElementById('cc-value').value) * capFactor[document.getElementById('cc-unit').value];
+      const Cs = parseFloat(document.getElementById('cs-value').value) * capFactor[document.getElementById('cs-unit').value];
+
+      for (const [k, v] of Object.entries({ Z0, fq, Cc, Cs })) {
+        if (!Number.isFinite(v) || v <= 0) {
+          resultDiv.classList.add('error');
+          resultDiv.textContent = `Enter a positive value for ${k}.`;
+          return;
+        }
+      }
+      if (Cc > Cs) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'C_c cannot exceed C_Σ — C_c is one contribution to C_Σ.';
+        return;
+      }
+
+      const omega_q = 2 * Math.PI * fq;
+      const kappa = omega_q * omega_q * Cc * Cc * Z0 / Cs;     // rad/s
+      const kappa_Hz = kappa / (2 * Math.PI);                  // Hz
+      const Q_ext = omega_q / kappa;
+      const T1 = 1 / kappa;                                    // s
+      const ratio = Cc / Cs;
+      const weakParam = omega_q * Cc * Z0;                     // dimensionless
+
+      let html = '<h4>Coupling rate</h4>';
+      html += `&kappa; = &omega;<sub>q</sub>&sup2;&middot;C<sub>c</sub>&sup2;&middot;Z<sub>0</sub>/C<sub>&Sigma;</sub> = ${kappa.toExponential(4)} rad/s<br>`;
+      html += `&kappa;/(2&pi;) = ${kappa_Hz.toExponential(4)} Hz = ${(kappa_Hz / 1e3).toFixed(3)} kHz = ${(kappa_Hz / 1e6).toFixed(4)} MHz`;
+
+      html += '<h4 style="margin-top:1em;">External quality factor</h4>';
+      html += `Q<sub>ext</sub> = &omega;<sub>q</sub>/&kappa; = ${Q_ext.toExponential(4)}`;
+
+      html += '<h4 style="margin-top:1em;">Purcell-limited T<sub>1</sub></h4>';
+      html += `T<sub>1</sub><sup>Purcell</sup> = 1/&kappa; = ${T1.toExponential(4)} s = ${(T1 * 1e6).toFixed(4)} &mu;s = ${(T1 * 1e9).toFixed(2)} ns`;
+
+      html += '<h4 style="margin-top:1em;">Participation ratio</h4>';
+      html += `C<sub>c</sub>/C<sub>&Sigma;</sub> = ${ratio.toExponential(4)} (= ${(ratio * 100).toFixed(3)} %); the rate scales as this ratio squared.`;
+
+      if (weakParam > 0.1) {
+        html += `<br><br><span class="warn">Warning:</span> &omega;<sub>q</sub>&middot;C<sub>c</sub>&middot;Z<sub>0</sub> = ${weakParam.toExponential(3)} is not &lt;&lt; 1. The weak-coupling approximation underlying the formula is no longer quantitative; treat the numbers as indicative and use a full network analysis (e.g. a complete Y-matrix or microwave simulation) for the actual decay rate.`;
+      }
+
+      resultDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

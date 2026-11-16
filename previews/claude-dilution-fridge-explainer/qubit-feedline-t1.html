@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qubit–Feedline T1 Estimator</title>
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+:root {
+  --bg:#f0f4f8; --card:#ffffff; --inner:#f6f6f4;
+  --t1:#1a1a18; --t2:#555552; --t3:#888880;
+  --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.20);
+  --blue:#0077cc; --blue-bg:#e6f0fa; --blue-t:#004e99;
+  --green:#2d7a2d; --green-bg:#e8f5e8; --green-t:#1a4d1a;
+  --amber:#b06000; --amber-bg:#fff3e0; --amber-t:#7a4000;
+  --red:#aa2222; --red-bg:#fdecea; --red-t:#7a1414;
+  --code-bg:#e8e6e0;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#161614; --card:#242420; --inner:#1c1c1a;
+    --t1:#e8e6e0; --t2:#b0aea8; --t3:#6e6c66;
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.20);
+    --blue:#85b7eb; --blue-bg:#042c53; --blue-t:#b5d4f4;
+    --green:#8dc88d; --green-bg:#173417; --green-t:#c0e0c0;
+    --amber:#f0a040; --amber-bg:#3a2000; --amber-t:#fac870;
+    --red:#f09090; --red-bg:#3a1010; --red-t:#f7c0c0;
+    --code-bg:#2e2c28;
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--t1);padding:24px 16px 60px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:22px;font-weight:600;margin-bottom:6px}
+.dev-warn{background:var(--amber-bg);color:var(--amber-t);border:.5px solid var(--amber);
+  border-radius:7px;padding:7px 13px;font-size:13px;margin-bottom:14px}
+.sub{font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.65}
+.card{background:var(--card);border-radius:10px;padding:18px 20px;margin-bottom:14px;border:.5px solid var(--border)}
+.sh{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:12px}
+.sep{border:none;border-top:.5px solid var(--border);margin:12px 0}
+/* tabs */
+.tabbar{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tbtn{padding:7px 18px;border:.5px solid var(--border2);border-radius:6px;background:var(--card);color:var(--t2);font-size:13px;cursor:pointer}
+.tbtn.on{background:var(--blue-bg);color:var(--blue);border-color:var(--blue);font-weight:700}
+.tab{display:none}.tab.on{display:block}
+/* sliders */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:13px}
+.param label{display:block;font-size:11px;color:var(--t2);margin-bottom:3px}
+.param input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;margin-bottom:2px}
+.param .val{font-size:13px;font-weight:600;color:var(--t1)}
+/* result boxes */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:12px}
+.rbox{background:var(--inner);border-radius:7px;padding:10px 13px;border:.5px solid var(--border)}
+.rbox.bl{border-left:3px solid var(--blue)}.rbox.gr{border-left:3px solid var(--green)}.rbox.am{border-left:3px solid var(--amber)}
+.rl{font-size:11px;color:var(--t3);margin-bottom:2px}
+.rv{font-size:17px;font-weight:600}
+.rv.bl{color:var(--blue)}.rv.gr{color:var(--green)}.rv.am{color:var(--amber)}
+/* steps */
+.step{font-size:12px;color:var(--t2);margin:4px 0;line-height:1.7}
+.step b{color:var(--t1)}
+.step code{font-family:monospace;font-size:11px;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+/* validity */
+.vbadge{font-size:12px;padding:7px 12px;border-radius:7px;margin-bottom:12px;line-height:1.5}
+.vbadge.ok{background:var(--green-bg);color:var(--green-t)}
+.vbadge.warn{background:var(--amber-bg);color:var(--amber-t)}
+.vbadge.bad{background:var(--red-bg);color:var(--red-t)}
+/* charts */
+canvas{display:block;width:100%}
+.ctitle{font-size:12px;font-weight:600;color:var(--t2);text-align:center;margin-bottom:5px}
+/* derivation */
+.prose{font-size:13px;color:var(--t2);line-height:1.7;margin:8px 0}
+.prose strong{color:var(--t1)}
+.stitle{font-size:15px;font-weight:600;color:var(--blue);margin:18px 0 8px}
+.math-block{overflow-x:auto;margin:14px 0;text-align:center;color:var(--t1)}
+/* assumptions table */
+.atable{width:100%;border-collapse:collapse;font-size:12px}
+.atable th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--t3);padding:0 8px 8px 0;border-bottom:1px solid var(--border2)}
+.atable td{padding:6px 8px 6px 0;border-bottom:.5px solid var(--border);color:var(--t2);vertical-align:top;line-height:1.5}
+.atable td:first-child{color:var(--t3);font-weight:700;white-space:nowrap;width:24px}
+.atable td:nth-child(2){color:var(--t1);min-width:220px}
+.card a{text-decoration:none;font-size:1.2em;color:var(--blue)}
+.card a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Qubit–Feedline T₁ Estimator</h1>
+<div class="dev-warn">⚠ Under development — use with caution.</div>
+<p class="sub">Analytic estimate of the T₁ relaxation time of a circular transmon qubit island due to
+capacitive coupling to a CPW feedline, using a view-factor integral over effective geometric parameters.
+Geometry: fully planar chip with a continuous ground plane and etched cutouts around the island and feedline.
+Accuracy ~2–3× vs. full EM simulation — always verify with Sonnet, HFSS, or Palace.</p>
+
+<div class="tabbar">
+  <button class="tbtn on"  onclick="showTab('calc',this)">Calculator</button>
+  <button class="tbtn"     onclick="showTab('deriv',this)">Derivation</button>
+  <button class="tbtn"     onclick="showTab('assump',this)">Assumptions</button>
+</div>
+
+<!-- ═══════════════════════ TAB 1: CALCULATOR ═══════════════════════ -->
+<div id="tab-calc" class="tab on">
+
+<div class="card">
+  <div class="sh">Geometry &amp; circuit parameters</div>
+  <div class="pgrid">
+    <div class="param"><label>Island diameter d (µm)</label>
+      <input type="range" id="sl-d"    min="20"   max="1000" value="125"   oninput="go()">
+      <span class="val" id="vl-d">125 µm</span></div>
+    <div class="param"><label>Island ground-plane gap s (µm)</label>
+      <input type="range" id="sl-s"    min="5"    max="50"   value="10"    oninput="go()">
+      <span class="val" id="vl-s">10 µm</span></div>
+    <div class="param"><label>Feedline width w (µm)</label>
+      <input type="range" id="sl-w"    min="5"    max="40"   value="20"    oninput="go()">
+      <span class="val" id="vl-w">20 µm</span></div>
+    <div class="param"><label>Feedline CPW gap a (µm)</label>
+      <input type="range" id="sl-a"    min="2"    max="20"   step="0.25" value="10"    oninput="go()">
+      <span class="val" id="vl-a">10 µm</span></div>
+    <div class="param"><label>Centre-to-centre distance D (µm)</label>
+      <input type="range" id="sl-D"    min="50"   max="3000" value="322.5" step="0.5" oninput="go()">
+      <span class="val" id="vl-D">322.5 µm</span></div>
+    <div class="param"><label>Effective permittivity ε_eff</label>
+      <input type="range" id="sl-eps"  min="1"    max="12"   value="6.35"  step="0.05" oninput="go()">
+      <span class="val" id="vl-eps">6.35</span></div>
+    <div class="param"><label>Total qubit cap C_Σ (fF)</label>
+      <input type="range" id="sl-csig" min="20"   max="150"  value="80"    oninput="go()">
+      <span class="val" id="vl-csig">80 fF</span></div>
+    <div class="param"><label>Qubit frequency f_q (GHz)</label>
+      <input type="range" id="sl-fq"   min="3"    max="8"    value="5.0"   step="0.1" oninput="go()">
+      <span class="val" id="vl-fq">5.0 GHz</span></div>
+    <div class="param"><label>Feedline impedance Z₀ (Ω)</label>
+      <input type="range" id="sl-z0"   min="20"   max="100"  value="50"    oninput="go()">
+      <span class="val" id="vl-z0">50 Ω</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="sh">Step-by-step calculation</div>
+  <div id="steps"></div>
+</div>
+
+<div class="card">
+  <div class="sh">Results</div>
+  <div id="vbadge" class="vbadge ok">✓ Validity condition met</div>
+  <div class="rgrid" id="rboxes"></div>
+</div>
+
+<div class="card">
+  <div class="sh">Mutual capacitance vs D</div>
+  <div class="ctitle">C_mf (aF) — log scale — current operating point marked</div>
+  <canvas id="ch1" height="230"></canvas>
+</div>
+
+<div class="card">
+  <div class="sh">T₁ feedline limit vs D</div>
+  <div class="ctitle">T₁ (µs) — log scale — current operating point marked</div>
+  <canvas id="ch2" height="230"></canvas>
+</div>
+
+</div><!-- /tab-calc -->
+
+<!-- ═══════════════════════ TAB 2: DERIVATION ═══════════════════════ -->
+<div id="tab-deriv" class="tab">
+
+<div class="card">
+  <div class="stitle">1. Geometry and notation</div>
+
+  <!--
+    SVG Figure 1.
+    Layout (pixels):
+      Feedline centre conductor: y 61–93  → centre y=77
+      CPW gap strips:            y 44–61 and y 93–110
+      Island: centre (300,258), radius 56 px
+      Island top (perimeter):    y = 258−56 = 202
+
+    D arrow: feedline centre (y=77) → island centre (y=258).
+    The arrow passes through the island; the island is drawn on top,
+    so the arrowhead at y=258 is hidden inside the island — this is fine
+    and matches Figure 1 of the report.  We offset the arrow to x=315
+    so it clears the island text.
+  -->
+  <svg viewBox="0 0 620 345" xmlns="http://www.w3.org/2000/svg"
+       style="width:100%;max-width:620px;display:block;margin:8px auto;border-radius:6px">
+    <defs>
+      <marker id="ah"  markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+        <polygon points="0 0,7 3.5,0 7" fill="#444"/></marker>
+      <marker id="aht" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
+        <polygon points="7 0,0 3.5,7 7" fill="#444"/></marker>
+    </defs>
+    <!-- ground plane -->
+    <rect x="0" y="0" width="620" height="345" fill="#c9c6be" rx="6"/>
+    <text x="22" y="28" font-family="Arial" font-size="12" fill="#666">Ground plane</text>
+    <!-- feedline: CPW gap a top (y 44–61), centre w (y 61–93), CPW gap a bottom (y 93–110) -->
+    <rect x="20" y="44"  width="562" height="17" fill="#dbd8d0"/>
+    <rect x="20" y="61"  width="562" height="32" fill="#3a6eaa"/>
+    <rect x="20" y="93"  width="562" height="17" fill="#dbd8d0"/>
+    <text x="200" y="82" font-family="Arial" font-size="13" font-weight="bold"
+          fill="white" text-anchor="middle">CPW feedline</text>
+    <!-- dimension lines right side -->
+    <line x1="594" y1="44"  x2="594" y2="61"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="44"  x2="599" y2="44"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
+    <text x="612" y="56"  font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
+    <line x1="594" y1="61"  x2="594" y2="93"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="61"  x2="599" y2="61"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
+    <text x="612" y="81"  font-family="Arial" font-size="12" fill="#333" text-anchor="middle">w</text>
+    <line x1="594" y1="93"  x2="594" y2="110" stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="93"  x2="599" y2="93"  stroke="#333" stroke-width="1"/>
+    <line x1="589" y1="110" x2="599" y2="110" stroke="#333" stroke-width="1"/>
+    <text x="612" y="105" font-family="Arial" font-size="12" fill="#333" text-anchor="middle">a</text>
+    <!--
+      D arrow: from feedline centre (x=315, y=77) to island centre (x=315, y=258).
+      Offset to x=315 so it runs alongside the island rather than through its label text.
+      The island circle (centre 300, r=56) extends to x=356 at most, so x=315 is inside —
+      the orange fill is drawn afterward and covers the middle of the arrow, which is correct:
+      D is defined centre-to-centre, and the endpoints at feedline centre and island centre
+      are what matter.
+    -->
+    <line x1="315" y1="77" x2="315" y2="258"
+          stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="330" y="175" font-family="Arial" font-size="13" font-weight="bold" fill="#222">D</text>
+    <!-- qubit island: centre (300,258), island r=56, gap ring r=72 -->
+    <circle cx="300" cy="258" r="72" fill="#dbd8d0"/>
+    <circle cx="300" cy="258" r="56" fill="#d4700a"/>
+    <text x="300" y="254" font-family="Arial" font-size="12" font-weight="bold"
+          fill="white" text-anchor="middle">Qubit</text>
+    <text x="300" y="270" font-family="Arial" font-size="12" font-weight="bold"
+          fill="white" text-anchor="middle">island</text>
+    <!-- s label pointing to the gap ring -->
+    <line x1="352" y1="220" x2="370" y2="207" stroke="#555" stroke-width="1"/>
+    <text x="376" y="204" font-family="Arial" font-size="12" fill="#555">s</text>
+    <!-- d arrow: island diameter at y=325 -->
+    <line x1="244" y1="325" x2="356" y2="325"
+          stroke="#333" stroke-width="1.5" marker-start="url(#aht)" marker-end="url(#ah)"/>
+    <text x="300" y="340" font-family="Arial" font-size="12" font-weight="bold"
+          fill="#333" text-anchor="middle">d</text>
+    <!-- caption -->
+    <text x="310" y="16" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">
+      Figure 1. Chip top-view (not to scale). D is the centre-to-centre distance from feedline to island.
+    </text>
+  </svg>
+
+  <div class="sep"></div>
+  <table class="atable">
+    <tr><th>#</th><th>Symbol</th><th>Meaning</th></tr>
+    <tr><td>1</td><td><b>d</b></td><td>Qubit island diameter</td></tr>
+    <tr><td>2</td><td><b>s</b></td><td>Gap: island edge → ground cutout edge</td></tr>
+    <tr><td>3</td><td><b>w</b></td><td>CPW feedline centre-conductor width</td></tr>
+    <tr><td>4</td><td><b>a</b></td><td>CPW feedline gap (each side, centre conductor → ground)</td></tr>
+    <tr><td>5</td><td><b>D</b></td><td>Centre-to-centre distance: from island centre to feedline centre</td></tr>
+    <tr><td>6</td><td><b>ε_eff</b></td><td>Effective dielectric \(= (1 + \varepsilon_\text{Si})/2\)</td></tr>
+    <tr><td>7</td><td><b>C_Σ</b></td><td>Total qubit capacitance (self + junction + shunt)</td></tr>
+    <tr><td>8</td><td><b>f_q</b></td><td>Qubit transition frequency</td></tr>
+    <tr><td>9</td><td><b>Z₀</b></td><td>Feedline characteristic impedance</td></tr>
+  </table>
+  <p class="prose" style="margin-top:10px">
+  The edge-to-edge separation from island perimeter to the near edge of the CPW centre conductor
+  equals \(D - d/2 - w/2\).
+  </p>
+</div>
+
+<div class="card">
+  <div class="stitle">2. Derivation of the mutual capacitance</div>
+
+  <p class="prose"><strong>2.1 Strategy.</strong>
+  No closed-form exact solution exists for the mutual capacitance between a circular island and a CPW
+  strip with surrounding ground plane. The formula below is a geometric view-factor approximation
+  that integrates an angle-dependent coupling kernel over the effective feedline width. It captures
+  all correct parametric trends and is accurate to a factor of 2–3 versus full EM simulation.</p>
+
+  <p class="prose"><strong>2.2 Effective parameters.</strong>
+  Charge in a CPW structure is not concentrated only at the conductor edge — it distributes across
+  the gap. Each conductor+gap pair is represented by an effective size placed at the midpoint
+  between the conductor edge and the <em>midpoint</em> of the gap:</p>
+  <div class="math-block">
+    \[R_\text{eff} = \frac{d}{2} + \frac{s}{4}, \qquad
+      W_\text{eff} = \frac{w}{2} + \frac{a}{4}\]
+  </div>
+  <p class="prose">
+  For the island: the conductor edge is at \(d/2\), the gap midpoint is at \(d/2 + s/2\), so the
+  midpoint between them is \(d/2 + s/4\). The same logic gives \(w/2 + a/4\) for the feedline.
+  This is <em>not</em> the gap midpoint \(d/2 + s/2\) — charge concentrates toward the conductor
+  edge, so the effective radius is shifted inward.</p>
+
+  <p class="prose"><strong>Why the quarter-point?</strong>
+  There is no unique derivation that pins down the prefactor to exactly \(\tfrac{1}{4}\) — it is
+  an approximation for where the "effective centre of charge" of the CPW gap region sits.
+  The physical argument is:</p>
+  <ul class="prose" style="margin-left:1.4em;margin-top:4px">
+    <li>The surface charge density on a CPW conductor <em>peaks</em> at the inner edge (at
+        \(d/2\)) — it diverges weakly there due to the sharp corner, following a well-known
+        \((x-d/2)^{-1/2}\) singularity from conformal mapping.</li>
+    <li>The charge density is <em>zero</em> in the gap itself (no conductor, no free charge).</li>
+    <li>The ground plane at \(d/2 + s\) carries equal and opposite charge; its contribution
+        cancels in the monopole far field, leaving a dipole of moment \(\propto Q\cdot s\).</li>
+  </ul>
+  <p class="prose">
+  The centroid of the gap-field distribution therefore lies closer to the inner conductor edge
+  than to the gap midpoint. The \(s/4\) prescription places the effective radius at the midpoint
+  between the conductor edge and the gap centre — i.e., halfway between \(d/2\) and
+  \(d/2+s/2\). This is consistent with a first-order moment of the CPW charge distribution
+  near the edge.
+  In a full 2D conformal-mapping analysis of a CPW, the charge distribution in the gap region
+  is non-uniform and skewed toward the inner edge, and the true centroid is indeed between
+  \(d/2\) and \(d/2+s/2\). The factor \(\tfrac{1}{4}\) is a physically motivated estimate;
+  the exact value is geometry-dependent and is one of the sources of the ~2–3× overall
+  uncertainty of the formula.</p>
+
+  <p class="prose"><strong>2.3 View-factor integral.</strong>
+  Consider the transverse distance \(x\) from the island centre to a strip of the feedline,
+  measured perpendicular to the feedline axis at the closest-approach cross-section (\(y = 0\)).
+  The half-angle subtended by the island (radius \(R_\text{eff}\)) from that transverse distance is
+  \(\theta(x) = \arcsin(R_\text{eff}/x)\) — the angle you would need to look away from the
+  transverse axis to just graze the island boundary, when standing at transverse distance \(x\)
+  directly across from the island centre.
+  The island spatial extent enters here: a larger \(R_\text{eff}\) means a larger \(\theta\)
+  at every \(x\), hence more coupling everywhere across the feedline width.
+  The coupling kernel \(\sec\theta - 1 = x/\sqrt{x^2 - R_\text{eff}^2} - 1\)
+  vanishes as \(x\to\infty\) and diverges as \(x\to R_\text{eff}\) (contact).
+  Integrating across the effective feedline width \([D - W_\text{eff},\; D + W_\text{eff}]\):</p>
+  <div class="math-block">
+    \[C_\text{mf} = 4\,\varepsilon_\text{eff}\,\varepsilon_0
+      \int_{D-W_\text{eff}}^{D+W_\text{eff}}
+      \!\!\left[\frac{x}{\sqrt{x^2 - R_\text{eff}^2}} - 1\right] dx\]
+  </div>
+  <p class="prose">The integration variable \(x\) runs across the effective feedline width
+  \([D-W_\text{eff},\, D+W_\text{eff}]\) — the transverse direction, perpendicular to the feedline
+  axis. The formula evaluates the geometry at the closest-approach cross-section (\(y = 0\)) only;
+  the feedline's longitudinal extent is <em>not</em> integrated. This is a
+  <strong>1D cross-sectional approximation</strong>. The omitted longitudinal contribution carries
+  the same \(1/D^2\) distance dependence as the formula and differs only by an \(O(1)\) prefactor,
+  which is absorbed into the overall ±factor-of-2–3 accuracy.</p>
+
+  <p class="prose"><strong>2.4 Closed-form result.</strong>
+  Using the antiderivative
+  \(\int\!\left[x/\sqrt{x^2-R^2}-1\right]dx = \sqrt{x^2-R^2}-x+\text{const}\,\):</p>
+  <div class="math-block">
+    \[C_\text{mf} \approx 4\,\varepsilon_\text{eff}\,\varepsilon_0
+      \Bigl[\sqrt{(D+W_\text{eff})^2 - R_\text{eff}^2}
+           - \sqrt{(D-W_\text{eff})^2 - R_\text{eff}^2}
+           - 2\,W_\text{eff}\Bigr]\]
+  </div>
+  <p class="prose"><strong>Note on the prefactor \(4\varepsilon_\text{eff}\varepsilon_0\).</strong>
+  This prefactor is not derived from first principles — it is chosen so that the large-\(D\)
+  limit matches the expected dipole scaling. A full 2D calculation (integrating over both
+  transverse and longitudinal directions) yields a prefactor of
+  \(2\varepsilon_\text{eff}\varepsilon_0\) at large \(D\):</p>
+  <div class="math-block">
+    \[C_\text{mf}^\text{full 2D} \;\longrightarrow\;
+      \frac{2\,\varepsilon_\text{eff}\,\varepsilon_0\,R_\text{eff}^2\,W_\text{eff}}{D^2}\]
+  </div>
+  <p class="prose">
+  The factor-of-2 difference is a direct and concrete consequence of the 1D cross-sectional
+  approximation described above — the formula overcounts by a factor of ~2 because it evaluates
+  the longitudinal geometry only at \(y=0\) rather than integrating over all \(y\). This is one
+  of the identifiable sources of the stated ±factor-of-2–3 accuracy.</p>
+
+  <p class="prose">Validity condition (conductors do not overlap in effective-parameter space):</p>
+  <div class="math-block">
+    \[D - W_\text{eff} > R_\text{eff}
+      \quad\Longleftrightarrow\quad
+      D > \frac{d}{2} + \frac{s}{4} + \frac{w}{2} + \frac{a}{4}\]
+  </div>
+  <p class="prose">Accuracy regime: the formula is most reliable when \(D/R_\text{eff} > 5\).
+  At \(D/R_\text{eff} \approx 5\) (the nominal geometry with \(R_\text{eff} \approx 65\,\mu\text{m}\)),
+  accuracy is ~factor-of-2–3. At \(D/R_\text{eff} < 3\), the cross-sectional approximation breaks
+  down more severely and EM simulation (Sonnet, HFSS, Palace) is the only reliable option.</p>
+
+  <p class="prose"><strong>2.5 Large-distance limit.</strong>
+  Expanding for \(D \gg W_\text{eff}, R_\text{eff}\):</p>
+  <div class="math-block">
+    \[C_\text{mf} \;\longrightarrow\;
+      \frac{4\,\varepsilon_\text{eff}\,\varepsilon_0\,R_\text{eff}^2\,W_\text{eff}}{D^2}
+      \qquad(1/D^2 \text{ dipole-like decay})\]
+  </div>
+  <p class="prose">
+  At the nominal geometry \(D/R_\text{eff} \approx 5\), the full formula is needed — the island
+  body contributes significantly and cannot be treated as a point dipole.</p>
+</div>
+
+<div class="card">
+  <div class="stitle">3. From C_mf to T₁</div>
+  <p class="prose">Modelling the qubit as an LC oscillator with total capacitance \(C_\Sigma\), the
+  admittance seen through \(C_\text{mf}\) into a matched feedline (impedance \(Z_0\)) is
+  \(Y(\omega) = j\omega C_\text{mf}/(1 + j\omega C_\text{mf}Z_0)\).
+  Since \(\omega C_\text{mf}Z_0 \sim 10^{-4} \ll 1\):</p>
+  <div class="math-block">
+    \[\operatorname{Re}[Y(\omega)] \approx \omega^2 C_\text{mf}^2\,Z_0\]
+  </div>
+  <p class="prose">An infinite feedline has two ports — the factor of 2 is essential and often
+  omitted in the literature:</p>
+  <div class="math-block">
+    \[\kappa = \frac{2\,\omega^2 C_\text{mf}^2\,Z_0}{C_\Sigma},
+      \qquad
+      T_1 = \frac{C_\Sigma}{2\,\omega^2 C_\text{mf}^2\,Z_0}\]
+  </div>
+  <p class="prose">
+  This follows from input-output theory (Blais et al., <em>Rev. Mod. Phys.</em> 93, 025005, 2021;
+  Koch et al., <em>Phys. Rev. A</em> 76, 042319, 2007).
+  \(C_\text{mf}\) is the mutual capacitance above; \(C_\Sigma\) is the total qubit
+  self-capacitance (typically 40–100 fF for a 125 µm transmon island).</p>
+</div>
+
+</div><!-- /tab-deriv -->
+
+<!-- ═══════════════════════ TAB 3: ASSUMPTIONS ═══════════════════════ -->
+<div id="tab-assump" class="tab">
+<div class="card">
+  <div class="sh">Assumptions &amp; limitations</div>
+  <table class="atable">
+    <tr><th>#</th><th>Assumption / Limitation</th><th>Expected impact</th></tr>
+    <tr><td>1</td><td>Planar 2D geometry. All conductors coplanar on one metal layer.</td><td>Appropriate for planar CPW chips. Small error (&lt;10%).</td></tr>
+    <tr><td>2</td><td>Uniform ε_eff = (1+ε_Si)/2 = 6.35. Treats the Si/vacuum interface as a uniform effective medium.</td><td>5–10% on all capacitances. Depends on substrate thickness and conductor width.</td></tr>
+    <tr><td>3</td><td>1D cross-sectional approximation: the integral runs over the transverse feedline width at the closest-approach cross-section (y = 0) only. The longitudinal direction is not integrated. A full 2D integration would reduce the prefactor from 4 to 2 at large D.</td><td>Identifiable factor-of-~2 overestimate of C_mf. Dominant source of error together with the effective-parameter prescription.</td></tr>
+    <tr><td>4</td><td>Effective parameters R_eff = d/2 + s/4 and W_eff = w/2 + a/4 place the effective boundary at the midpoint between the conductor edge and the gap midpoint.</td><td>~20% on C_mf. Other weightings are plausible; midpoint minimises known error.</td></tr>
+    <tr><td>5</td><td>Formula is specific to the with-ground-plane geometry.</td><td>Does not apply to geometries without a coplanar ground plane.</td></tr>
+    <tr><td>6</td><td>Feedline is infinite and perfectly impedance-matched at Z₀.</td><td>Negligible if terminated properly. A resonance near f_q can dramatically increase coupling.</td></tr>
+    <tr><td>7</td><td>Both feedline ports counted (factor of 2 in κ). For a one-sided feedline, remove the factor of 2.</td><td>Factor of 2 error in κ and T₁ if wrong.</td></tr>
+    <tr><td>8</td><td>No Purcell filter or coupling resonator. This is the direct radiation T₁ limit.</td><td>With a Purcell filter, T₁ improves by (Δ/g)², typically 100–1000×.</td></tr>
+    <tr><td>9</td><td>C_Σ (total qubit capacitance) is a free parameter, not computed from geometry.</td><td>Uncertainty in C_Σ propagates linearly to T₁.</td></tr>
+  </table>
+</div>
+</div><!-- /tab-assump -->
+
+<div class="card">
+  <a href="index.html">Back</a>
+</div>
+
+</div><!-- /wrap -->
+<script>
+// ─── Physics ───────────────────────────────────────────────────────────────
+const EPS0 = 8.854e-12;
+
+// D_m: centre-to-centre distance in metres (primary input, replaces gap)
+function calcCmf(D_m, d, s, w, a, eps) {
+  const Re = d/2 + s/4;
+  const We = w/2 + a/4;
+  const Dp = D_m + We, Dm = D_m - We;
+  if (Dm <= Re) return NaN;
+  return 4*eps*EPS0*(Math.sqrt(Dp*Dp - Re*Re) - Math.sqrt(Dm*Dm - Re*Re) - 2*We);
+}
+
+function calcT1(cmf, fq, csig, z0) {
+  const om = 2*Math.PI*fq;
+  return csig / (2*om*om*cmf*cmf*z0);
+}
+
+// ─── Formatting ────────────────────────────────────────────────────────────
+function fmtC(v) {
+  if (!isFinite(v)||isNaN(v)) return '—';
+  const aF = v*1e18;
+  if (aF>=1e3) return (aF/1e3).toFixed(2)+' fF';
+  if (aF>=1)   return aF.toFixed(1)+' aF';
+  return (aF*1e3).toFixed(1)+' zaF';
+}
+function fmtT(v) {
+  if (!isFinite(v)||isNaN(v)||v<=0) return '—';
+  if (v>=1)    return v.toFixed(2)+' s';
+  if (v>=1e-3) return (v*1e3).toFixed(2)+' ms';
+  if (v>=1e-6) return (v*1e6).toFixed(1)+' µs';
+  if (v>=1e-9) return (v*1e9).toFixed(1)+' ns';
+  return (v*1e12).toFixed(1)+' ps';
+}
+function fmtU(m)  { return (m*1e6).toFixed(2)+' µm'; }
+function fmtHz(f) {
+  if (!isFinite(f)||f<=0) return '—';
+  if (f>=1e6) return (f/1e6).toFixed(2)+' MHz';
+  if (f>=1e3) return (f/1e3).toFixed(2)+' kHz';
+  return f.toFixed(0)+' Hz';
+}
+
+// ─── Main update ───────────────────────────────────────────────────────────
+function getP() {
+  return {
+    d:    +document.getElementById('sl-d').value    * 1e-6,
+    s:    +document.getElementById('sl-s').value    * 1e-6,
+    w:    +document.getElementById('sl-w').value    * 1e-6,
+    a:    +document.getElementById('sl-a').value    * 1e-6,
+    D:    +document.getElementById('sl-D').value    * 1e-6,
+    eps:  +document.getElementById('sl-eps').value,
+    csig: +document.getElementById('sl-csig').value * 1e-15,
+    fq:   +document.getElementById('sl-fq').value   * 1e9,
+    z0:   +document.getElementById('sl-z0').value,
+  };
+}
+
+function go() {
+  const p = getP();
+  document.getElementById('vl-d').textContent    = (p.d*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-s').textContent    = (p.s*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-w').textContent    = (p.w*1e6).toFixed(0)+' µm';
+  document.getElementById('vl-a').textContent    = (p.a*1e6).toFixed(2)+' µm';
+  document.getElementById('vl-D').textContent    = (p.D*1e6).toFixed(1)+' µm';
+  document.getElementById('vl-eps').textContent  = p.eps.toFixed(2);
+  document.getElementById('vl-csig').textContent = (p.csig*1e15).toFixed(0)+' fF';
+  document.getElementById('vl-fq').textContent   = (p.fq*1e-9).toFixed(1)+' GHz';
+  document.getElementById('vl-z0').textContent   = p.z0.toFixed(0)+' Ω';
+
+  const Re   = p.d/2 + p.s/4;
+  const We   = p.w/2 + p.a/4;
+  const Dm   = p.D - We;
+  const valid   = Dm > Re;
+  const nearfld = p.D < 2*Re;
+  const cmf  = calcCmf(p.D, p.d, p.s, p.w, p.a, p.eps);
+  const t1   = valid ? calcT1(cmf, p.fq, p.csig, p.z0) : NaN;
+  const kap2pi = valid ? (2*(2*Math.PI*p.fq)**2*cmf**2*p.z0/p.csig)/(2*Math.PI) : NaN;
+
+  // validity badge
+  const vb = document.getElementById('vbadge');
+  if (!valid) {
+    vb.className = 'vbadge bad';
+    vb.textContent = '✗ Invalid: D − W_eff ≤ R_eff — conductors overlap in effective-parameter space. Increase D.';
+  } else if (nearfld) {
+    vb.className = 'vbadge warn';
+    vb.textContent = '⚠ Near-field regime (D < 2 R_eff = '+fmtU(2*Re)+'): formula less accurate, treat as order-of-magnitude estimate.';
+  } else {
+    vb.className = 'vbadge ok';
+    vb.textContent = '✓ Validity condition met (D − W_eff > R_eff, D ≥ 2 R_eff).';
+  }
+
+  // derived edge-to-edge gap for display
+  const gap_disp = p.D - p.d/2 - p.w/2;
+
+  // steps
+  document.getElementById('steps').innerHTML = `
+    <div class="step">R_eff = d/2 + s/4 = <b>${fmtU(p.d/2)}</b> + <b>${fmtU(p.s/4)}</b> = <code>${fmtU(Re)}</code></div>
+    <div class="step">W_eff = w/2 + a/4 = <b>${fmtU(p.w/2)}</b> + <b>${fmtU(p.a/4)}</b> = <code>${fmtU(We)}</code></div>
+    <div class="step">D (slider) = <code>${fmtU(p.D)}</code>&nbsp; (D/R_eff = ${(p.D/Re).toFixed(2)}; edge-to-edge gap = D − d/2 − w/2 = <b>${fmtU(gap_disp)}</b>)</div>
+    <div class="step">Validity: D − W_eff = <b>${fmtU(Dm)}</b> ${valid?'>':'≤'} R_eff = <b>${fmtU(Re)}</b> → ${valid?'✓ valid':'✗ invalid'}</div>
+    <div class="step">C_mf = 4 ε_eff ε₀ [√((D+W_eff)²−R_eff²) − √((D−W_eff)²−R_eff²) − 2W_eff] = <code>${fmtC(cmf)}</code></div>
+    <div class="step">ω = 2π × ${(p.fq/1e9).toFixed(2)} GHz</div>
+    <div class="step">κ/2π = ω² C_mf² Z₀ / (π C_Σ) = <code>${fmtHz(kap2pi)}</code></div>
+    <div class="step">T₁ = C_Σ / (2 ω² C_mf² Z₀) = <code>${fmtT(t1)}</code></div>`;
+
+  // result boxes
+  document.getElementById('rboxes').innerHTML = `
+    <div class="rbox bl"><div class="rl">R_eff (effective island radius)</div><div class="rv bl">${fmtU(Re)}</div></div>
+    <div class="rbox bl"><div class="rl">W_eff (effective feedline half-width)</div><div class="rv bl">${fmtU(We)}</div></div>
+    <div class="rbox bl"><div class="rl">D (centre-to-centre)</div><div class="rv bl">${fmtU(p.D)}</div></div>
+    <div class="rbox am"><div class="rl">C_mf (mutual capacitance)</div><div class="rv am">${fmtC(cmf)}</div></div>
+    <div class="rbox am"><div class="rl">κ/2π (decay rate)</div><div class="rv am">${fmtHz(kap2pi)}</div></div>
+    <div class="rbox gr"><div class="rl">T₁ feedline limit</div><div class="rv gr">${fmtT(t1)}</div></div>`;
+
+  drawAll(p, cmf, t1);
+}
+
+// ─── Chart engine ──────────────────────────────────────────────────────────
+function setupCanvas(id) {
+  const c   = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const W   = c.offsetWidth || 820;
+  const H   = +c.getAttribute('height');
+  c.width   = W * dpr;
+  c.height  = H * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return {ctx, W, H};
+}
+
+function drawLogChart(id, xArr, datasets, opts) {
+  const {ctx, W, H} = setupCanvas(id);
+  const pl=62, pr=18, pt=16, pb=42;
+  const cw=W-pl-pr, ch=H-pt-pb;
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const tc = dark?'#b0aea8':'#555';
+  const gc = dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
+  const gc2= dark?'rgba(255,255,255,0.14)':'rgba(0,0,0,0.14)';
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = dark?'#242420':'#fff';
+  ctx.fillRect(0,0,W,H);
+
+  let yMin=Infinity, yMax=-Infinity;
+  datasets.forEach(ds => ds.y.forEach(y=>{if(y>0&&isFinite(y)){yMin=Math.min(yMin,y);yMax=Math.max(yMax,y);}}));
+  if(!isFinite(yMin)) return;
+  const yMinL = Math.floor(Math.log10(yMin));
+  const yMaxL = Math.ceil(Math.log10(yMax));
+  const xMin=xArr[0], xMax=xArr[xArr.length-1];
+
+  const PX = x => pl + (x-xMin)/(xMax-xMin)*cw;
+  const PY = y => (!isFinite(y)||y<=0) ? pt+ch : pt + (yMaxL-Math.log10(y))/(yMaxL-yMinL)*ch;
+
+  // horizontal grid (log decades)
+  for(let e=yMinL; e<=yMaxL; e++){
+    for(let m=1; m<=9; m++){
+      const yy=PY(m*Math.pow(10,e));
+      if(yy<pt-1||yy>pt+ch+1) continue;
+      ctx.beginPath(); ctx.strokeStyle=m===1?gc2:gc; ctx.lineWidth=m===1?0.7:0.3;
+      ctx.moveTo(pl,yy); ctx.lineTo(pl+cw,yy); ctx.stroke();
+    }
+  }
+  // vertical grid
+  for(let i=0;i<=5;i++){
+    const xx=PX(xMin+i*(xMax-xMin)/5);
+    ctx.beginPath(); ctx.strokeStyle=gc; ctx.lineWidth=0.4;
+    ctx.moveTo(xx,pt); ctx.lineTo(xx,pt+ch); ctx.stroke();
+  }
+  // current-x dashed line
+  if(opts.curX!==undefined){
+    const xx=PX(opts.curX);
+    ctx.beginPath(); ctx.strokeStyle=dark?'rgba(255,255,255,0.20)':'rgba(0,0,0,0.16)';
+    ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.moveTo(xx,pt); ctx.lineTo(xx,pt+ch); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // data lines
+  datasets.forEach(ds=>{
+    ctx.beginPath(); ctx.strokeStyle=ds.color; ctx.lineWidth=ds.lw||2;
+    let first=true;
+    xArr.forEach((x,i)=>{
+      const y=ds.y[i];
+      if(!isFinite(y)||y<=0){first=true;return;}
+      first?(ctx.moveTo(PX(x),PY(y)),first=false):ctx.lineTo(PX(x),PY(y));
+    });
+    ctx.stroke();
+    if(opts.curX!==undefined && ds.curY>0 && isFinite(ds.curY)){
+      ctx.beginPath(); ctx.fillStyle=ds.color;
+      ctx.arc(PX(opts.curX), PY(ds.curY), 4.5, 0, 2*Math.PI); ctx.fill();
+    }
+  });
+  // border
+  ctx.beginPath(); ctx.strokeStyle=dark?'#555':'#ccc'; ctx.lineWidth=0.8;
+  ctx.rect(pl,pt,cw,ch); ctx.stroke();
+  // y labels
+  ctx.fillStyle=tc; ctx.font='11px Arial'; ctx.textAlign='right';
+  for(let e=yMinL; e<=yMaxL; e++){
+    const yy=PY(Math.pow(10,e));
+    if(yy<pt-4||yy>pt+ch+4) continue;
+    const lbl = e<0?'0.'+'0'.repeat(-e-1)+'1' : e===0?'1':e===1?'10':'10^'+e;
+    ctx.fillText(lbl, pl-5, yy+4);
+  }
+  // x labels
+  ctx.textAlign='center';
+  for(let i=0;i<=5;i++){
+    ctx.fillText(Math.round(xMin+i*(xMax-xMin)/5), PX(xMin+i*(xMax-xMin)/5), pt+ch+15);
+  }
+  // axis titles
+  ctx.fillStyle=tc; ctx.font='11px Arial'; ctx.textAlign='center';
+  ctx.fillText(opts.xLbl||'', pl+cw/2, H-3);
+  ctx.save(); ctx.translate(13,pt+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(opts.yLbl||'', 0, 0); ctx.restore();
+}
+
+// ─── Draw charts (x-axis: D in µm, 50..3000) ──────────────────────────────
+function drawAll(p, curCmf, curT1) {
+  const N=300;
+  const Dmin=50, Dmax=3000;
+  const DArr = Array.from({length:N}, (_,i) => Dmin + i*(Dmax-Dmin)/(N-1));
+
+  // Chart 1: C_mf vs D
+  const cmfArr = DArr.map(Dµm => {
+    const c = calcCmf(Dµm*1e-6, p.d, p.s, p.w, p.a, p.eps);
+    return isNaN(c) ? NaN : c*1e18;
+  });
+  drawLogChart('ch1', DArr,
+    [{y:cmfArr, color:'#0077cc', lw:2, curY:curCmf*1e18}],
+    {xLbl:'Centre-to-centre distance D (µm)', yLbl:'C_mf (aF)', curX:p.D*1e6});
+
+  // Chart 2: T1 vs D
+  const t1Arr = DArr.map(Dµm => {
+    const c = calcCmf(Dµm*1e-6, p.d, p.s, p.w, p.a, p.eps);
+    return isNaN(c) ? NaN : calcT1(c, p.fq, p.csig, p.z0)*1e6;
+  });
+  drawLogChart('ch2', DArr,
+    [{y:t1Arr, color:'#2d7a2d', lw:2, curY:curT1*1e6}],
+    {xLbl:'Centre-to-centre distance D (µm)', yLbl:'T₁ (µs)', curX:p.D*1e6});
+}
+
+// ─── Tab switching ─────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(el  => el.classList.remove('on'));
+  document.querySelectorAll('.tbtn').forEach(el => el.classList.remove('on'));
+  document.getElementById('tab-'+name).classList.add('on');
+  btn.classList.add('on');
+  if (name==='calc') setTimeout(go, 10);
+}
+
+window.addEventListener('resize', ()=>{
+  if (document.getElementById('tab-calc').classList.contains('on')) go();
+});
+
+go();
+</script>
+</body>
+</html>

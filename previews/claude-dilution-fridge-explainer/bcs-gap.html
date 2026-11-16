@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BCS Superconducting Gap from Tc</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 620px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; text-align: center; }
+    h4 { margin-bottom: 0.3em; color: #1565c0; }
+    p.intro { color: #555; font-size: 0.95em; margin-top: 0; }
+    label { display: block; margin-top: 1em; font-weight: 600; }
+    small { color: #666; display: block; margin-top: 0.2em; }
+    input, select, button {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.5em;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 7em;
+      gap: 0.5em;
+      margin-top: 0.3em;
+    }
+    .row input, .row select { margin-top: 0; min-width: 0; }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1.4em;
+    }
+    button:hover { background: #3e9c43; }
+    .result {
+      margin-top: 1.5em;
+      padding: 1em;
+      background: #f7faf7;
+      border: 1px solid #d6e6d6;
+      border-radius: 6px;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.92em;
+      line-height: 1.5;
+      white-space: normal;
+    }
+    .result.error {
+      background: #fdecec;
+      border-color: #f0c4c4;
+      color: #b71c1c;
+    }
+    #plot { margin-top: 1.5em; width: 100%; height: 360px; }
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      #plot { height: 280px; }
+    }
+    .formulas {
+      background: white;
+      padding: 1.5em 2em;
+      max-width: 620px;
+      margin: 1em auto 0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      font-size: 0.93em;
+      color: #333;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .formulas h3 { margin-top: 0; }
+    .formulas ul { padding-left: 1.2em; margin: 0.5em 0; }
+    .formulas li { margin: 0.35em 0; }
+    .formulas code {
+      font-family: "Menlo", "Consolas", monospace;
+      background: #f4f6f8;
+      padding: 0 0.25em;
+      border-radius: 3px;
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 620px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>BCS Gap from T<sub>c</sub></h2>
+    <p class="intro">Given a superconductor's transition temperature T<sub>c</sub>, BCS weak-coupling theory predicts the zero-temperature gap and a handful of derived energy scales universally. Provide the total density of states at the Fermi level N(0) to also obtain the Sommerfeld coefficient, specific-heat jump, condensation-energy density, and thermodynamic critical field.</p>
+
+    <label for="tc-value">Critical temperature T<sub>c</sub>:</label>
+    <div class="row">
+      <input type="number" id="tc-value" step="any" placeholder="e.g. 1.2">
+      <select id="tc-unit">
+        <option value="K" selected>K</option>
+        <option value="mK">mK</option>
+        <option value="uK">&mu;K</option>
+      </select>
+    </div>
+
+    <label for="ratio">2&Delta;(0) / (k<sub>B</sub> T<sub>c</sub>):</label>
+    <input type="number" id="ratio" step="any" value="3.528">
+    <small>Weak-coupling BCS = 3.528. Strong-coupling examples: Nb 3.84, Pb 4.3, Hg 4.6.</small>
+
+    <label for="dos">Optional: density of states at E<sub>F</sub>, N(0):</label>
+    <div class="row">
+      <input type="number" id="dos" step="any" placeholder="leave blank to skip">
+      <select id="dos-unit">
+        <option value="m3" selected>states/(eV&middot;m&sup3;)</option>
+        <option value="cm3">states/(eV&middot;cm&sup3;)</option>
+        <option value="nm3">states/(eV&middot;nm&sup3;)</option>
+      </select>
+    </div>
+    <small>Total DOS at the Fermi energy, both spins included.</small>
+
+    <button onclick="compute()">Compute</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+    <div id="plot"></div>
+  </div>
+
+  <div class="formulas">
+    <h3>Formulas</h3>
+    <p>Let <code>R &equiv; 2&Delta;(0)/(k<sub>B</sub> T<sub>c</sub>)</code> be the coupling-strength ratio (BCS weak-coupling: <code>R = 3.528</code>).</p>
+    <p><b>Universal predictions (from T<sub>c</sub> and R only):</b></p>
+    <ul>
+      <li>Zero-temperature gap: <code>&Delta;(0) = (R/2) k<sub>B</sub> T<sub>c</sub></code>; pair-breaking gap <code>2&Delta;(0) = R k<sub>B</sub> T<sub>c</sub></code>.</li>
+      <li>Pair-breaking photon frequency: <code>&nu;<sub>pb</sub> = 2&Delta;(0)/h</code>.</li>
+      <li>Pair-breaking photon wavelength: <code>&lambda;<sub>pb</sub> = h c / 2&Delta;(0)</code>.</li>
+      <li>Gap-equivalent temperature: <code>T<sub>gap</sub> = 2&Delta;(0)/k<sub>B</sub> = R T<sub>c</sub></code>.</li>
+      <li>Universal specific-heat jump ratio: <code>&Delta;C / (&gamma; T<sub>c</sub>) = 1.43</code>.</li>
+      <li>Sheahen approximation for the gap vs temperature: <code>&Delta;(T)/&Delta;(0) &asymp; tanh[1.74 &middot; &radic;((T<sub>c</sub>&minus;T)/T)]</code> for <code>T &lt; T<sub>c</sub></code>.</li>
+    </ul>
+    <p><b>With N(0) provided:</b></p>
+    <ul>
+      <li>Sommerfeld coefficient per unit volume: <code>&gamma;<sub>V</sub> = (&pi;&sup2;/3) k<sub>B</sub>&sup2; N(0)</code>.</li>
+      <li>Specific-heat jump at T<sub>c</sub> per unit volume: <code>&Delta;C(T<sub>c</sub>) = 1.43 &middot; &gamma;<sub>V</sub> T<sub>c</sub></code>.</li>
+      <li>Condensation-energy density: <code>U<sub>cond</sub> = (1/2) N(0) &Delta;(0)&sup2;</code>.</li>
+      <li>Thermodynamic critical field: <code>B<sub>c</sub>(0) = &radic;(2&mu;<sub>0</sub> U<sub>cond</sub>) = &Delta;(0) &middot; &radic;(&mu;<sub>0</sub> N(0))</code>.</li>
+    </ul>
+    <p style="margin-bottom:0;">Constants (CODATA): <code>h = 6.62607015&times;10<sup>&minus;34</sup> J&middot;s</code>, <code>c = 2.99792458&times;10<sup>8</sup> m/s</code>, <code>k<sub>B</sub> = 1.380649&times;10<sup>&minus;23</sup> J/K</code>, <code>q<sub>e</sub> = 1.602176634&times;10<sup>&minus;19</sup> C</code>, <code>&mu;<sub>0</sub> = 1.25663706212&times;10<sup>&minus;6</sup> N/A&sup2;</code>.</p>
+  </div>
+
+  <div class="card"><a href="index.html">Back</a></div>
+
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script>
+    const h    = 6.62607015e-34;
+    const c    = 2.99792458e8;
+    const kB   = 1.380649e-23;
+    const eV_J = 1.602176634e-19;
+    const mu0  = 1.25663706212e-6;
+
+    const tcUnitFactor = { K: 1, mK: 1e-3, uK: 1e-6 };
+    const dosUnitFactor = { m3: 1, cm3: 1e6, nm3: 1e27 }; // → states/(eV·m³)
+
+    function fmt(x, digits) { return Number.isFinite(x) ? x.toExponential(digits ?? 6) : '—'; }
+
+    function gapRatio(t) {
+      if (t >= 1) return 0;
+      if (t <= 0) return 1;
+      return Math.tanh(1.74 * Math.sqrt((1 - t) / t));
+    }
+
+    function compute() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.classList.remove('error');
+
+      const tcRaw = parseFloat(document.getElementById('tc-value').value);
+      const tcUnit = document.getElementById('tc-unit').value;
+      const ratio = parseFloat(document.getElementById('ratio').value);
+      const dosRaw = document.getElementById('dos').value.trim();
+      const dosUnit = document.getElementById('dos-unit').value;
+
+      if (!Number.isFinite(tcRaw) || tcRaw <= 0) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'Enter a positive critical temperature.';
+        Plotly.purge('plot');
+        return;
+      }
+      if (!Number.isFinite(ratio) || ratio <= 0) {
+        resultDiv.classList.add('error');
+        resultDiv.textContent = 'Enter a positive 2Δ/(k_B T_c) ratio.';
+        Plotly.purge('plot');
+        return;
+      }
+
+      const Tc = tcRaw * tcUnitFactor[tcUnit];
+      const twoDelta = ratio * kB * Tc;      // J
+      const Delta = twoDelta / 2;            // J
+      const nu_pb = twoDelta / h;            // Hz
+      const lambda_pb = h * c / twoDelta;    // m
+      const T_gap = twoDelta / kB;           // K
+
+      const Delta_eV  = Delta / eV_J;
+      const twoDelta_eV = twoDelta / eV_J;
+
+      let universal = '';
+      universal += '<h4>Universal predictions</h4>';
+      universal += `&Delta;(0) = ${fmt(Delta)} J = ${fmt(Delta_eV)} eV = ${(Delta_eV * 1e3).toFixed(4)} meV = ${(Delta_eV * 1e6).toFixed(2)} &mu;eV<br>`;
+      universal += `2&Delta;(0) = ${fmt(twoDelta)} J = ${fmt(twoDelta_eV)} eV = ${(twoDelta_eV * 1e3).toFixed(4)} meV = ${(twoDelta_eV * 1e6).toFixed(2)} &mu;eV<br>`;
+      universal += `Pair-breaking frequency &nu;<sub>pb</sub> = 2&Delta;/h = ${fmt(nu_pb)} Hz = ${(nu_pb / 1e9).toFixed(4)} GHz = ${(nu_pb / 1e12).toFixed(4)} THz<br>`;
+      universal += `Pair-breaking wavelength &lambda;<sub>pb</sub> = hc/2&Delta; = ${fmt(lambda_pb)} m = ${(lambda_pb * 1e6).toFixed(4)} &mu;m<br>`;
+      universal += `Gap-equivalent temperature T<sub>gap</sub> = 2&Delta;/k<sub>B</sub> = ${fmt(T_gap)} K<br>`;
+      universal += `Specific-heat jump ratio: &Delta;C / (&gamma; T<sub>c</sub>) = 1.43 (universal BCS, no N(0) required)`;
+
+      let thermo = '';
+      if (dosRaw !== '') {
+        const dosVal = parseFloat(dosRaw);
+        if (!Number.isFinite(dosVal) || dosVal <= 0) {
+          resultDiv.classList.add('error');
+          resultDiv.textContent = 'N(0) must be positive (or leave blank to skip).';
+          Plotly.purge('plot');
+          return;
+        }
+        const N0_eVm3 = dosVal * dosUnitFactor[dosUnit];      // states/(eV·m³)
+        const N0_SI = N0_eVm3 / eV_J;                          // states/(J·m³)
+
+        const gamma_V = (Math.PI ** 2 / 3) * kB * kB * N0_SI;  // J/(K²·m³)
+        const dC_Tc  = 1.43 * gamma_V * Tc;                    // J/(K·m³)
+        const U_cond = 0.5 * N0_SI * Delta * Delta;            // J/m³
+        const Bc_0   = Math.sqrt(2 * mu0 * U_cond);            // T
+
+        thermo += '<h4>With N(0) provided</h4>';
+        thermo += `N(0) = ${fmt(N0_SI)} states/(J&middot;m&sup3;) = ${fmt(N0_eVm3)} states/(eV&middot;m&sup3;)<br>`;
+        thermo += `Sommerfeld coefficient &gamma;<sub>V</sub> = ${fmt(gamma_V)} J&middot;K<sup>&minus;2</sup>&middot;m<sup>&minus;3</sup> = ${fmt(gamma_V * 1e-6)} J&middot;K<sup>&minus;2</sup>&middot;cm<sup>&minus;3</sup><br>`;
+        thermo += `Specific-heat jump &Delta;C(T<sub>c</sub>) = 1.43 &gamma;<sub>V</sub> T<sub>c</sub> = ${fmt(dC_Tc)} J&middot;K<sup>&minus;1</sup>&middot;m<sup>&minus;3</sup><br>`;
+        thermo += `Condensation-energy density U<sub>cond</sub> = (1/2) N(0) &Delta;(0)&sup2; = ${fmt(U_cond)} J/m&sup3;<br>`;
+        thermo += `Thermodynamic critical field B<sub>c</sub>(0) = ${fmt(Bc_0)} T = ${(Bc_0 * 1e3).toFixed(4)} mT = ${(Bc_0 * 1e4).toFixed(2)} G`;
+      }
+
+      resultDiv.innerHTML = universal + (thermo ? '<br><br>' + thermo : '');
+
+      drawGapPlot(Tc, Delta);
+    }
+
+    function drawGapPlot(Tc, Delta0_J) {
+      const N = 200;
+      const t = [], delta = [];
+      t.push(0); delta.push(1);
+      for (let i = 1; i < N; i++) {
+        const ti = i / N;
+        t.push(ti);
+        delta.push(gapRatio(ti));
+      }
+      t.push(1); delta.push(0);
+
+      const T_abs = t.map(x => x * Tc);
+      const Delta_ueV = delta.map(d => d * Delta0_J / eV_J * 1e6);
+
+      const trace1 = {
+        x: t, y: delta,
+        mode: 'lines',
+        name: 'Δ(T)/Δ(0)',
+        line: { color: '#1565c0', width: 2.5 },
+        hovertemplate: 'T/T_c = %{x:.3f}<br>Δ/Δ(0) = %{y:.3f}<extra></extra>',
+      };
+
+      const layout = {
+        title: {
+          text: `BCS gap vs temperature   (T_c = ${Tc.toPrecision(4)} K,  Δ(0) = ${(Delta0_J / eV_J * 1e6).toPrecision(4)} μeV)`,
+          font: { size: 13 },
+        },
+        xaxis: {
+          title: 'T / T_c',
+          range: [0, 1.05],
+          gridcolor: '#eee',
+          zeroline: false,
+        },
+        yaxis: {
+          title: 'Δ(T) / Δ(0)',
+          range: [0, 1.05],
+          gridcolor: '#eee',
+          zeroline: false,
+        },
+        margin: { l: 60, r: 20, t: 50, b: 50 },
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff',
+        showlegend: false,
+      };
+
+      Plotly.newPlot('plot', [trace1], layout, { responsive: true, displaylogo: false });
+    }
+  </script>
+</body>
+</html>
