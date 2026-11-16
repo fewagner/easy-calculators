@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Pulse Tubes and Dilution Refrigerators Cool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #222;
+    }
+    .container {
+      background: white;
+      padding: 2em;
+      max-width: 720px;
+      width: 100%;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      line-height: 1.6;
+    }
+    h1 { margin-top: 0; text-align: center; font-size: 1.6em; }
+    h2 { color: #1565c0; margin-top: 1.8em; border-bottom: 1px solid #e3e8ef; padding-bottom: 0.2em; }
+    ul, ol { padding-left: 1.4em; }
+    li { margin: 0.35em 0; }
+    ol ul { list-style: disc; margin-top: 0.3em; }
+
+    /* ---- Animated figures (adapted from the supplied widgets) ---- */
+    .figure {
+      --p: #0b0b0b;      /* primary text  */
+      --s: #52514e;      /* secondary text */
+      --t: #898781;      /* muted / strokes */
+      --b: rgba(11,11,11,0.2);
+      background: #fcfcfb;
+      border: 1px solid #e3e3e3;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 1.2em 0;
+    }
+    .figure svg { display: block; width: 100%; height: auto; }
+    .figure .th { font-size: 14px; fill: var(--p); font-weight: 600; }
+    .figure .ts { font-size: 12px; fill: var(--s); }
+    .figure .leader { stroke: var(--t); stroke-width: 0.5; stroke-dasharray: 4 3; fill: none; }
+    .figure g.c-gray > rect { fill: #f1efe8; stroke: #5f5e5a; }
+    .figure .c-gray > .th { fill: #444441; }
+    .figure .c-gray > .ts { fill: #5f5e5a; }
+    .figure .controls { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
+    .figure .controls .spacer { flex: 1; }
+    .figure .controls button {
+      padding: 6px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+      color: var(--p);
+      border: 1px solid var(--b);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .figure .controls button:hover { background: #f0f4f8; }
+    .figure .pill { width: 10px; height: 10px; border-radius: 50%; background: var(--b); display: inline-block; }
+    .figure .pill.on { background: var(--p); }
+    .figure .cap { font-size: 14px; line-height: 1.6; color: var(--s); margin: 4px 0 0; min-height: 48px; }
+    .figure .legend { font-size: 12px; color: var(--t); margin-top: 6px; }
+
+    @keyframes dash { to { stroke-dashoffset: -24; } }
+    @keyframes sink { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(22px); opacity: .2; } }
+    @keyframes rise { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
+    .figure .flow { stroke-dasharray: 6 6; }
+    @media (prefers-reduced-motion: no-preference) {
+      .figure .flow { animation: dash .8s linear infinite; }
+      .figure .dot  { animation: sink 1.4s ease-in infinite; }
+      .figure .ev   { animation: rise 1.2s ease-out infinite; }
+    }
+    .figure .fx { transition: opacity .5s; }
+    #pt-slug { transition: transform 1.2s ease-in-out, fill 1.2s; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 600px) {
+      body { margin: 0.5em; }
+      .container { padding: 1em; }
+      .figure { padding: 6px; }
+    }
+    .card {
+      background: white;
+      padding: 1.5em;
+      margin: 1em;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 720px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card a { text-decoration: none; font-size: 1.2em; color: #0077cc; }
+    .card a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>How pulse tubes and dilution refrigerators cool</h1>
+
+    <p>Both machines use the same trick. A substance gets cold when it expands or evaporates, and gets hot when it is compressed. The machine arranges things so the cold part of the cycle happens next to your plate, and the hot part happens where the heat can be thrown away.</p>
+
+    <h2>Pulse tube</h2>
+
+    <p><b>Two everyday effects carry the whole idea:</b></p>
+    <ul>
+      <li>Compressing a gas heats it. A bike pump gets warm when you use it.</li>
+      <li>Letting a gas expand cools it. A spray can gets cold when you spray.</li>
+    </ul>
+    <p>The pulse tube compresses the gas while it sits at the warm end and lets it expand while it sits at the cold end.</p>
+
+    <p><b>Two helpers make this work:</b></p>
+    <ul>
+      <li>The <b>regenerator</b> is a heat sponge. Gas passing through it on the way down leaves its heat in the sponge. Gas passing on the way back up takes that heat back. So the gas arrives at the cold end already cold, and leaves warm again.</li>
+      <li>The <b>gas inside the tube</b> acts as a piston made of gas. It slides up and down but never leaves the tube. The orifice and buffer set the timing so that this piston is pushed toward the warm end while it is hot, and back toward the cold end while it is cold.</li>
+    </ul>
+
+    <!-- Pulse tube cycle animation -->
+    <div class="figure" id="pt-fig">
+      <h3 class="sr-only">Four-step animation of a pulse tube cooler cycle: compression, heat rejection at the warm end, expansion, and heat absorption at the cold end.</h3>
+      <svg viewBox="0 0 680 390" role="img"><title>Pulse tube cooler cycle</title><desc>Compressor and valve feed a regenerator, which connects at the cold end to a pulse tube; the warm end of the tube connects through an orifice to a buffer volume. A gas slug in the tube moves and changes temperature through four steps.</desc>
+        <defs>
+          <marker id="pt-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></marker>
+          <linearGradient id="pt-rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8593C" stop-opacity=".45"></stop><stop offset="100%" stop-color="#378ADD" stop-opacity=".45"></stop></linearGradient>
+        </defs>
+        <g class="c-gray"><rect x="40" y="24" width="200" height="52" rx="8" stroke-width="0.5"></rect>
+          <text class="th" x="140" y="42" text-anchor="middle" dominant-baseline="central">Compressor + valve</text>
+          <text class="ts" id="pt-pres" x="140" y="62" text-anchor="middle" dominant-baseline="central">High pressure</text></g>
+        <path d="M160 76V110" stroke="var(--t)" stroke-width="3" fill="none"></path>
+        <rect x="135" y="110" width="50" height="190" fill="url(#pt-rg)" stroke="var(--t)" stroke-width="1"></rect>
+        <g stroke="var(--t)" stroke-width="0.5" opacity=".35">
+          <line x1="135" y1="135" x2="185" y2="135"></line><line x1="135" y1="160" x2="185" y2="160"></line><line x1="135" y1="185" x2="185" y2="185"></line><line x1="135" y1="210" x2="185" y2="210"></line><line x1="135" y1="235" x2="185" y2="235"></line><line x1="135" y1="260" x2="185" y2="260"></line><line x1="135" y1="285" x2="185" y2="285"></line></g>
+        <text class="th" x="30" y="196">Regenerator</text>
+        <text class="ts" x="30" y="214">heat store</text>
+        <rect x="135" y="300" width="250" height="30" fill="#378ADD" fill-opacity=".15" stroke="var(--t)" stroke-width="1"></rect>
+        <rect x="115" y="336" width="290" height="10" rx="2" fill="var(--t)" opacity=".45"></rect>
+        <text class="ts" x="260" y="372" text-anchor="middle">Cold heat exchanger on the plate (e.g. 4K flange)</text>
+        <rect x="335" y="110" width="50" height="190" fill="none" stroke="var(--t)" stroke-width="1"></rect>
+        <text class="th" x="410" y="230">Pulse tube</text>
+        <text class="ts" x="410" y="248">gas column = piston</text>
+        <rect id="pt-slug" x="339" y="0" width="42" height="60" rx="4" fill="#888780" fill-opacity=".7" style="transform:translateY(236px)"></rect>
+        <rect x="325" y="94" width="70" height="16" fill="#E8593C" fill-opacity=".25" stroke="var(--t)" stroke-width="1"></rect>
+        <text class="ts" x="360" y="34" text-anchor="middle">Warm end (cooling water)</text>
+        <path d="M395 102H480" stroke="var(--t)" stroke-width="3" fill="none"></path>
+        <polygon points="430,93 444,93 437,99" fill="var(--t)"></polygon><polygon points="430,111 444,111 437,105" fill="var(--t)"></polygon>
+        <text class="ts" x="437" y="128" text-anchor="middle">Orifice</text>
+        <rect x="480" y="70" width="150" height="64" rx="10" fill="none" stroke="var(--t)" stroke-width="1"></rect>
+        <text class="th" x="555" y="102" text-anchor="middle" dominant-baseline="central">Buffer volume</text>
+        <line id="pt-rDown" class="fx flow" x1="208" y1="130" x2="208" y2="282" stroke="#378ADD" stroke-width="2" marker-end="url(#pt-arrow)" opacity="0"></line>
+        <line id="pt-rUp" class="fx flow" x1="208" y1="282" x2="208" y2="130" stroke="#378ADD" stroke-width="2" marker-end="url(#pt-arrow)" opacity="0"></line>
+        <line id="pt-oR" class="fx flow" x1="402" y1="82" x2="470" y2="82" stroke="#888780" stroke-width="2" marker-end="url(#pt-arrow)" opacity="0"></line>
+        <line id="pt-oL" class="fx flow" x1="470" y1="82" x2="402" y2="82" stroke="#888780" stroke-width="2" marker-end="url(#pt-arrow)" opacity="0"></line>
+        <line id="pt-hOut" class="fx" x1="360" y1="90" x2="360" y2="46" stroke="#E24B4A" stroke-width="2.5" marker-end="url(#pt-arrow)" opacity="0"></line>
+        <g id="pt-hIn" class="fx" opacity="0" stroke="#E24B4A" stroke-width="2.5">
+          <line x1="200" y1="344" x2="200" y2="308" marker-end="url(#pt-arrow)"></line><line x1="260" y1="344" x2="260" y2="308" marker-end="url(#pt-arrow)"></line><line x1="320" y1="344" x2="320" y2="308" marker-end="url(#pt-arrow)"></line></g>
+      </svg>
+      <div class="controls">
+        <span class="pill"></span><span class="pill"></span><span class="pill"></span><span class="pill"></span>
+        <span class="spacer"></span>
+        <button type="button" data-act="prev" aria-label="Previous step">&larr; Prev</button>
+        <button type="button" data-act="toggle" aria-label="Play or pause">Pause</button>
+        <button type="button" data-act="next" aria-label="Next step">Next &rarr;</button>
+      </div>
+      <p class="cap"></p>
+      <div class="legend">Red arrows = heat flow, blue/gray dashes = gas flow, slug color = gas temperature</div>
+    </div>
+
+    <p><b>The four steps:</b></p>
+    <ol>
+      <li><b>Squeeze.</b> The valve opens to high pressure. Fresh gas goes through the sponge, gives up its heat there, and pushes the gas piston up toward the warm end. The gas in the tube is compressed, so it heats up, like the bike pump.</li>
+      <li><b>Throw heat away.</b> The top of the gas piston is now hotter than the cooling water, so heat flows into the water. That gas is back at room temperature but still under pressure.</li>
+      <li><b>Expand.</b> The valve switches to low pressure. All the gas expands and cools, like the spray can. The gas piston slides back down, and the gas at the bottom becomes colder than your plate.</li>
+      <li><b>Take heat from the plate.</b> Heat flows from the plate into this colder gas. On its way back to the compressor, the gas collects the heat it left in the sponge in step 1. That leaves the sponge cold again for the next cycle.</li>
+    </ol>
+    <p><b>Net result:</b> each cycle carries a small amount of heat from the plate up to the cooling water. One cycle takes about a second. The 2nd stage runs the same cycle again, starting from the temperature the 1st stage reached.</p>
+
+    <h2>Dilution refrigerator</h2>
+
+    <p><b>The core idea is evaporative cooling,</b> like sweat cooling your skin. The difference is that the ³He does not evaporate into a gas. It &ldquo;evaporates&rdquo; from one liquid into another liquid.</p>
+
+    <p>Below about 0.87 K, the mixture in the mixing chamber separates into two layers, like oil and water:</p>
+    <ul>
+      <li><b>Top layer:</b> almost pure liquid ³He. This plays the role of the liquid.</li>
+      <li><b>Bottom layer:</b> a small amount of ³He dissolved in ⁴He. The ⁴He is superfluid and acts like empty space for the ³He, so the ³He atoms there behave much like a gas. This layer plays the role of the vapor.</li>
+    </ul>
+    <p>When a ³He atom moves from the top layer into the bottom layer, it needs energy, just as a water molecule does when it evaporates. It takes that energy from its surroundings, which cools them.</p>
+    <p><b>Why it still works near zero kelvin:</b> ordinary evaporation dies out at low temperature, because the vapor pressure drops to nothing. Here, even at absolute zero, the bottom layer can still hold about 6.6% ³He, so there is always room for more ³He to &ldquo;evaporate&rdquo; into.</p>
+
+    <!-- Dilution refrigerator cycle animation -->
+    <div class="figure" id="dr-fig">
+      <h3 class="sr-only">Four-step animation of the helium-3 circulation loop in a dilution refrigerator: condensing, precooling, dilution in the mixing chamber, and evaporation at the still.</h3>
+      <svg viewBox="0 0 680 450" role="img"><title>Dilution refrigerator circulation</title><desc>A room-temperature pump returns helium-3 through the 4K plate, down past the still and heat exchangers into the mixing chamber. Helium-3 crosses the phase boundary, rises through the dilute phase to the still, evaporates, and is pumped back.</desc>
+        <defs><marker id="dr-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></marker></defs>
+        <g class="c-gray"><rect x="40" y="20" width="180" height="50" rx="8" stroke-width="0.5"></rect>
+          <text class="th" x="130" y="37" text-anchor="middle" dominant-baseline="central">Room-temp pump</text>
+          <text class="ts" x="130" y="56" text-anchor="middle" dominant-baseline="central">+ gas handling</text></g>
+        <rect x="100" y="96" width="420" height="10" rx="2" fill="var(--t)" opacity=".35"></rect>
+        <text class="ts" x="530" y="105">4K plate (PT)</text>
+        <path d="M130 70V240H260V332" stroke="var(--t)" stroke-width="3" fill="none" opacity=".5"></path>
+        <path d="M300 380V210" stroke="var(--t)" stroke-width="3" fill="none" opacity=".5"></path>
+        <path d="M300 150V45H222" stroke="var(--t)" stroke-width="3" fill="none" opacity=".5"></path>
+        <rect x="230" y="150" width="140" height="60" rx="6" fill="none" stroke="var(--t)" stroke-width="1"></rect>
+        <rect x="231" y="180" width="138" height="29" fill="#378ADD" fill-opacity=".3"></rect>
+        <rect x="200" y="320" width="200" height="80" rx="8" fill="none" stroke="var(--t)" stroke-width="1"></rect>
+        <rect x="201" y="321" width="198" height="25" fill="#D85A30" fill-opacity=".3"></rect>
+        <rect x="201" y="346" width="198" height="53" fill="#378ADD" fill-opacity=".3"></rect>
+        <line x1="201" y1="346" x2="399" y2="346" stroke="var(--t)" stroke-width="1" stroke-dasharray="4 3"></line>
+        <line class="leader" x1="370" y1="180" x2="436" y2="180"></line><text class="th" x="440" y="178">Still</text><text class="ts" x="440" y="196">~0.8 K, heated, ³He evaporates</text>
+        <line class="leader" x1="304" y1="270" x2="436" y2="270"></line><text class="th" x="440" y="268">Heat exchangers</text><text class="ts" x="440" y="286">in vs. out stream, cold plate</text>
+        <line class="leader" x1="400" y1="333" x2="436" y2="333"></line><text class="ts" x="440" y="337">³He-rich phase</text>
+        <text class="th" x="440" y="362">Mixing chamber, ~10 mK</text>
+        <line class="leader" x1="400" y1="385" x2="436" y2="385"></line><text class="ts" x="440" y="389">Dilute phase (~6.6% ³He in ⁴He)</text>
+        <path id="dr-in1" class="fx flow" d="M130 72V112" stroke="#D85A30" stroke-width="3" fill="none" marker-end="url(#dr-arrow)" opacity="0"></path>
+        <g id="dr-drops" class="fx" opacity="0" fill="#D85A30"><circle cx="146" cy="118" r="4"></circle><circle cx="146" cy="132" r="3"></circle><circle cx="146" cy="144" r="2.5"></circle></g>
+        <path id="dr-in2" class="fx flow" d="M130 110V240H260V330" stroke="#D85A30" stroke-width="3" fill="none" marker-end="url(#dr-arrow)" opacity="0"></path>
+        <g id="dr-cross" class="fx" opacity="0" fill="#D85A30"><circle class="dot" cx="225" cy="336" r="4"></circle><circle class="dot" cx="350" cy="334" r="4" style="animation-delay:.5s"></circle><circle class="dot" cx="380" cy="337" r="4" style="animation-delay:.9s"></circle></g>
+        <g id="dr-heat" class="fx" opacity="0" stroke="#E24B4A" stroke-width="2.5"><line x1="240" y1="436" x2="240" y2="406" marker-end="url(#dr-arrow)"></line><line x1="300" y1="436" x2="300" y2="406" marker-end="url(#dr-arrow)"></line><line x1="360" y1="436" x2="360" y2="406" marker-end="url(#dr-arrow)"></line></g>
+        <text id="dr-heatL" class="ts fx" x="40" y="425" opacity="0">Heat from sample</text>
+        <path id="dr-up" class="fx flow" d="M300 378V214" stroke="#378ADD" stroke-width="3" fill="none" marker-end="url(#dr-arrow)" opacity="0"></path>
+        <path id="dr-pump" class="fx flow" d="M300 150V45H226" stroke="#D85A30" stroke-width="3" fill="none" marker-end="url(#dr-arrow)" opacity="0"></path>
+        <g id="dr-evap" class="fx" opacity="0" fill="#D85A30"><circle class="ev" cx="255" cy="174" r="3"></circle><circle class="ev" cx="275" cy="176" r="3" style="animation-delay:.4s"></circle><circle class="ev" cx="330" cy="174" r="3" style="animation-delay:.2s"></circle><circle class="ev" cx="350" cy="176" r="3" style="animation-delay:.7s"></circle></g>
+      </svg>
+      <div class="controls">
+        <span class="pill"></span><span class="pill"></span><span class="pill"></span><span class="pill"></span>
+        <span class="spacer"></span>
+        <button type="button" data-act="prev" aria-label="Previous step">&larr; Prev</button>
+        <button type="button" data-act="toggle" aria-label="Play or pause">Pause</button>
+        <button type="button" data-act="next" aria-label="Next step">Next &rarr;</button>
+      </div>
+      <p class="cap"></p>
+      <div class="legend">Orange = ³He-rich stream, blue = dilute phase, red arrows = heat flow</div>
+    </div>
+
+    <p><b>The four steps:</b></p>
+    <ol>
+      <li><b>Return and liquefy.</b> The pump at room temperature sends ³He gas back into the fridge. On the way down it is cooled by the pulse tube stages at the 50K and 4K plates. Because it is under pressure, it turns into a liquid, like the gas in a lighter.</li>
+      <li><b>Precool.</b> The liquid flows down past the still and through the heat exchangers. Its pipe runs alongside the pipe of cold mixture going up, and passes its heat to it. By the time it reaches the mixing chamber, it is almost as cold as the mixing chamber.</li>
+      <li><b>Evaporate into the other liquid (this is where the cooling happens).</b> In the mixing chamber, ³He atoms cross from the top layer into the bottom layer. Each crossing takes a little heat out of the mixing chamber and your sample.</li>
+      <li><b>Remove the ³He again (the still).</b> If nothing else happened, the bottom layer would fill up with ³He and the cooling would stop, like sweat on skin in humid air. So the ³He has to be taken out of the bottom layer:
+        <ul>
+          <li>The bottom layer extends up a tube into the still. The still sits at about 0.8 K, and a small heater warms it.</li>
+          <li>At that temperature, ³He evaporates far more easily than ⁴He, so almost only ³He boils off. The pump takes it away.</li>
+          <li>The bottom layer in the still now has less ³He than the bottom layer in the mixing chamber. This difference pulls more ³He up from the mixing chamber, much like a straw pulls up liquid.</li>
+          <li>The pumped gas goes back to step 1.</li>
+        </ul>
+      </li>
+    </ol>
+    <p><b>In one sentence:</b> the mixing chamber is where the ³He evaporates, the still is the fan that keeps clearing it away, and the pump and pulse tube recycle it.</p>
+  </div>
+
+  <div class="card">
+    <a href="index.html">Back</a>
+  </div>
+
+  <script>
+    // Step-through player shared by both figures. Each figure has four steps;
+    // a step lists which overlay elements are visible and the caption to show.
+    function makeStepper(figId, steps, overlayIds, periodMs, onShow) {
+      const fig = document.getElementById(figId);
+      const pills = fig.querySelectorAll('.pill');
+      const cap = fig.querySelector('.cap');
+      const toggleBtn = fig.querySelector('[data-act="toggle"]');
+      let i = 0, running = true, timer = null;
+
+      function show() {
+        const s = steps[i];
+        overlayIds.forEach(id => document.getElementById(id).setAttribute('opacity', s.on.includes(id) ? 1 : 0));
+        cap.textContent = s.t;
+        pills.forEach((p, k) => p.classList.toggle('on', k === i));
+        if (onShow) onShow(s);
+      }
+      function go(d) { i = (i + d + steps.length) % steps.length; show(); }
+      function loop() { clearInterval(timer); if (running) timer = setInterval(() => go(1), periodMs); }
+
+      fig.querySelector('[data-act="prev"]').addEventListener('click', () => { go(-1); loop(); });
+      fig.querySelector('[data-act="next"]').addEventListener('click', () => { go(1); loop(); });
+      toggleBtn.addEventListener('click', () => {
+        running = !running;
+        toggleBtn.textContent = running ? 'Pause' : 'Play';
+        loop();
+      });
+      show();
+      loop();
+    }
+
+    // Pulse tube cooler
+    makeStepper('pt-fig', [
+      {p: 'High pressure in', on: ['pt-rDown'], y: 114, c: '#E8593C',
+       t: '1 · Compress: high-pressure gas flows down through the regenerator, arriving pre-cooled, and pushes the gas column up the tube. Being compressed, that gas heats up.'},
+      {p: 'High pressure', on: ['pt-oR', 'pt-hOut'], y: 114, c: '#EF9F27',
+       t: '2 · Reject heat: the hot gas at the top gives its heat to the warm heat exchanger (cooling water) and part of it leaks through the orifice into the buffer.'},
+      {p: 'Low pressure', on: ['pt-oL'], y: 236, c: '#378ADD',
+       t: '3 · Expand: the valve switches to low pressure. The gas column expands and moves down, and the gas at the cold end gets colder than the plate.'},
+      {p: 'Low pressure out', on: ['pt-rUp', 'pt-hIn'], y: 236, c: '#85B7EB',
+       t: '4 · Absorb heat: the cold gas takes heat from the plate, re-warms in the regenerator on its way back to the compressor. Net result: heat moved from the cold end to the warm end.'}
+    ], ['pt-rDown', 'pt-rUp', 'pt-oR', 'pt-oL', 'pt-hOut', 'pt-hIn'], 3200, s => {
+      document.getElementById('pt-pres').textContent = s.p;
+      const slug = document.getElementById('pt-slug');
+      slug.style.transform = 'translateY(' + s.y + 'px)';
+      slug.setAttribute('fill', s.c);
+    });
+
+    // Dilution refrigerator
+    makeStepper('dr-fig', [
+      {on: ['dr-in1', 'dr-drops'],
+       t: '1 · Return and condense: the pump pushes ³He gas back into the fridge under pressure. The pulse tube precools it to ~3 K at the 4K plate, and a flow impedance lets it liquefy.'},
+      {on: ['dr-in2'],
+       t: '2 · Precool: the liquid ³He flows down past the still and through the heat exchangers, where the cold outgoing stream takes its heat away.'},
+      {on: ['dr-cross', 'dr-heat', 'dr-heatL'],
+       t: '3 · Dilute: in the mixing chamber, ³He atoms cross the phase boundary from the ³He-rich phase into the dilute phase. Like evaporation, this absorbs heat from the chamber and your sample.'},
+      {on: ['dr-up', 'dr-pump', 'dr-evap'],
+       t: '4 · Evaporate: ³He diffuses up through the dilute phase to the still. The heated still (~0.8 K) evaporates almost only ³He, which the pump removes, and the loop starts again.'}
+    ], ['dr-in1', 'dr-drops', 'dr-in2', 'dr-cross', 'dr-heat', 'dr-heatL', 'dr-up', 'dr-pump', 'dr-evap'], 3500);
+  </script>
+</body>
+</html>
